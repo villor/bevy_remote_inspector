@@ -1,18 +1,18 @@
 {
   "$schema": "https://schema.tauri.app/config/2.0.0-rc",
-  "productName": "bevy_remote_inspector",
+  "productName": "bevy_remote_inspector_ui",
   "version": "0.1.0",
-  "identifier": "com.bevy_remote_inspector.app",
+  "identifier": "com.bevy_remote_inspector_ui.app",
   "build": {
-    "beforeDevCommand": "bun run dev",
+    "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "bun run build",
+    "beforeBuildCommand": "pnpm build",
     "frontendDist": "../dist"
   },
   "app": {
     "windows": [
       {
-        "title": "bevy_remote_inspector",
+        "title": "bevy_remote_inspector_ui",
         "width": 800,
         "height": 600
       }

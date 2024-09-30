@@ -1,11 +1,147 @@
-use bevy::prelude::*;
+mod component;
+mod entity;
+mod stream;
+mod type_registry;
+
+use bevy::{
+    ecs::{component::ComponentId, entity::EntityHashMap},
+    prelude::*,
+    remote::BrpResult,
+    utils::{HashMap, HashSet},
+};
+use component::InspectorComponentInfo;
+use entity::EntityMutation;
+use serde::{ser::SerializeMap, Serialize};
+use serde_json::Value;
+use stream::{BrpStreamClientId, RemoteStreamHandlersBuilder, StreamHandlerInput};
+use type_registry::ZeroSizedTypes;
 
 pub struct BevyRemoteInspectorPlugin;
 
 impl Plugin for BevyRemoteInspectorPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, || {
-            println!("Hello, world!");
-        });
+        app.add_plugins(
+            stream::RemoteStreamPlugin::default()
+                .with_port(3000)
+                .with_method(
+                    "inspector/stream",
+                    RemoteStreamHandlersBuilder::new(stream)
+                        .on_disconnect(on_disconnect)
+                        .on_connect(on_connect),
+                ),
+        )
+        .init_resource::<TrackedDatas>();
+    }
+}
+
+fn stream(
+    In((client_id, _)): StreamHandlerInput,
+    world: &mut World,
+    mut events: Local<Vec<InspectorEvent>>,
+    mut zsts: Local<ZeroSizedTypes>,
+) -> Option<BrpResult> {
+    world.resource_scope(|world, mut tracked: Mut<TrackedDatas>| {
+        let tracked = tracked.entry(client_id).or_default();
+        let type_registry = world.resource::<AppTypeRegistry>().read();
+        tracked.track_type_registry(&mut events, &type_registry, &mut zsts);
+        // let new_tables = world
+        //     .archetypes()
+        //     .iter()
+        //     .filter(|archetype| !tracked.tables.contains(&archetype.table_id().as_usize()))
+        //     .map(|archetype| archetype.table_id().as_usize())
+        //     .collect::<Vec<_>>();
+
+        // if !new_tables.is_empty() {
+        //     tracked.tables.extend_from_slice(new_tables.as_slice());
+        //     events.push(StreamEvent::NewTables { tables: new_tables });
+        // }
+
+        tracked.track_components(&mut events, world, &type_registry);
+        tracked.track_entities(&mut events, world, &type_registry, &zsts);
+    });
+
+    if events.is_empty() {
+        return None;
+    }
+
+    let serialized = serde_json::to_value(&*events).unwrap();
+
+    events.clear();
+
+    Some(BrpResult::Ok(serialized))
+}
+
+fn on_disconnect(
+    In((client_id, _)): StreamHandlerInput,
+    mut tracked: ResMut<TrackedDatas>,
+) -> Option<BrpResult> {
+    tracked.remove(&client_id);
+    info!("Client {client_id:?} disconnected");
+    None
+}
+
+fn on_connect(In((client_id, _)): StreamHandlerInput) -> Option<BrpResult> {
+    info!("Client {client_id:?} connected");
+    None
+}
+
+#[derive(Default)]
+struct TrackedData {
+    type_registry: bool,
+    components: HashSet<ComponentId>,
+    entities: EntityHashMap<HashSet<ComponentId>>,
+    resources: HashSet<ComponentId>,
+    tables: Vec<usize>,
+}
+
+#[derive(Resource, Default, Deref, DerefMut)]
+struct TrackedDatas(HashMap<BrpStreamClientId, TrackedData>);
+
+#[derive(Serialize)]
+#[serde(rename_all(serialize = "snake_case"))]
+#[serde(tag = "kind")]
+enum InspectorEvent {
+    TypeRegistry {
+        types: Vec<Value>,
+    },
+    Component {
+        components: Vec<InspectorComponentInfo>,
+    },
+    Entity {
+        entity: Entity,
+        mutation: EntityMutation,
+    },
+    NewTables {
+        tables: Vec<usize>,
+    },
+}
+
+enum MutationResult<T: Serialize> {
+    Ok(T),
+    Err(String),
+}
+
+impl<T: Serialize> Serialize for MutationResult<T> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut s = serializer.serialize_map(Some(1))?;
+
+        match self {
+            MutationResult::Ok(value) => s.serialize_entry("value", &value)?,
+            MutationResult::Err(error) => s.serialize_entry("error", error)?,
+        };
+
+        s.end()
+    }
+}
+
+impl<T: Serialize> From<anyhow::Result<T>> for MutationResult<T> {
+    fn from(result: anyhow::Result<T>) -> Self {
+        match result {
+            Ok(value) => MutationResult::Ok(value),
+            Err(error) => MutationResult::Err(error.to_string()),
+        }
     }
 }

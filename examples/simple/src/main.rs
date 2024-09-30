@@ -1,9 +1,6 @@
 //! A Bevy app that you can connect to with the BRP and edit.
 
-use bevy::{
-    prelude::*,
-    remote::{BrpResult, RemotePlugin},
-};
+use bevy::{prelude::*, remote::RemotePlugin};
 use bevy_remote_inspector::BevyRemoteInspectorPlugin;
 use serde::{Deserialize, Serialize};
 
@@ -14,6 +11,9 @@ fn main() {
         .add_systems(Startup, setup)
         .add_systems(Update, rotate)
         .register_type::<Cube>()
+        // .observe(|trigger: Trigger<OnInsert>| {
+        //     println!("OnAdd: {:?}", trigger);
+        // })
         .run();
 }
 

@@ -80,7 +80,7 @@ impl Plugin for RemoteStreamPlugin {
 #[derive(Debug, Clone)]
 pub struct RemoteStreamHandlers {
     pub on_connect: Option<StreamHandler>,
-    pub on_disconnect: Option<StreamHandler>,
+    pub on_disconnect: Option<SystemId<StreamHandlerInput>>,
     pub on_update: StreamHandler,
 }
 
@@ -90,7 +90,7 @@ pub type StreamHandlerInput = In<(StreamClientId, Option<Value>)>;
 #[derive(Debug)]
 pub struct RemoteStreamHandlersBuilder {
     on_connect: Option<Box<dyn System<In = StreamHandlerInput, Out = Option<BrpResult>>>>,
-    on_disconnect: Option<Box<dyn System<In = StreamHandlerInput, Out = Option<BrpResult>>>>,
+    on_disconnect: Option<Box<dyn System<In = StreamHandlerInput, Out = ()>>>,
     update: Box<dyn System<In = StreamHandlerInput, Out = Option<BrpResult>>>,
 }
 
@@ -111,10 +111,7 @@ impl RemoteStreamHandlersBuilder {
         self
     }
 
-    pub fn on_disconnect<M>(
-        mut self,
-        system: impl IntoSystem<StreamHandlerInput, Option<BrpResult>, M>,
-    ) -> Self {
+    pub fn on_disconnect<M>(mut self, system: impl IntoSystem<StreamHandlerInput, (), M>) -> Self {
         self.on_disconnect = Some(Box::new(IntoSystem::into_system(system)));
         self
     }
@@ -164,7 +161,7 @@ pub struct ActiveStreams(HashMap<StreamClientId, ActiveStream>);
 pub struct ActiveStream {
     message: BrpMessage,
     on_update: StreamHandler,
-    on_disconnect: Option<StreamHandler>,
+    on_disconnect: Option<SystemId<StreamHandlerInput>>,
 }
 
 #[derive(
@@ -219,11 +216,9 @@ fn process_remote_requests(world: &mut World) {
 
                     if let Some(stream) = stream {
                         if let Some(on_disconnect) = stream.on_disconnect {
-                            let _ = run_handler(
-                                world,
+                            let _ = world.run_system_with_input(
                                 on_disconnect,
-                                stream.message,
-                                stream_message.client_id,
+                                (stream_message.client_id, stream.message.params),
                             );
                         }
                     }

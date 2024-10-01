@@ -74,13 +74,9 @@ fn stream(
     Some(BrpResult::Ok(serialized))
 }
 
-fn on_disconnect(
-    In((client_id, _)): StreamHandlerInput,
-    mut tracked: ResMut<TrackedDatas>,
-) -> Option<BrpResult> {
+fn on_disconnect(In((client_id, _)): StreamHandlerInput, mut tracked: ResMut<TrackedDatas>) {
     tracked.remove(&client_id);
     info!("Client {client_id:?} disconnected");
-    None
 }
 
 fn on_connect(In((client_id, _)): StreamHandlerInput) -> Option<BrpResult> {

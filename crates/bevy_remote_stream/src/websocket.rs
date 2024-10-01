@@ -13,11 +13,11 @@ use http_body_util::Full;
 use hyper::{
     body::{Bytes, Incoming},
     header::{
-        HeaderName, ACCESS_CONTROL_ALLOW_HEADERS, ACCESS_CONTROL_ALLOW_METHODS,
+        ACCESS_CONTROL_ALLOW_METHODS,
         ACCESS_CONTROL_ALLOW_ORIGIN, ACCESS_CONTROL_MAX_AGE, ORIGIN,
     },
     server::conn::http1,
-    service, HeaderMap, Method, Request, Response,
+    service, Method, Request, Response,
 };
 use hyper_tungstenite::{HyperWebsocket, HyperWebsocketStream};
 use serde_json::Value;

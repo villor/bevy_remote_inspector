@@ -12,8 +12,12 @@ use futures_util::{
 use http_body_util::Full;
 use hyper::{
     body::{Bytes, Incoming},
+    header::{
+        HeaderName, ACCESS_CONTROL_ALLOW_HEADERS, ACCESS_CONTROL_ALLOW_METHODS,
+        ACCESS_CONTROL_ALLOW_ORIGIN, ACCESS_CONTROL_MAX_AGE, ORIGIN,
+    },
     server::conn::http1,
-    service, Request, Response,
+    service, HeaderMap, Method, Request, Response,
 };
 use hyper_tungstenite::{HyperWebsocket, HyperWebsocketStream};
 use serde_json::Value;
@@ -141,8 +145,22 @@ async fn process_request(
     request_sender: &Sender<StreamMessage>,
     client_id: StreamClientId,
 ) -> anyhow::Result<Response<Full<Bytes>>> {
+    let origin = request.headers().get(ORIGIN).unwrap();
+    if request.method() == Method::OPTIONS {
+        let response = Response::builder()
+            .status(200)
+            .header(ACCESS_CONTROL_ALLOW_METHODS, "*")
+            .header(ACCESS_CONTROL_ALLOW_ORIGIN, origin)
+            .header(ACCESS_CONTROL_MAX_AGE, "86400")
+            .body(Full::new(Bytes::new()))
+            .unwrap();
+
+        return Ok(response);
+    }
+
     if hyper_tungstenite::is_upgrade_request(&request) {
         let (response, websocket) = hyper_tungstenite::upgrade(&mut request, None)?;
+
         let body = match validate_websocket_request(&request) {
             Ok(body) => body,
             Err(err) => {
@@ -168,13 +186,19 @@ async fn process_request(
         return Ok(response);
     }
 
-    let response = serde_json::to_string(&BrpError {
+    let response_body = serde_json::to_string(&BrpError {
         code: error_codes::INVALID_REQUEST,
         message: "Invalid request".into(),
         data: None,
     })?;
 
-    return Ok(Response::new(Full::new(response.into_bytes().into())));
+    let response = Response::builder()
+        .status(400)
+        .header(ACCESS_CONTROL_ALLOW_ORIGIN, origin)
+        .body(Full::new(response_body.into_bytes().into()))
+        .unwrap();
+
+    return Ok(response);
 }
 
 async fn process_websocket_stream(

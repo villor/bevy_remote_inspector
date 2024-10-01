@@ -1,19 +1,23 @@
 //! A Bevy app that you can connect to with the BRP and edit.
 
 use bevy::{prelude::*, remote::RemotePlugin};
-use bevy_remote_inspector::BevyRemoteInspectorPlugin;
+use bevy_remote_inspector::{
+    remote_stream::{websocket::RemoteStreamWebSocket, RemoteStreamPlugin},
+    RemoteInspectorPlugin,
+};
 use serde::{Deserialize, Serialize};
-
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_plugins((RemotePlugin::default(), BevyRemoteInspectorPlugin))
+        .add_plugins((
+            RemotePlugin::default(),
+            RemoteStreamPlugin::default(),
+            RemoteStreamWebSocket::default(),
+            RemoteInspectorPlugin,
+        ))
         .add_systems(Startup, setup)
         .add_systems(Update, rotate)
         .register_type::<Cube>()
-        // .observe(|trigger: Trigger<OnInsert>| {
-        //     println!("OnAdd: {:?}", trigger);
-        // })
         .run();
 }
 

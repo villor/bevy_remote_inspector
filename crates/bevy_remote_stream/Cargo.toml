@@ -4,3 +4,27 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+bevy.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+anyhow = "1"
+hyper = { version = "1", features = ["server", "http1"], optional = true }
+http-body-util = { version = "0.1", optional = true }
+urlencoding = { version = "2", optional = true }
+futures-util = { version = "0.3", default-features = false }
+smol = { version = "2", optional = true }
+smol-hyper = { version = "0.1", optional = true }
+tungstenite = { version = "0.24", optional = true }
+hyper-tungstenite = { version = "0.15", optional = true }
+
+[features]
+default = ["websocket"]
+websocket = [
+    "dep:hyper",
+    "dep:http-body-util",
+    "dep:urlencoding",
+    "dep:smol",
+    "dep:smol-hyper",
+    "dep:tungstenite",
+    "dep:hyper-tungstenite",
+]

@@ -1,6 +1,5 @@
 mod component;
 mod entity;
-mod stream;
 mod type_registry;
 
 use bevy::{
@@ -9,28 +8,32 @@ use bevy::{
     remote::BrpResult,
     utils::{HashMap, HashSet},
 };
+use bevy_remote_stream::{RemoteStreamHandlers, StreamClientId, StreamHandlerInput, StreamMethods};
 use component::InspectorComponentInfo;
 use entity::EntityMutation;
 use serde::{ser::SerializeMap, Serialize};
 use serde_json::Value;
-use stream::{BrpStreamClientId, RemoteStreamHandlersBuilder, StreamHandlerInput};
 use type_registry::ZeroSizedTypes;
+pub mod remote_stream {
+    pub use bevy_remote_stream::*;
+}
 
-pub struct BevyRemoteInspectorPlugin;
+pub struct RemoteInspectorPlugin;
 
-impl Plugin for BevyRemoteInspectorPlugin {
+impl Plugin for RemoteInspectorPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(
-            stream::RemoteStreamPlugin::default()
-                .with_port(3000)
-                .with_method(
-                    "inspector/stream",
-                    RemoteStreamHandlersBuilder::new(stream)
-                        .on_disconnect(on_disconnect)
-                        .on_connect(on_connect),
-                ),
-        )
-        .init_resource::<TrackedDatas>();
+        let update = app.world_mut().register_system(stream);
+        let on_connect = app.world_mut().register_system(on_connect);
+        let on_disconnect = app.world_mut().register_system(on_disconnect);
+        app.world_mut().resource_mut::<StreamMethods>().insert(
+            "inspector/stream",
+            RemoteStreamHandlers {
+                on_update: update,
+                on_disconnect: Some(on_disconnect),
+                on_connect: Some(on_connect),
+            },
+        );
+        app.init_resource::<TrackedDatas>();
     }
 }
 
@@ -95,7 +98,7 @@ struct TrackedData {
 }
 
 #[derive(Resource, Default, Deref, DerefMut)]
-struct TrackedDatas(HashMap<BrpStreamClientId, TrackedData>);
+struct TrackedDatas(HashMap<StreamClientId, TrackedData>);
 
 #[derive(Serialize)]
 #[serde(rename_all(serialize = "snake_case"))]

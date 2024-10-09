@@ -5,6 +5,7 @@ resolver = "2"
 [workspace.dependencies]
 bevy = { version = "0.15.0-dev", git = "https://github.com/bevyengine/bevy.git", default-features = false, features = [
     "bevy_remote",
+    "serialize",
 ] }
 serde = "1.0.210"
 serde_json = "1.0.128"

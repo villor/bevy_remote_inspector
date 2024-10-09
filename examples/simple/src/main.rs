@@ -1,23 +1,33 @@
 //! A Bevy app that you can connect to with the BRP and edit.
 
-use bevy::{prelude::*, remote::RemotePlugin};
+use bevy::{input::common_conditions::input_just_pressed, prelude::*, remote::RemotePlugin};
 use bevy_remote_inspector::{
-    remote_stream::{websocket::RemoteStreamWebSocket, RemoteStreamPlugin},
+    remote_stream::{websocket::RemoteStreamWebSocketPlugin, RemoteStreamPlugin},
     RemoteInspectorPlugin,
 };
 use serde::{Deserialize, Serialize};
+
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins((
             RemotePlugin::default(),
             RemoteStreamPlugin::default(),
-            RemoteStreamWebSocket::default(),
+            RemoteStreamWebSocketPlugin::default(),
             RemoteInspectorPlugin,
         ))
         .add_systems(Startup, setup)
-        .add_systems(Update, rotate)
+        .add_systems(
+            Update,
+            (
+                rotate,
+                add_cube_children.run_if(input_just_pressed(KeyCode::KeyA)),
+                remove_cube_children.run_if(input_just_pressed(KeyCode::KeyS)),
+            ),
+        )
         .register_type::<Cube>()
+        .register_type::<CubeChild>()
+        .register_type::<Test>()
         .run();
 }
 
@@ -27,39 +37,38 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     // circular base
-    commands.spawn(PbrBundle {
-        mesh: meshes.add(Circle::new(4.0)),
-        material: materials.add(Color::WHITE),
-        transform: Transform::from_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
-        ..default()
-    });
-
-    // cube
     commands.spawn((
-        PbrBundle {
-            mesh: meshes.add(Cuboid::new(1.0, 1.0, 1.0)),
-            material: materials.add(Color::srgb_u8(124, 144, 255)),
-            transform: Transform::from_xyz(0.0, 0.5, 0.0),
-            ..default()
-        },
-        Cube(1.0),
+        Mesh3d(meshes.add(Circle::new(4.0))),
+        MeshMaterial3d(materials.add(Color::WHITE)),
+        Transform::from_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
     ));
 
+    // cube
+    commands
+        .spawn((
+            Mesh3d(meshes.add(Cuboid::new(1.0, 1.0, 1.0))),
+            MeshMaterial3d(materials.add(Color::srgb_u8(124, 144, 255))),
+            Transform::from_xyz(0.0, 0.5, 0.0),
+            Cube(1.0),
+        ))
+        .with_children(|parent| {
+            parent.spawn((CubeChild, Name::new("CubeChild")));
+        });
+
     // light
-    commands.spawn(PointLightBundle {
-        point_light: PointLight {
+    commands.spawn((
+        PointLight {
             shadows_enabled: true,
             ..default()
         },
-        transform: Transform::from_xyz(4.0, 8.0, 4.0),
-        ..default()
-    });
+        Transform::from_xyz(4.0, 8.0, 4.0),
+    ));
 
     // camera
-    commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(-2.5, 4.5, 9.0).looking_at(Vec3::ZERO, Vec3::Y),
-        ..default()
-    });
+    commands.spawn((
+        Camera3d::default(),
+        Transform::from_xyz(-2.5, 4.5, 9.0).looking_at(Vec3::ZERO, Vec3::Y),
+    ));
 }
 
 fn rotate(mut query: Query<&mut Transform, With<Cube>>, time: Res<Time>) {
@@ -68,16 +77,26 @@ fn rotate(mut query: Query<&mut Transform, With<Cube>>, time: Res<Time>) {
     }
 }
 
-// fn stream_handler(
-//     In(_params): In<Option<Value>>,
-//     cube_query: Query<&Transform, (With<Cube>, Changed<Transform>)>,
-// ) -> Option<BrpResult> {
-//     // cube_query
-//     //     .get_single()
-//     //     .ok()
-//     //     .map(|transform| BrpResult::Ok(serde_json::json!({"rotation": transform.rotation})))
-// }
+fn add_cube_children(mut commands: Commands, query: Query<Entity, With<Cube>>) {
+    commands.entity(query.single()).with_children(|parent| {
+        parent.spawn((CubeChild, Name::new("CubeChild")));
+    });
+}
+
+fn remove_cube_children(mut commands: Commands, query: Query<Entity, With<Cube>>) {
+    for entity in query.iter() {
+        commands.entity(entity).despawn_descendants();
+    }
+}
 
 #[derive(Component, Reflect, Serialize, Deserialize)]
 #[reflect(Component, Serialize, Deserialize)]
 struct Cube(f32);
+
+#[derive(Component, Reflect, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
+struct CubeChild;
+
+#[derive(Component, Reflect, Serialize, Clone, Copy, Deserialize)]
+#[reflect(Component)]
+struct Test(usize);

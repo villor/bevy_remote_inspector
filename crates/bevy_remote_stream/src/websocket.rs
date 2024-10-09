@@ -13,8 +13,8 @@ use http_body_util::Full;
 use hyper::{
     body::{Bytes, Incoming},
     header::{
-        ACCESS_CONTROL_ALLOW_METHODS,
-        ACCESS_CONTROL_ALLOW_ORIGIN, ACCESS_CONTROL_MAX_AGE, ORIGIN,
+        HeaderValue, ACCESS_CONTROL_ALLOW_METHODS, ACCESS_CONTROL_ALLOW_ORIGIN,
+        ACCESS_CONTROL_MAX_AGE, ORIGIN,
     },
     server::conn::http1,
     service, Method, Request, Response,
@@ -31,18 +31,17 @@ use tungstenite::Message;
 use crate::{StreamClientId, StreamMessage, StreamMessageKind, StreamSender};
 
 /// The default port that the WebSocket server will listen on.
-///
 pub const DEFAULT_PORT: u16 = 3000;
 
-/// The default host address that Bevy will use for its server.
+/// The default host address that WebSocket server will use.
 pub const DEFAULT_ADDR: IpAddr = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
 /// Add this plugin to your [`App`] to allow remote connections to inspect and modify entities.
 ///
 /// The defaults are:
 /// - [`DEFAULT_ADDR`] : 127.0.0.1.
-/// - [`DEFAULT_PORT`] : 15702.
+/// - [`DEFAULT_PORT`] : 3000.
 ///
-pub struct RemoteStreamWebSocket {
+pub struct RemoteStreamWebSocketPlugin {
     /// The address that the WebSocket server will use.
     address: IpAddr,
 
@@ -50,7 +49,7 @@ pub struct RemoteStreamWebSocket {
     port: u16,
 }
 
-impl RemoteStreamWebSocket {
+impl RemoteStreamWebSocketPlugin {
     /// Set the IP address that the server will use.
     #[must_use]
     pub fn with_address(mut self, address: impl Into<IpAddr>) -> Self {
@@ -66,7 +65,7 @@ impl RemoteStreamWebSocket {
     }
 }
 
-impl Default for RemoteStreamWebSocket {
+impl Default for RemoteStreamWebSocketPlugin {
     fn default() -> Self {
         Self {
             address: DEFAULT_ADDR,
@@ -75,7 +74,7 @@ impl Default for RemoteStreamWebSocket {
     }
 }
 
-impl Plugin for RemoteStreamWebSocket {
+impl Plugin for RemoteStreamWebSocketPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(HostAddress(self.address))
             .insert_resource(HostPort(self.port))
@@ -145,15 +144,16 @@ async fn process_request(
     request_sender: &Sender<StreamMessage>,
     client_id: StreamClientId,
 ) -> anyhow::Result<Response<Full<Bytes>>> {
-    let origin = request.headers().get(ORIGIN).unwrap();
+    let default_origin = HeaderValue::from_static("");
+    let origin = request.headers().get(ORIGIN).unwrap_or(&default_origin);
+
     if request.method() == Method::OPTIONS {
         let response = Response::builder()
             .status(200)
             .header(ACCESS_CONTROL_ALLOW_METHODS, "*")
             .header(ACCESS_CONTROL_ALLOW_ORIGIN, origin)
             .header(ACCESS_CONTROL_MAX_AGE, "86400")
-            .body(Full::new(Bytes::new()))
-            .unwrap();
+            .body(Full::new(Bytes::new()))?;
 
         return Ok(response);
     }
@@ -211,7 +211,7 @@ async fn process_websocket_stream(
 
     let (write_stream, read_stream) = ws.split();
 
-    let (result_sender, result_receiver) = channel::bounded(1);
+    let (result_sender, result_receiver) = channel::bounded(32);
 
     let id = request.id.clone();
 

@@ -164,11 +164,9 @@ pub struct ActiveStream {
     on_disconnect: Option<SystemId<StreamHandlerInput>>,
 }
 
-#[derive(
-    Deref, DerefMut, Default, Clone, Copy, Hash, PartialEq, Eq, Debug, Serialize, Deserialize,
-)]
-
+#[derive(Default, Clone, Copy, Hash, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub struct StreamClientId(usize);
+
 fn setup_channel(mut commands: Commands) {
     let (sender, receiver) = channel::bounded(CHANNEL_SIZE);
     commands.insert_resource(StreamSender(sender));

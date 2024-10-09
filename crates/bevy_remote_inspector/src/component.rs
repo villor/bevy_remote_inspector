@@ -33,15 +33,15 @@ impl TrackedData {
 
 #[derive(Serialize)]
 pub struct InspectorComponentInfo {
+    id: usize,
     name: String,
     reflected: bool,
-    serializeable: bool,
+    serializable: bool,
 }
 
 impl InspectorComponentInfo {
     pub fn new(component_info: &ComponentInfo, type_registry: &TypeRegistry) -> Self {
-        let (reflected, serializeable) = match type_registry.get(component_info.type_id().unwrap())
-        {
+        let (reflected, serializable) = match type_registry.get(component_info.type_id().unwrap()) {
             Some(type_registration) => {
                 let serializeable = type_registration.data::<ReflectSerialize>().is_some();
 
@@ -51,9 +51,10 @@ impl InspectorComponentInfo {
         };
 
         Self {
+            id: component_info.id().index(),
             name: component_info.name().into(),
             reflected,
-            serializeable,
+            serializable,
         }
     }
 }
@@ -64,7 +65,7 @@ pub fn serialize_component(
     type_registry: &TypeRegistry,
     component_info: &ComponentInfo,
 ) -> Option<Value> {
-    let component_ptr = entity_ref.get_by_id(component_id)?;
+    let component_ptr = entity_ref.get_by_id(component_id).ok()?;
     let type_id = component_info.type_id()?;
 
     let reflect_from_ptr = type_registry.get_type_data::<ReflectFromPtr>(type_id)?;
@@ -79,5 +80,7 @@ pub fn serialize_component(
 
     let serializer = TypedReflectSerializer::new(reflect.as_partial_reflect(), &type_registry);
 
-    serde_json::to_value(serializer).ok()
+    let ret = serde_json::to_value(serializer).ok();
+
+    ret
 }

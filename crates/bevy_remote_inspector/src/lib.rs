@@ -8,11 +8,13 @@ use bevy::{
     remote::BrpResult,
     utils::{HashMap, HashSet},
 };
-use bevy_remote_stream::{RemoteStreamHandlers, StreamClientId, StreamHandlerInput, StreamMethods};
+use bevy_remote_stream::{
+    OnDataHandlerInput, RemoteStreamHandlers, StreamClientId, StreamHandlerInputRef, StreamMethods,
+};
 use component::InspectorComponentInfo;
 use entity::EntityMutation;
 use serde::Serialize;
-use serde_json::Value;
+use serde_json::{json, Value};
 use type_registry::ZeroSizedTypes;
 pub mod remote_stream {
     pub use bevy_remote_stream::*;
@@ -25,12 +27,14 @@ impl Plugin for RemoteInspectorPlugin {
         let update = app.main_mut().world_mut().register_system(stream);
         let on_connect = app.main_mut().world_mut().register_system(on_connect);
         let on_disconnect = app.main_mut().world_mut().register_system(on_disconnect);
+        let on_data = app.main_mut().world_mut().register_system(on_data);
         app.world_mut().resource_mut::<StreamMethods>().insert(
             "inspector/stream",
             RemoteStreamHandlers {
-                on_update: update,
+                update,
                 on_disconnect: Some(on_disconnect),
                 on_connect: Some(on_connect),
+                on_data: Some(on_data),
             },
         );
         app.init_resource::<TrackedDatas>();
@@ -38,13 +42,13 @@ impl Plugin for RemoteInspectorPlugin {
 }
 
 fn stream(
-    In((client_id, _)): StreamHandlerInput,
+    InRef(input): StreamHandlerInputRef,
     world: &mut World,
     mut events: Local<Vec<InspectorEvent>>,
     mut zsts: Local<ZeroSizedTypes>,
 ) -> Option<BrpResult> {
     world.resource_scope(|world, mut tracked: Mut<TrackedDatas>| {
-        let tracked = tracked.entry(client_id).or_default();
+        let tracked = tracked.entry(input.client_id).or_default();
         let type_registry = world.resource::<AppTypeRegistry>().read();
         tracked.track_type_registry(&mut events, &type_registry, &mut zsts);
         // let new_tables = world
@@ -74,13 +78,17 @@ fn stream(
     Some(BrpResult::Ok(serialized))
 }
 
-fn on_disconnect(In((client_id, _)): StreamHandlerInput, mut tracked: ResMut<TrackedDatas>) {
-    tracked.remove(&client_id);
-    info!("Client {client_id:?} disconnected");
+fn on_data(In((client_id, req)): OnDataHandlerInput) -> Option<BrpResult> {
+    return Some(BrpResult::Ok(json!("pong")));
 }
 
-fn on_connect(In((client_id, _)): StreamHandlerInput) -> Option<BrpResult> {
-    info!("Client {client_id:?} connected");
+fn on_disconnect(InRef(input): StreamHandlerInputRef, mut tracked: ResMut<TrackedDatas>) {
+    tracked.remove(&input.client_id);
+    info!("Client {:?} disconnected", input.client_id);
+}
+
+fn on_connect(InRef(input): StreamHandlerInputRef) -> Option<BrpResult> {
+    info!("Client {:?} connected", input.client_id);
     None
 }
 

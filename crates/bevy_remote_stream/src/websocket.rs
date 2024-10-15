@@ -2,7 +2,7 @@ use std::net::{IpAddr, Ipv4Addr, TcpListener, TcpStream};
 
 use bevy::{
     prelude::*,
-    remote::{error_codes, BrpError, BrpMessage, BrpRequest, BrpResponse, BrpResult},
+    remote::{error_codes, BrpError, BrpRequest, BrpResponse},
     tasks::IoTaskPool,
 };
 use futures_util::{
@@ -28,7 +28,7 @@ use smol::{
 use smol_hyper::rt::{FuturesIo, SmolTimer};
 use tungstenite::Message;
 
-use crate::{StreamClientId, StreamMessage, StreamMessageKind, StreamSender};
+use crate::{BrpStreamMessage, StreamClientId, StreamMessage, StreamMessageKind, StreamSender};
 
 /// The default port that the WebSocket server will listen on.
 pub const DEFAULT_PORT: u16 = 3000;
@@ -213,10 +213,8 @@ async fn process_websocket_stream(
 
     let (result_sender, result_receiver) = channel::bounded(32);
 
-    let id = request.id.clone();
-
     IoTaskPool::get()
-        .spawn(send_stream_response(write_stream, result_receiver, id))
+        .spawn(send_stream_response(write_stream, result_receiver))
         .detach();
 
     send_stream_message(
@@ -268,22 +266,34 @@ async fn send_stream_message(
     mut stream: SplitStream<HyperWebsocketStream>,
     sender: Sender<StreamMessage>,
     request: BrpRequest,
-    result_sender: Sender<BrpResult>,
+    result_sender: Sender<BrpResponse>,
     client_id: StreamClientId,
 ) -> anyhow::Result<()> {
     let _ = sender
         .send(StreamMessage {
             client_id,
-            kind: StreamMessageKind::Connect(BrpMessage {
-                method: request.method,
-                params: request.params,
-                sender: result_sender,
-            }),
+            kind: StreamMessageKind::Connect(
+                request.id,
+                BrpStreamMessage {
+                    method: request.method,
+                    params: request.params,
+                    sender: result_sender,
+                },
+            ),
         })
         .await?;
     while let Some(message) = stream.next().await {
         match message {
-            Ok(Message::Close(_)) | Err(_) => break,
+            Ok(Message::Text(text)) => {
+                let msg = serde_json::from_str::<Value>(&text)?;
+                let _ = sender
+                    .send(StreamMessage {
+                        client_id,
+                        kind: StreamMessageKind::Data(msg),
+                    })
+                    .await?;
+            }
+            Ok(Message::Close(_)) | Err(_) => return Ok(()),
             _ => {}
         }
     }
@@ -299,11 +309,10 @@ async fn send_stream_message(
 
 async fn send_stream_response(
     mut stream: SplitSink<HyperWebsocketStream, Message>,
-    result_receiver: Receiver<BrpResult>,
-    id: Option<Value>,
+    result_receiver: Receiver<BrpResponse>,
 ) -> anyhow::Result<()> {
-    while let Ok(result) = result_receiver.recv().await {
-        let response = serde_json::to_string(&BrpResponse::new(id.clone(), result))?;
+    while let Ok(response) = result_receiver.recv().await {
+        let response = serde_json::to_string(&response)?;
         stream.send(Message::text(response)).await?;
     }
 

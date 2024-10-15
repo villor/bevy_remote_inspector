@@ -6,7 +6,7 @@ use std::sync::RwLock;
 use bevy::{
     ecs::system::SystemId,
     prelude::*,
-    remote::{error_codes, BrpError, BrpMessage, BrpResult},
+    remote::{error_codes, BrpError, BrpRequest, BrpResponse, BrpResult},
     utils::HashMap,
 };
 use serde::{Deserialize, Serialize};
@@ -62,10 +62,13 @@ impl Plugin for RemoteStreamPlugin {
                     on_disconnect: systems
                         .on_disconnect
                         .map(|sys| app.main_mut().world_mut().register_boxed_system(sys)),
-                    on_update: app
+                    update: app
                         .main_mut()
                         .world_mut()
                         .register_boxed_system(systems.update),
+                    on_data: systems
+                        .on_data
+                        .map(|sys| app.main_mut().world_mut().register_boxed_system(sys)),
                 },
             );
         }
@@ -80,39 +83,55 @@ impl Plugin for RemoteStreamPlugin {
 
 #[derive(Debug, Clone)]
 pub struct RemoteStreamHandlers {
-    pub on_connect: Option<StreamHandler>,
-    pub on_disconnect: Option<SystemId<StreamHandlerInput>>,
-    pub on_update: StreamHandler,
+    pub on_connect: Option<StreamHandler<'static>>,
+    pub on_disconnect: Option<SystemId<StreamHandlerInputRef<'static>>>,
+    pub on_data: Option<OnDataHandler>,
+    pub update: StreamHandler<'static>,
 }
 
-pub type StreamHandler = SystemId<StreamHandlerInput, Option<BrpResult>>;
-pub type StreamHandlerInput = In<(StreamClientId, Option<Value>)>;
+pub struct StreamHandlerInput {
+    pub client_id: StreamClientId,
+    pub params: Option<Value>,
+}
+
+pub type StreamHandlerInputRef<'a> = InRef<'a, StreamHandlerInput>;
+pub type StreamHandler<'a> = SystemId<StreamHandlerInputRef<'a>, Option<BrpResult>>;
+pub type OnDataHandlerInput = In<(StreamClientId, BrpRequest)>;
+pub type OnDataHandler = SystemId<OnDataHandlerInput, Option<BrpResult>>;
 
 #[derive(Debug)]
 pub struct RemoteStreamHandlersBuilder {
-    on_connect: Option<Box<dyn System<In = StreamHandlerInput, Out = Option<BrpResult>>>>,
-    on_disconnect: Option<Box<dyn System<In = StreamHandlerInput, Out = ()>>>,
-    update: Box<dyn System<In = StreamHandlerInput, Out = Option<BrpResult>>>,
+    on_connect:
+        Option<Box<dyn System<In = StreamHandlerInputRef<'static>, Out = Option<BrpResult>>>>,
+    on_disconnect: Option<Box<dyn System<In = StreamHandlerInputRef<'static>, Out = ()>>>,
+    on_data: Option<Box<dyn System<In = OnDataHandlerInput, Out = Option<BrpResult>>>>,
+    update: Box<dyn System<In = StreamHandlerInputRef<'static>, Out = Option<BrpResult>>>,
 }
 
 impl RemoteStreamHandlersBuilder {
-    pub fn new<M>(on_update: impl IntoSystem<StreamHandlerInput, Option<BrpResult>, M>) -> Self {
+    pub fn new<M>(
+        update: impl IntoSystem<StreamHandlerInputRef<'static>, Option<BrpResult>, M>,
+    ) -> Self {
         Self {
             on_connect: None,
             on_disconnect: None,
-            update: Box::new(IntoSystem::into_system(on_update)),
+            on_data: None,
+            update: Box::new(IntoSystem::into_system(update)),
         }
     }
 
     pub fn on_connect<M>(
         mut self,
-        system: impl IntoSystem<StreamHandlerInput, Option<BrpResult>, M>,
+        system: impl IntoSystem<StreamHandlerInputRef<'static>, Option<BrpResult>, M>,
     ) -> Self {
         self.on_connect = Some(Box::new(IntoSystem::into_system(system)));
         self
     }
 
-    pub fn on_disconnect<M>(mut self, system: impl IntoSystem<StreamHandlerInput, (), M>) -> Self {
+    pub fn on_disconnect<M>(
+        mut self,
+        system: impl IntoSystem<StreamHandlerInputRef<'static>, (), M>,
+    ) -> Self {
         self.on_disconnect = Some(Box::new(IntoSystem::into_system(system)));
         self
     }
@@ -146,18 +165,53 @@ pub struct StreamMessage {
     kind: StreamMessageKind,
 }
 
+#[derive(Clone)]
+pub struct BrpStreamMessage {
+    /// The request method.
+    pub method: String,
+
+    /// The request params.
+    pub params: Option<Value>,
+
+    /// The channel on which the response is to be sent.
+    ///
+    /// The value sent here is serialized and sent back to the client.
+    pub sender: Sender<BrpResponse>,
+}
+
 pub enum StreamMessageKind {
-    Connect(BrpMessage),
+    Connect(Option<Value>, BrpStreamMessage),
     Disconnect,
+    Data(Value),
 }
 
 #[derive(Resource, Deref, DerefMut, Default)]
-pub struct ActiveStreams(HashMap<StreamClientId, ActiveStream>);
+struct ActiveStreams<'a>(HashMap<StreamClientId, ActiveStream<'a>>);
 
-pub struct ActiveStream {
-    message: BrpMessage,
-    on_update: StreamHandler,
-    on_disconnect: Option<SystemId<StreamHandlerInput>>,
+struct ActiveStream<'a> {
+    request_id: Option<Value>,
+    sender: ActiveStreamSender,
+    input: StreamHandlerInput,
+    on_update: StreamHandler<'a>,
+    on_disconnect: Option<SystemId<StreamHandlerInputRef<'a>>>,
+    on_data: Option<OnDataHandler>,
+}
+
+struct ActiveStreamSender(Sender<BrpResponse>);
+
+impl ActiveStreamSender {
+    fn respond(&self, id: Option<Value>, result: BrpResult) -> bool {
+        let res = self.0.force_send(BrpResponse::new(id, result));
+
+        match res {
+            Ok(Some(_)) => {
+                warn!("Channel queue is full, dropping response. Consider increasing the channel size.");
+            }
+            _ => {}
+        }
+
+        return res.is_ok();
+    }
 }
 
 #[derive(Default, Clone, Copy, Hash, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -177,19 +231,27 @@ fn process_remote_requests(world: &mut World) {
     while let Ok(stream_message) = world.resource_mut::<StreamReceiver>().try_recv() {
         world.resource_scope(
             |world, methods: Mut<StreamMethods>| match stream_message.kind {
-                StreamMessageKind::Connect(message) => {
+                StreamMessageKind::Connect(req_id, message) => {
                     let Some(handler) = methods.0.get(&message.method) else {
-                        let _ = message.sender.force_send(Err(BrpError {
-                            code: error_codes::METHOD_NOT_FOUND,
-                            message: format!("Method `{}` not found", message.method),
-                            data: None,
-                        }));
+                        let _ = message.sender.force_send(BrpResponse::new(
+                            req_id,
+                            Err(BrpError {
+                                code: error_codes::METHOD_NOT_FOUND,
+                                message: format!("Method `{}` not found", message.method),
+                                data: None,
+                            }),
+                        ));
                         return;
                     };
 
+                    let input = StreamHandlerInput {
+                        client_id: stream_message.client_id,
+                        params: message.params,
+                    };
+                    let sender = ActiveStreamSender(message.sender);
+
                     if let Some(on_connect) = handler.on_connect {
-                        if run_handler(world, on_connect, message.clone(), stream_message.client_id)
-                        {
+                        if run_handler(world, on_connect, &input, &sender, req_id.as_ref()) {
                             return;
                         }
                     }
@@ -197,9 +259,12 @@ fn process_remote_requests(world: &mut World) {
                     world.resource_mut::<ActiveStreams>().insert(
                         stream_message.client_id,
                         ActiveStream {
-                            message,
-                            on_update: handler.on_update,
+                            request_id: req_id,
+                            input,
+                            sender,
+                            on_update: handler.update,
                             on_disconnect: handler.on_disconnect,
+                            on_data: handler.on_data,
                         },
                     );
                 }
@@ -210,12 +275,67 @@ fn process_remote_requests(world: &mut World) {
 
                     if let Some(stream) = stream {
                         if let Some(on_disconnect) = stream.on_disconnect {
-                            let _ = world.run_system_with_input(
-                                on_disconnect,
-                                (stream_message.client_id, stream.message.params),
-                            );
+                            let _ = world.run_system_with_input(on_disconnect, &stream.input);
                         }
                     }
+                }
+                StreamMessageKind::Data(value) => {
+                    world.resource_scope(|world, active_streams: Mut<ActiveStreams>| {
+                        let stream = active_streams.get(&stream_message.client_id);
+
+                        let Some(stream) = stream else {
+                            return;
+                        };
+
+                        let request: BrpRequest = match serde_json::from_value(value) {
+                            Ok(v) => v,
+                            Err(err) => {
+                                let _ = stream.sender.respond(
+                                    None,
+                                    Err(BrpError {
+                                        code: error_codes::INVALID_REQUEST,
+                                        message: format!("Failed to parse request: {err}"),
+                                        data: None,
+                                    }),
+                                );
+                                return;
+                            }
+                        };
+
+                        let request_id = request.id.clone();
+                        if let Some(on_data) = stream.on_data {
+                            let result = world.run_system_with_input(
+                                on_data,
+                                (stream_message.client_id, request),
+                            );
+
+                            match result {
+                                Ok(result) => {
+                                    let Some(result) = result else {
+                                        return;
+                                    };
+
+                                    if request_id.is_none() {
+                                        return;
+                                    }
+
+                                    let _ = stream.sender.respond(request_id, result);
+                                }
+                                Err(error) => {
+                                    let _ = stream.sender.respond(
+                                        request_id,
+                                        Err(BrpError {
+                                            code: error_codes::INTERNAL_ERROR,
+                                            message: format!(
+                                                "Failed to run method handler: {error}"
+                                            ),
+                                            data: None,
+                                        }),
+                                    );
+                                }
+                            }
+                        }
+                    })
                 }
             },
         );
@@ -225,8 +345,14 @@ fn process_remote_requests(world: &mut World) {
         let to_remove = streams
             .iter()
             .filter_map(|(client_id, stream)| {
-                run_handler(world, stream.on_update, stream.message.clone(), *client_id)
-                    .then_some(*client_id)
+                run_handler(
+                    world,
+                    stream.on_update,
+                    &stream.input,
+                    &stream.sender,
+                    stream.request_id.as_ref(),
+                )
+                .then_some(*client_id)
             })
             .collect::<Vec<_>>();
 
@@ -236,7 +362,7 @@ fn process_remote_requests(world: &mut World) {
     });
 }
 
-fn on_app_exit(mut active_streams: ResMut<ActiveStreams>) {
+fn on_app_exit(mut active_streams: ResMut<ActiveStreams<'static>>) {
     active_streams.clear();
 }
 
@@ -244,29 +370,33 @@ fn on_app_exit(mut active_streams: ResMut<ActiveStreams>) {
 fn run_handler(
     world: &mut World,
     system_id: StreamHandler,
-    message: BrpMessage,
-    client_id: StreamClientId,
+    input: &StreamHandlerInput,
+    sender: &ActiveStreamSender,
+    request_id: Option<&Value>,
 ) -> bool {
-    let result = world.run_system_with_input(system_id, (client_id, message.params));
+    let result = world.run_system_with_input(system_id, &(input));
 
     match result {
         Ok(handler_result) => {
             if let Some(handler_result) = handler_result {
                 let handler_err = handler_result.is_err();
-                let channel_result = message.sender.send_blocking(handler_result);
+                let channel_result = sender.respond(request_id.cloned(), handler_result);
 
                 // Remove when the handler return error or channel closed
-                handler_err || channel_result.is_err()
+                handler_err || !channel_result
             } else {
                 false
             }
         }
         Err(error) => {
-            let _ = message.sender.force_send(Err(BrpError {
-                code: error_codes::INTERNAL_ERROR,
-                message: format!("Failed to run method handler: {error}"),
-                data: None,
-            }));
+            let _ = sender.respond(
+                request_id.cloned(),
+                Err(BrpError {
+                    code: error_codes::INTERNAL_ERROR,
+                    message: format!("Failed to run method handler: {error}"),
+                    data: None,
+                }),
+            );
 
             true
         }

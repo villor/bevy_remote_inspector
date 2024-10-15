@@ -11,7 +11,7 @@ use bevy::{
 use bevy_remote_stream::{RemoteStreamHandlers, StreamClientId, StreamHandlerInput, StreamMethods};
 use component::InspectorComponentInfo;
 use entity::EntityMutation;
-use serde::{ser::SerializeMap, Serialize};
+use serde::Serialize;
 use serde_json::Value;
 use type_registry::ZeroSizedTypes;
 pub mod remote_stream {
@@ -22,9 +22,9 @@ pub struct RemoteInspectorPlugin;
 
 impl Plugin for RemoteInspectorPlugin {
     fn build(&self, app: &mut App) {
-        let update = app.world_mut().register_system(stream);
-        let on_connect = app.world_mut().register_system(on_connect);
-        let on_disconnect = app.world_mut().register_system(on_disconnect);
+        let update = app.main_mut().world_mut().register_system(stream);
+        let on_connect = app.main_mut().world_mut().register_system(on_connect);
+        let on_disconnect = app.main_mut().world_mut().register_system(on_disconnect);
         app.world_mut().resource_mut::<StreamMethods>().insert(
             "inspector/stream",
             RemoteStreamHandlers {
@@ -113,34 +113,4 @@ enum InspectorEvent {
     NewTables {
         tables: Vec<usize>,
     },
-}
-
-enum MutationResult<T: Serialize> {
-    Ok(T),
-    Err(String),
-}
-
-impl<T: Serialize> Serialize for MutationResult<T> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let mut s = serializer.serialize_map(Some(1))?;
-
-        match self {
-            MutationResult::Ok(value) => s.serialize_entry("value", &value)?,
-            MutationResult::Err(error) => s.serialize_entry("error", error)?,
-        };
-
-        s.end()
-    }
-}
-
-impl<T: Serialize> From<anyhow::Result<T>> for MutationResult<T> {
-    fn from(result: anyhow::Result<T>) -> Self {
-        match result {
-            Ok(value) => MutationResult::Ok(value),
-            Err(error) => MutationResult::Err(error.to_string()),
-        }
-    }
 }

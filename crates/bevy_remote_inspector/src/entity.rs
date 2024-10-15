@@ -28,7 +28,7 @@ impl TrackedData {
     ) {
         let removed_entities = self
             .entities
-            .extract_if(|k, _| world.get_entity(*k).is_ok())
+            .extract_if(|k, _| world.get_entity(*k).is_err())
             .map(|entry| InspectorEvent::Entity {
                 entity: entry.0,
                 mutation: EntityMutation::Remove,

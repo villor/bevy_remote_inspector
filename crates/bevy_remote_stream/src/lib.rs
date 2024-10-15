@@ -48,7 +48,7 @@ impl Default for RemoteStreamPlugin {
 
 impl Plugin for RemoteStreamPlugin {
     fn build(&self, app: &mut App) {
-        let mut stream_methods = StreamMethods::new();
+        let mut stream_methods = StreamMethods::default();
 
         let plugin_methods = &mut *self.methods.write().unwrap();
 
@@ -73,7 +73,8 @@ impl Plugin for RemoteStreamPlugin {
         app.insert_resource(stream_methods)
             .init_resource::<ActiveStreams>()
             .add_systems(PreStartup, setup_channel)
-            .add_systems(Update, process_remote_requests);
+            .add_systems(Update, process_remote_requests)
+            .add_systems(Update, on_app_exit.run_if(on_event::<AppExit>));
     }
 }
 
@@ -122,11 +123,6 @@ impl RemoteStreamHandlersBuilder {
 pub struct StreamMethods(HashMap<String, RemoteStreamHandlers>);
 
 impl StreamMethods {
-    /// Creates a new [`RemoteMethods`] resource with no methods registered in it.
-    pub fn new() -> Self {
-        default()
-    }
-
     /// Adds a new method, replacing any existing method with that name.
     ///
     /// If there was an existing method with that name, returns its handler.
@@ -238,6 +234,10 @@ fn process_remote_requests(world: &mut World) {
             streams.remove(&client_id);
         }
     });
+}
+
+fn on_app_exit(mut active_streams: ResMut<ActiveStreams>) {
+    active_streams.clear();
 }
 
 #[must_use]

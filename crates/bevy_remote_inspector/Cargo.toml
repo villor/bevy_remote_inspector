@@ -8,12 +8,3 @@ bevy.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 bevy_remote_stream = { path = "../bevy_remote_stream" }
-anyhow = "1"
-hyper = { version = "1", features = ["server", "http1"] }
-http-body-util = "0.1"
-urlencoding = "2"
-futures-util = { version = "0.3", default-features = false }
-smol = "2"
-smol-hyper = "0.1"
-tungstenite = "0.24"
-hyper-tungstenite = "0.15"

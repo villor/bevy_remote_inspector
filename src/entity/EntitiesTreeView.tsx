@@ -24,16 +24,19 @@ import {
   Checkbox as AriaCheckbox,
 } from 'react-aria-components';
 import { cn } from '@/utils';
+import { Badge } from '@/shared/ui/badge';
+import { bevyTypes } from '@/type-registry/types';
 export function EntitiesTreeView() {
   const entityTrees = useEntityTrees();
   const setInspectingEntity = useStore((state) => state.setInspectingEntity);
-  const hanndleOnAction = (entityId: Key) => {
+  const hanndleOnAction = useCallback((entityId: Key) => {
     setInspectingEntity(entityId as EntityId);
-  };
+  }, []);
 
   const defaultExpandedKeys = useStore(
     useShallow((state) => Array.from(state.entities.keys()))
   );
+
   const inspectingEntity = useStore(
     useShallow((state) => {
       const inspectingEntity = state.inspectingEntity;
@@ -44,6 +47,10 @@ export function EntitiesTreeView() {
   const handleOnSelectionChange = useCallback((keys: any) => {
     setInspectingEntity(Array.from(keys)[0] as EntityId);
   }, []);
+
+  if (entityTrees.length === 0) {
+    return <div className="px-4 py-2">No entities</div>;
+  }
 
   return (
     <ScrollArea style={{ height: '100%', width: '100%' }} className="w-full">
@@ -64,6 +71,8 @@ export function EntitiesTreeView() {
   );
 }
 
+const ignoreEntityNames = [bevyTypes.OBSERVER, bevyTypes.SYSTEM_ID_MARKER];
+
 function renderItem(item: EntityTreeNode) {
   return (
     <TreeItem textValue={String(item.id)} className="w-full">
@@ -75,25 +84,50 @@ function renderItem(item: EntityTreeNode) {
   );
 }
 
-const EntityTreeItemContent = memo(
-  ({
-    item,
-    itemProps,
-  }: {
-    item: EntityTreeNode;
-    itemProps: TreeItemContentRenderProps;
-  }) => {
-    const name = useEntityName(item.id);
-    const { level, hasChildRows, isExpanded, isSelected } = itemProps;
-    const isRoot = level === 1;
-    return (
-      <div
-        className={clsx('gap-y-2 flex', {
-          'pl-10': !isRoot && !hasChildRows,
-          'pr-4': isRoot,
-          'pl-6': isRoot && !hasChildRows,
-        })}
-      >
+const EntityTreeItemContent = ({
+  item,
+  itemProps,
+}: {
+  item: EntityTreeNode;
+  itemProps: TreeItemContentRenderProps;
+}) => {
+  const name = useEntityName(item.id);
+  const isHidden = useStore(
+    useShallow((state) => {
+      const componentIds = Array.from(state.entities.get(item.id)!.keys());
+
+      for (const id of componentIds) {
+        const name = state.components.get(id)?.name;
+        if (name && ignoreEntityNames.includes(name)) {
+          return true;
+        }
+      }
+      return false;
+    })
+  );
+
+  if (isHidden) {
+    return null;
+  }
+
+  const { level, hasChildRows, isExpanded, isSelected } = itemProps;
+  const isRoot = level === 1;
+  const childrenCount = countChildren(item);
+
+  return (
+    <div
+      className={clsx('gap-y-2 flex', {
+        // 'pr-4': isRoot,
+      })}
+      style={
+        !isRoot
+          ? {
+              paddingLeft: `${(level - 1) * (hasChildRows ? 0.75 : 0.75)}rem`,
+            }
+          : {}
+      }
+    >
+      <div className="w-6">
         {hasChildRows && (
           <>
             {/* TODO add back tooltip */}
@@ -102,12 +136,12 @@ const EntityTreeItemContent = memo(
               content: {
                 side: 'top',
                 children: isExpanded ? 'Hide children' : 'Expand children',
-              },
-              tooltip: {
+                },
+                tooltip: {
                 delayDuration: 150,
-              },
-            }}
-        
+                },
+                }}
+                
           > */}
             <AriaButton
               className={cn(
@@ -128,17 +162,39 @@ const EntityTreeItemContent = memo(
             <AriaCheckbox slot="selection" />
           </>
         )}
-        <div className="flex flex-1">
-          <Button
-            asChild
-            size="sm"
-            variant={isSelected ? 'default' : 'ghost'}
-            className={clsx('w-full justify-start py-1 px-1')}
-          >
-            <div>{name}</div>
-          </Button>
-        </div>
       </div>
-    );
+      <div className="flex flex-1">
+        <Button
+          asChild
+          size="sm"
+          variant={isSelected ? 'default' : 'ghost'}
+          className={clsx('w-full justify-start py-1 px-1')}
+        >
+          <div className="flex gap-x-2">
+            <span>{name}</span>
+            {!isExpanded && childrenCount > 0 && (
+              <Badge variant="secondary" className="px-1.5 rounded-full">
+                {childrenCount}
+              </Badge>
+            )}
+          </div>
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+function countChildren(item: EntityTreeNode): number {
+  const q = [...item.children]; // clone to avoid mutate by `.pop()`
+  let count = q.length;
+  while (q.length > 0) {
+    const node = q.pop()!;
+    if (node.children.length === 0) {
+      continue;
+    }
+    count += node.children.length;
+    q.push(...node.children);
   }
-);
+
+  return count;
+}

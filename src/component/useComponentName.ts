@@ -1,6 +1,6 @@
-import { useShallow } from "zustand/react/shallow";
-import { ComponentId } from "./useComponents";
-import { useStore } from "@/store";
+import { useShallow } from 'zustand/react/shallow';
+import { ComponentId } from './useComponents';
+import { useStore } from '@/store';
 
 export function useComponentName(componentId: ComponentId) {
   return useStore(
@@ -8,10 +8,18 @@ export function useComponentName(componentId: ComponentId) {
       const info = state.components.get(componentId);
 
       if (!info) {
-        return;
+        return {
+          name: undefined,
+          short_name: undefined,
+        };
       }
-      // TODO handle short name
-      return info.name;
-    }),
+
+      const registeredInfo = state.registry.get(info.name);
+
+      return {
+        name: info.name,
+        short_name: registeredInfo?.short_name || info.name,
+      };
+    })
   );
 }

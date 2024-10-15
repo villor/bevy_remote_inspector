@@ -52,7 +52,15 @@ fn serialize_type_registry(registry: &TypeRegistry, zsts: &mut ZeroSizedTypes) -
                     if info.field_len() == 0 {
                         zsts.insert(info.type_id(), ());
                     }
-                    serialize_struct(info.iter(), default_value)
+                    let short_name = info.ty().short_path();
+                    let mut serialized = serialize_struct(info.iter(), default_value);
+
+                    serialized
+                        .as_object_mut()
+                        .unwrap()
+                        .insert("short_name".to_string(), json!(short_name));
+
+                    serialized
                 }
                 TypeInfo::TupleStruct(info) => {
                     if info.field_len() == 0 {
@@ -61,62 +69,67 @@ fn serialize_type_registry(registry: &TypeRegistry, zsts: &mut ZeroSizedTypes) -
 
                     let fields = info
                         .iter()
-                        .enumerate()
-                        .map(|field| {
-                            json!({
-                                "name": field.0,
-                                "type": field.1.type_path()
-                            })
-                        })
+                        .map(|field| field.type_path())
                         .collect::<Vec<_>>();
 
+                    let short_name = info.ty().short_path();
+
                     json!({
-                        "kind": "struct",
+                        "kind": "tuple_struct",
                         "fields": fields,
-                        "default": default_value
+                        "default": default_value,
+                        "short_name": short_name
                     })
                 }
                 TypeInfo::Tuple(info) => serialize_tuple(info.iter()),
                 TypeInfo::List(info) => {
                     let item = info.item_ty().path();
                     let capacity: Option<usize> = None;
+                    let short_name = info.ty().short_path();
 
                     json!({
                         "kind": "array",
                         "item": item,
                         "capacity": capacity,
-                        "default": default_value
+                        "default": default_value,
+                        "short_name": short_name
                     })
                 }
                 TypeInfo::Array(info) => {
                     let item = info.item_ty().path();
                     let capacity = info.capacity();
+                    let short_name = info.ty().short_path();
 
                     json!({
                         "kind": "array",
                         "item": item,
                         "capacity": capacity,
-                        "default": default_value
+                        "default": default_value,
+                        "short_name": short_name
                     })
                 }
                 TypeInfo::Map(info) => {
                     let key_type = info.key_ty().path();
                     let value_type = info.value_ty().path();
+                    let short_name = info.ty().short_path();
 
                     json!({
                         "kind": "map",
                         "key": key_type,
                         "value": value_type,
-                        "default": default_value
+                        "default": default_value,
+                        "short_name": short_name
                     })
                 }
                 TypeInfo::Set(infi) => {
                     let item = infi.value_ty().path();
+                    let short_name = infi.ty().short_path();
 
                     json!({
                         "kind": "set",
                         "item": item,
-                        "default": default_value
+                        "default": default_value,
+                        "short_name": short_name
                     })
                 }
                 TypeInfo::Enum(info) => {
@@ -124,22 +137,22 @@ fn serialize_type_registry(registry: &TypeRegistry, zsts: &mut ZeroSizedTypes) -
                         .iter()
                         .map(|variant| {
                             let name = variant.name();
-                            let variant = match variant {
+                            let mut value = match variant {
                                 VariantInfo::Struct(info) => serialize_struct(info.iter(), None),
                                 VariantInfo::Tuple(info) => serialize_tuple(info.iter()),
-                                VariantInfo::Unit(info) => {
-                                    let name = info.name();
+                                VariantInfo::Unit(_) => {
                                     json!({
                                         "kind": "unit",
-                                        "name": name
                                     })
                                 }
                             };
 
-                            json!({
-                                "name": name,
-                                "variant": variant
-                            })
+                            value
+                                .as_object_mut()
+                                .unwrap()
+                                .insert("name".to_string(), json!(name));
+
+                            value
                         })
                         .collect::<Vec<_>>();
 
@@ -148,20 +161,24 @@ fn serialize_type_registry(registry: &TypeRegistry, zsts: &mut ZeroSizedTypes) -
                     }
 
                     let name = info.type_path();
+                    let short_name = info.ty().short_path();
 
                     json!({
                         "kind": "enum",
                         "name": name,
                         "variants": variants,
-                        "default": default_value
+                        "default": default_value,
+                        "short_name": short_name
                     })
                 }
                 TypeInfo::Opaque(info) => {
                     let name = info.type_path();
+                    let short_name = info.ty().short_path();
                     json!({
                         "kind": "opaque",
                         "name": name,
-                        "default": default_value
+                        "default": default_value,
+                        "short_name": short_name
                     })
                 }
             };
@@ -183,7 +200,7 @@ fn serialize_struct<'a>(
             let field_type = field.type_info().map(|info| info.type_path());
             json!({
                 "name": field_name,
-                "type": field_type
+                "type": field_type,
             })
         })
         .collect::<Vec<_>>();
@@ -191,7 +208,7 @@ fn serialize_struct<'a>(
     json!({
         "kind": "struct",
         "fields": fields,
-        "default": default_value
+        "default": default_value,
     })
 }
 

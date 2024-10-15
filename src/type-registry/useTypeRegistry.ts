@@ -4,19 +4,38 @@ export function useTypeRegistry() {
   return useStore((state) => state.registry);
 }
 
-export type TType = TStruct | TTuple | TArray | TMap | TSet | TEnum;
+export type TType =
+  | TStruct
+  | TTupleStruct
+  | TTuple
+  | TArray
+  | TMap
+  | TSet
+  | TEnum
+  | TOpaque;
 
 export type TypeName = string;
+
+export type ShortTypeName = string;
 
 export type TStruct = {
   kind: 'struct';
   fields: Array<{ name: string; type: TypeName }>;
   default: any;
+  short_name: ShortTypeName;
+};
+
+export type TTupleStruct = {
+  kind: 'tuple_struct';
+  fields: Array<TypeName>;
+  default: any;
+  short_name: ShortTypeName;
 };
 
 export type TTuple = {
   kind: 'tuple';
   fields: Array<TypeName>;
+  short_name: ShortTypeName;
 };
 
 export type TArray = {
@@ -24,6 +43,7 @@ export type TArray = {
   item: TypeName;
   capacity: number | null; // null is `Vec<T>`
   default: any;
+  short_name: ShortTypeName;
 };
 
 export type TMap = {
@@ -31,19 +51,22 @@ export type TMap = {
   key: TypeName;
   value: TypeName;
   default: any;
+  short_name: ShortTypeName;
 };
 
 export type TSet = {
   kind: 'set';
   item: TypeName;
   default: any;
+  short_name: ShortTypeName;
 };
 
 export type TEnum = {
   kind: 'enum';
   name: string;
   variants: Array<TEnumVariant>;
-  default: any;
+  default: string;
+  short_name: ShortTypeName;
 };
 
 export type TEnumVariant =
@@ -52,13 +75,13 @@ export type TEnumVariant =
   | TEnumVariantUnit;
 
 export type TEnumVariantStruct = {
-  // maybe need name
+  name: string;
   kind: 'struct';
   fields: Array<{ name: string; type: TypeName }>;
 };
 
 export type TEnumVariantTuple = {
-  // maybe need name
+  name: string;
   kind: 'tuple';
   fields: Array<TypeName>;
 };
@@ -66,4 +89,11 @@ export type TEnumVariantTuple = {
 export type TEnumVariantUnit = {
   kind: 'unit';
   name: string;
+};
+
+export type TOpaque = {
+  kind: 'opaque';
+  name: string;
+  default: string; // TODO maybe narrow type to string | number | null?
+  short_name: ShortTypeName;
 };

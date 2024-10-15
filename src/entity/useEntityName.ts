@@ -1,4 +1,4 @@
-import { bevyTypes } from '@/type-registry/bevyTypes';
+import { bevyTypes } from '@/type-registry/types';
 import { EntityId, useEntity } from './useEntity';
 import { useStore } from '@/store';
 
@@ -8,6 +8,9 @@ const FALLBACK_NAMES: Record<string, string> = {
   [bevyTypes.MESH_3D]: 'Mesh3d',
   [bevyTypes.OBSERVER]: 'Observer',
   [bevyTypes.WINDOW]: 'Window',
+  [bevyTypes.PRIMARY_MONITOR]: 'PrimaryMonitor',
+  [bevyTypes.MONITOR]: 'Monitor',
+  [bevyTypes.POINTER_ID]: 'PointerId', // TODO support callback
 };
 
 export function useEntityName(id: EntityId) {

@@ -1,5 +1,5 @@
 import { CreateSlice } from '@/store';
-import { bevyTypes } from '@/type-registry/bevyTypes';
+import { bevyTypes } from '@/type-registry/types';
 import { EntityId, findParentChange } from './useEntity';
 import { ComponentId, ComponentValue } from '@/component/useComponents';
 import { EntityMutaion } from '@/websocket/useWs';
@@ -14,6 +14,7 @@ export const createEntitiesSlice: CreateSlice<EntitiesSlice> = (set, get) => ({
   entities: new Map(),
   childParentMap: new Map(),
   updateEntity: (entity, mutation) => {
+    // console.log('updateEntity', entity, mutation);
     const childParentMap = get().childParentMap;
     const componentNameToIdMap = get().componentNameToIdMap;
     const parentComponentId = componentNameToIdMap.get(bevyTypes.PARENT);
@@ -39,7 +40,7 @@ export const createEntitiesSlice: CreateSlice<EntitiesSlice> = (set, get) => ({
           entityComponents.delete(removedCommponentId);
           if (removedCommponentId === parentComponentId) {
             childParentMap.delete(entity);
-            set({ childParentMap: new Map(childParentMap) });
+            set({ childParentMap: childParentMap });
           }
         }
 
@@ -47,7 +48,7 @@ export const createEntitiesSlice: CreateSlice<EntitiesSlice> = (set, get) => ({
           entityComponents.set(componentId, value);
           if (componentId === parentComponentId) {
             childParentMap.set(entity, value);
-            set({ childParentMap: new Map(childParentMap) });
+            set({ childParentMap: childParentMap });
           }
         }
         entities.set(entity, new Map(entityComponents));
@@ -67,8 +68,7 @@ export const createEntitiesSlice: CreateSlice<EntitiesSlice> = (set, get) => ({
         set({ childParentMap: new Map(childParentMap) });
       }
 
-      // must create new Map to trigger reactivity
-      set({ entities: new Map(entities) });
+      set({ entities: entities });
 
       return;
     }

@@ -83,10 +83,10 @@ impl Plugin for RemoteStreamPlugin {
 
 #[derive(Debug, Clone)]
 pub struct RemoteStreamHandlers {
-    pub on_connect: Option<StreamHandler<'static>>,
+    pub on_connect: Option<StreamHandler>,
     pub on_disconnect: Option<SystemId<StreamHandlerInputRef<'static>>>,
     pub on_data: Option<OnDataHandler>,
-    pub update: StreamHandler<'static>,
+    pub update: StreamHandler,
 }
 
 pub struct StreamHandlerInput {
@@ -95,7 +95,7 @@ pub struct StreamHandlerInput {
 }
 
 pub type StreamHandlerInputRef<'a> = InRef<'a, StreamHandlerInput>;
-pub type StreamHandler<'a> = SystemId<StreamHandlerInputRef<'a>, Option<BrpResult>>;
+pub type StreamHandler = SystemId<StreamHandlerInputRef<'static>, Option<BrpResult>>;
 pub type OnDataHandlerInput = In<(StreamClientId, BrpRequest)>;
 pub type OnDataHandler = SystemId<OnDataHandlerInput, Option<BrpResult>>;
 
@@ -186,21 +186,21 @@ pub enum StreamMessageKind {
 }
 
 #[derive(Resource, Deref, DerefMut, Default)]
-struct ActiveStreams<'a>(HashMap<StreamClientId, ActiveStream<'a>>);
+struct ActiveStreams(HashMap<StreamClientId, ActiveStream>);
 
-struct ActiveStream<'a> {
+struct ActiveStream {
     request_id: Option<Value>,
     sender: ActiveStreamSender,
     input: StreamHandlerInput,
-    on_update: StreamHandler<'a>,
-    on_disconnect: Option<SystemId<StreamHandlerInputRef<'a>>>,
+    on_update: StreamHandler,
+    on_disconnect: Option<SystemId<StreamHandlerInputRef<'static>>>,
     on_data: Option<OnDataHandler>,
 }
 
 struct ActiveStreamSender(Sender<BrpResponse>);
 
 impl ActiveStreamSender {
-    fn respond(&self, id: Option<Value>, result: BrpResult) -> bool {
+    fn send(&self, id: Option<Value>, result: BrpResult) -> bool {
         let res = self.0.force_send(BrpResponse::new(id, result));
 
         match res {
@@ -290,7 +290,7 @@ fn process_remote_requests(world: &mut World) {
                         let request: BrpRequest = match serde_json::from_value(value) {
                             Ok(v) => v,
                             Err(err) => {
-                                let _ = stream.sender.respond(
+                                stream.sender.send(
                                     None,
                                     Err(BrpError {
                                         code: error_codes::INVALID_REQUEST,
@@ -302,37 +302,35 @@ fn process_remote_requests(world: &mut World) {
                             }
                         };
 
+                        let Some(on_data) = stream.on_data else {
+                            return;
+                        };
+
                         let request_id = request.id.clone();
-                        if let Some(on_data) = stream.on_data {
-                            let result = world.run_system_with_input(
-                                on_data,
-                                (stream_message.client_id, request),
-                            );
+                        let result = world
+                            .run_system_with_input(on_data, (stream_message.client_id, request));
 
-                            match result {
-                                Ok(result) => {
-                                    let Some(result) = result else {
-                                        return;
-                                    };
+                        match result {
+                            Ok(result) => {
+                                let Some(result) = result else {
+                                    return;
+                                };
 
-                                    if request_id.is_none() {
-                                        return;
-                                    }
-
-                                    let _ = stream.sender.respond(request_id, result);
+                                if request_id.is_none() {
+                                    return;
                                 }
-                                Err(error) => {
-                                    let _ = stream.sender.respond(
-                                        request_id,
-                                        Err(BrpError {
-                                            code: error_codes::INTERNAL_ERROR,
-                                            message: format!(
-                                                "Failed to run method handler: {error}"
-                                            ),
-                                            data: None,
-                                        }),
-                                    );
-                                }
+
+                                stream.sender.send(request_id, result);
+                            }
+                            Err(error) => {
+                                stream.sender.send(
+                                    request_id,
+                                    Err(BrpError {
+                                        code: error_codes::INTERNAL_ERROR,
+                                        message: format!("Failed to run method handler: {error}"),
+                                        data: None,
+                                    }),
+                                );
                             }
                         }
                     })
@@ -362,7 +360,7 @@ fn process_remote_requests(world: &mut World) {
     });
 }
 
-fn on_app_exit(mut active_streams: ResMut<ActiveStreams<'static>>) {
+fn on_app_exit(mut active_streams: ResMut<ActiveStreams>) {
     active_streams.clear();
 }
 
@@ -380,16 +378,16 @@ fn run_handler(
         Ok(handler_result) => {
             if let Some(handler_result) = handler_result {
                 let handler_err = handler_result.is_err();
-                let channel_result = sender.respond(request_id.cloned(), handler_result);
+                let channel_ok = sender.send(request_id.cloned(), handler_result);
 
                 // Remove when the handler return error or channel closed
-                handler_err || !channel_result
+                handler_err || !channel_ok
             } else {
                 false
             }
         }
         Err(error) => {
-            let _ = sender.respond(
+            sender.send(
                 request_id.cloned(),
                 Err(BrpError {
                     code: error_codes::INTERNAL_ERROR,

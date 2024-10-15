@@ -78,7 +78,7 @@ fn stream(
     Some(BrpResult::Ok(serialized))
 }
 
-fn on_data(In((client_id, req)): OnDataHandlerInput) -> Option<BrpResult> {
+fn on_data(In((_, req)): OnDataHandlerInput) -> Option<BrpResult> {
     return Some(BrpResult::Ok(json!("pong")));
 }
 

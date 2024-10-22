@@ -13,8 +13,8 @@ use bevy_remote_inspector::{
 use serde::{Deserialize, Serialize};
 
 fn main() {
-    App::new()
-        .add_plugins(DefaultPlugins)
+    let mut app = App::new();
+    app.add_plugins(DefaultPlugins)
         .add_plugins((
             RemotePlugin::default(),
             RemoteStreamPlugin::default(),
@@ -28,6 +28,8 @@ fn main() {
                 rotate,
                 add_cube_children.run_if(input_just_pressed(KeyCode::KeyA)),
                 remove_cube_children.run_if(input_just_pressed(KeyCode::KeyS)),
+                update_text,
+                log_change,
             ),
         )
         .register_type::<Cube>()
@@ -41,7 +43,18 @@ fn main() {
         .register_type::<NestStruct3>()
         .register_type::<MyEnum>()
         .register_type::<MyEnum2>()
-        .run();
+        .register_type::<MyComponent>()
+        .register_type::<OptionComponent>();
+
+    let component_id = app.world_mut().register_component::<MyComponent>();
+    dbg!(component_id);
+    app.run();
+}
+
+#[derive(Component, Reflect, Debug)]
+struct MyComponent {
+    number: usize,
+    string: String,
 }
 
 fn setup(
@@ -49,6 +62,15 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
+    let id = commands
+        .spawn(MyComponent {
+            number: 42,
+            string: "Hello, Bevy!".to_string(),
+        })
+        .id();
+
+    dbg!(id.to_bits());
+
     // circular base
     commands.spawn((
         Mesh3d(meshes.add(Circle::new(4.0))),
@@ -141,12 +163,40 @@ fn setup(
     //     TupleStruct2(Vec3::new(6.0, 7.0, 8.0)),
     // ));
 
-    commands.spawn(MyEnum2::TupleVariant(Vec2::new(10.0, 20.0)));
+    // commands.spawn((MyEnum2::TupleVariant(Vec2::new(10.0, 20.0)), MyEnum::UnitA));
+    // commands.spawn((MyEnum2::Unit, MyEnum::UnitA));
+    commands.spawn((
+        OptionComponent(Some(SimpleStruct {
+            a: 42,
+            b: "Hello, world!".to_string(),
+            c: vec![1, 2, 3],
+        })),
+        Name::new("OptionComponent"),
+    ));
+
+    commands.spawn(Text::default());
+}
+
+fn log_change(mut query: Query<&MyComponent, Changed<MyComponent>>) {
+    for my_component in query.iter() {
+        println!("changed to {:?}", my_component);
+    }
+}
+
+fn update_text(
+    mut query: Query<&mut Text>,
+    my_enum2_query: Query<&MyEnum2, (Without<Text>, Changed<MyEnum2>)>,
+) {
+    let mut text = query.single_mut();
+    let Ok(my_enum2) = my_enum2_query.get_single() else {
+        return;
+    };
+    text.0 = format!("{:?}", my_enum2);
 }
 
 fn rotate(mut query: Query<&mut Transform, With<Cube>>, time: Res<Time>) {
     for mut transform in &mut query {
-        transform.rotate_y(time.delta_seconds() / 2.);
+        transform.rotate_y(time.delta_secs() / 2.);
     }
 }
 
@@ -219,11 +269,12 @@ enum MyEnum {
     UnitB,
 }
 
-#[derive(Component, Reflect)]
+#[derive(Component, Reflect, Debug)]
 enum MyEnum2 {
     TupleVariant(Vec2),
     TupleVariant2(usize),
     StructVariant { a: Vec3 },
+    Unit,
 }
 
 #[derive(Component, Reflect)]
@@ -231,3 +282,13 @@ struct TupleStruct(usize);
 
 #[derive(Component, Reflect)]
 struct TupleStruct2(Vec3);
+
+#[derive(Component, Reflect)]
+struct OptionComponent(Option<SimpleStruct>);
+
+#[derive(Reflect)]
+struct SimpleStruct {
+    a: usize,
+    b: String,
+    c: Vec<usize>,
+}

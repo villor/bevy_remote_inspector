@@ -30,7 +30,7 @@ export function useEntityName(id: EntityId) {
     }
   }
 
-  let name: string = `Entity ${id}`;
+  let name: string = `Entity ${prettyEntityId(id)}`;
 
   for (const fallbackName in FALLBACK_NAMES) {
     const componentId = componentNameToIdMap.get(fallbackName);
@@ -45,4 +45,12 @@ export function useEntityName(id: EntityId) {
   }
 
   return name;
+}
+
+export function prettyEntityId(id: EntityId) {
+  const bid = BigInt(id);
+  const index = Number(bid & 0xffffffffn);
+  const generation = Number(bid >> 32n);
+
+  return `${index}v${generation}`;
 }

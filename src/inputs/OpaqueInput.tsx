@@ -1,37 +1,28 @@
-import {
-  TOpaque,
-  TStruct,
-  useTypeRegistry,
-} from '@/type-registry/useTypeRegistry';
+import { TOpaque } from '@/type-registry/useTypeRegistry';
 import { deepStringify } from '@/utils';
-import { DynamicInput, RenderStack } from './DynamicInput';
+import { RenderStack } from './DynamicInput';
 import { Input } from '@/shared/ui/input';
 import clsx from 'clsx';
 import { Checkbox } from '@/shared/ui/checkbox';
-import { isNumberType } from '@/type-registry/types';
-import { FormControl, FormField, FormItem, FormLabel } from '@/shared/ui/form';
-import { ControllerRenderProps, useFormContext } from 'react-hook-form';
-import { forwardRef } from 'react';
+import { isNumberType, isUnsignedInteger } from '@/type-registry/types';
+import { forwardRef, useEffect } from 'react';
+import { useDynamicForm } from './DynamicForm';
 
 type OpaqueInputProps = {
   typeInfo: TOpaque;
-  value: any;
   className?: string;
   path: string;
   renderStack: RenderStack[];
-  defaultValue?: any;
+  typeName: string;
 };
 
 export function OpaqueInput({
   typeInfo,
   className,
-  value,
   path,
   renderStack,
-  defaultValue,
+  typeName,
 }: OpaqueInputProps) {
-  const { control } = useFormContext();
-  const resolvedDefaultValue = defaultValue ?? typeInfo.default;
   return (
     <>
       <div
@@ -39,25 +30,14 @@ export function OpaqueInput({
         data-final-name={path}
         data-render-stack-simple={renderStack.map((r) => r.from).join('>')}
         data-render-stack={deepStringify(renderStack)}
-        data-default-value={JSON.stringify(resolvedDefaultValue ?? 'null')}
       >
-        <FormField
-          control={control}
-          name={path}
-          shouldUnregister
-          defaultValue={resolvedDefaultValue}
-          render={({ field }) => (
-            <FormItem>
-              {/* <FormLabel>{path}</FormLabel> */}
-              <FormControl>
-                <OpaqueInputInner
-                  typeInfo={typeInfo}
-                  {...field}
-                ></OpaqueInputInner>
-              </FormControl>
-            </FormItem>
-          )}
-        ></FormField>
+        <span>{path}</span>
+        <OpaqueInputInner
+          typeInfo={typeInfo}
+          path={path}
+          renderStack={renderStack}
+          typeName={typeName}
+        ></OpaqueInputInner>
       </div>
     </>
   );
@@ -65,14 +45,60 @@ export function OpaqueInput({
 
 const OpaqueInputInner = forwardRef<
   any,
-  { typeInfo: TOpaque } & ControllerRenderProps<any>
->(({ typeInfo, ...props }, ref) => {
-  console.log(props);
-  if (typeInfo.name === 'bool') {
-    return <Checkbox {...props} ref={ref}></Checkbox>;
+  {
+    typeInfo: TOpaque;
+    path: string;
+    renderStack?: RenderStack[];
+    typeName: string;
+  }
+>(({ typeInfo, path, renderStack, typeName }, ref) => {
+  const { getValue, setValue, readOnly } = useDynamicForm();
+  const value = getValue(path);
+
+  if (value === undefined) {
+    throw new Error(
+      `Value is undefined for ${path} Render Stack: ${JSON.stringify(
+        renderStack
+      )}`
+    );
+  }
+
+  if (typeInfo.short_name === 'bool') {
+    const onChange = (e: React.SyntheticEvent) => {
+      console.log('called from bool');
+      setValue(path, (e.target as HTMLInputElement).checked);
+    };
+
+    return (
+      <Checkbox
+        checked={value as boolean}
+        ref={ref}
+        onChange={onChange}
+      ></Checkbox>
+    );
   } else {
-    const type = isNumberType(typeInfo.name) ? 'number' : 'text';
-    return <Input {...props} className="bg-background" type={type} ref={ref} />;
+    const type = isNumberType(typeName) ? 'number' : 'text';
+    const onChange = (e: React.SyntheticEvent) => {
+      const target = e.target as HTMLInputElement;
+      if (type === 'number') {
+        setValue(path, Number(target.value));
+      } else {
+        setValue(path, target.value);
+      }
+    };
+
+    return (
+      <Input
+        value={value as string | number}
+        onChange={onChange}
+        className="bg-background"
+        readOnly={readOnly}
+        min={isUnsignedInteger(typeName) ? 0 : undefined}
+        type={type}
+        data-type={typeInfo.short_name ?? JSON.stringify(typeInfo)}
+        ref={ref}
+      />
+    );
   }
 });
 

@@ -1,64 +1,120 @@
-import { Form } from '@/shared/ui/form';
-import { TypeName } from '@/type-registry/useTypeRegistry';
-import { useForm, useFormContext } from 'react-hook-form';
+import {
+  TValue,
+  TValueObject,
+  TypeName,
+} from '@/type-registry/useTypeRegistry';
+import { useForm, useFormContext, UseFormReturn } from 'react-hook-form';
 import { DynamicInput } from './DynamicInput';
 import { deepStringify } from '@/utils';
-import { flattenObject, isPlainObject, uniq } from 'es-toolkit';
+import { flattenObject, uniq } from 'es-toolkit';
+import { get, has, set, unset } from 'es-toolkit/compat';
 import { Check } from 'lucide-react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+} from 'react';
+import { ErrorBoundary } from 'react-error-boundary';
 
 export type DynamicFormProps = {
   value: any;
   typeName: TypeName;
+  onChange: (value: any) => void;
 };
 
-export function DynamicForm({ typeName, value }: DynamicFormProps) {
-  const form = useForm({
-    // values: value,
-    defaultValues: value,
+export type DynamicFormContext = Pick<UseFormReturn, 'unregister'> & {
+  setValue(name: string, value: any): void;
+  getValue<T extends TValue = TValue>(name?: string): T;
+  readOnly: boolean;
+};
+const Context = createContext({} as DynamicFormContext);
+
+export function useDynamicForm() {
+  return useContext(Context);
+}
+
+const ROOT_KEY = '__root__';
+
+export function DynamicForm(props: DynamicFormProps) {
+  const [readOnly, setReadOnly] = useState(false);
+  const [renderErrorMessage, setRenderErrorMessage] = useState<null | string>();
+  return (
+    <ErrorBoundary
+      fallback={
+        <span className="text-red-500">{`Unable to render ${props.typeName}. Error: ${renderErrorMessage}`}</span>
+      }
+      onError={(error) => {
+        setReadOnly(true);
+        setRenderErrorMessage(error.message);
+      }}
+      onReset={() => {
+        setReadOnly(false);
+        setRenderErrorMessage(null);
+      }}
+    >
+      <DynamicFormInner {...props} readOnly={readOnly} />
+    </ErrorBoundary>
+  );
+}
+function DynamicFormInner({
+  typeName,
+  value,
+  onChange,
+  readOnly,
+}: DynamicFormProps & { readOnly: boolean }) {
+  const {
+    setValue: rhfSetValue,
+    unregister,
+    getValues,
+  } = useForm<any>({
+    defaultValues: {
+      [ROOT_KEY]: value,
+    },
   });
 
-  const onSubmit = (data: any) => {
-    console.log(data);
-  };
+  const setValue = useCallback(
+    (name: string, value: any) => {
+      rhfSetValue(name, value);
+      onChange(getValues()[ROOT_KEY]);
+    },
+    [onChange, getValues]
+  );
 
-  if (value === null) {
-    return <>form value is null</>;
-  }
+  const getValue: DynamicFormContext['getValue'] = useCallback(
+    (name: string) => {
+      return getValues(name);
+    },
+    [getValues]
+  );
 
-  if (!isPlainObject(value)) {
-    return (
-      <div>
-        <span>Not object</span>
-        <pre>{JSON.stringify(value, null, 2)}</pre>
-      </div>
-    );
-  }
+  const ctx: DynamicFormContext = useMemo(() => {
+    return {
+      setValue,
+      unregister,
+      getValue,
+      readOnly,
+    };
+  }, [unregister, setValue, getValue, readOnly]);
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)}>
-        <DynamicInput
-          typeName={typeName}
-          value={value}
-          parentPath=""
-        ></DynamicInput>
-        {import.meta.env.DEV && <Debug value={value} />}
+    <Context.Provider value={ctx}>
+      <form>
+        <DynamicInput typeName={typeName} path={ROOT_KEY}></DynamicInput>
+        {import.meta.env.DEV && <Debug value={{ [ROOT_KEY]: value }} />}
       </form>
-    </Form>
+    </Context.Provider>
   );
 }
 
 function Debug({ value }: { value: any }) {
-  const ctx = useFormContext();
-  const formValues = ctx.watch();
+  const { getValue } = useContext(Context);
   const valueFields = Object.keys(flattenObject(value)).sort();
   const jsonValueFields = deepStringify(valueFields);
-
-  const formFields = uniq(
-    Object.keys(flattenObject(ctx.control._fields))
-      .map((f) => f.split('._f')[0])
-      .sort()
-  );
+  const formFields = Object.keys(
+    flattenObject(getValue() as TValueObject)
+  ).sort();
   const jsonFormFields = deepStringify(formFields);
 
   return (
@@ -105,7 +161,7 @@ function Debug({ value }: { value: any }) {
         </div>
         <div>
           <span>FormValues</span>
-          <pre>{`${deepStringify(formValues, 2)}`}</pre>
+          <pre>{`${deepStringify(getValue(), 2)}`}</pre>
         </div>
       </div>
     </div>

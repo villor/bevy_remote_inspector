@@ -13,10 +13,16 @@ pub enum EntityMutation {
     Remove,
     // Both onadd and onchange, by component name and it value
     Change {
-        changes: Vec<(usize, Option<Value>)>,
+        changes: Vec<EntityMutationChange>,
         removes: Vec<usize>,
     },
 }
+
+#[derive(Serialize)]
+pub struct EntityMutationChange(
+    usize,
+    #[serde(skip_serializing_if = "Option::is_none")] Option<Value>,
+);
 
 impl TrackedData {
     pub fn track_entities(
@@ -40,7 +46,7 @@ impl TrackedData {
         for entity_ref in world.iter_entities() {
             let id = entity_ref.id();
             if let Some(component_ids) = self.entities.get_mut(&id) {
-                let mut changes = vec![];
+                let mut changes: Vec<EntityMutationChange> = vec![];
                 let archetype = entity_ref.archetype();
                 let removed_component_ids = component_ids
                     .extract_if(|id| {
@@ -70,7 +76,7 @@ impl TrackedData {
                         // ZST are only serialized when they are added to the entity
                         if !is_tracked {
                             component_ids.insert(component_id);
-                            changes.push((component_id.index(), None));
+                            changes.push(EntityMutationChange(component_id.index(), None));
                         }
                     } else {
                         let serialized = serialize_component(
@@ -86,7 +92,7 @@ impl TrackedData {
 
                         if !is_tracked || serialized.is_some() {
                             // Only if the component is untracked or serializable
-                            changes.push((component_id.index(), serialized));
+                            changes.push(EntityMutationChange(component_id.index(), serialized));
                         }
                     }
                 }
@@ -115,7 +121,7 @@ impl TrackedData {
                             component_info,
                         );
 
-                        (component_id.index(), serialized)
+                        EntityMutationChange(component_id.index(), serialized)
                     })
                     .collect::<Vec<_>>();
 

@@ -1,21 +1,21 @@
 import { TTupleStruct, useTypeRegistry } from '@/type-registry/useTypeRegistry';
-import { ReactNode } from 'react';
+import { ReactNode, useEffect } from 'react';
 import { DynamicInput, RenderStack } from './DynamicInput';
+import { useFormContext } from 'react-hook-form';
 
 export type TupleStructInputProps = {
   typeInfo: TTupleStruct;
-  value: any;
   renderStack: RenderStack[];
-  parentPath: string;
+  path: string;
 };
 export function TupleStructInput({
   typeInfo,
-  value,
-  parentPath,
+  path,
   renderStack,
 }: TupleStructInputProps) {
   let children: ReactNode = <span>tuple struct with more than 1 fields</span>;
   const registry = useTypeRegistry();
+
   if (typeInfo.fields.length === 1) {
     const typeName = typeInfo.fields[0];
 
@@ -30,13 +30,12 @@ export function TupleStructInput({
         </div>
         <DynamicInput
           typeName={typeName}
-          value={value}
-          parentPath={parentPath}
+          path={path}
           renderStack={[
             ...renderStack,
             {
               from: 'tuple_struct',
-              parentPath: parentPath,
+              path: path,
               ctx: {
                 ___TupleTypename: typeName,
               },
@@ -55,14 +54,14 @@ export function TupleStructInput({
         ...renderStack,
         {
           from: 'tuple_struct',
-          parentPath: parentPath,
+          parentPath: path,
           ctx: {
             ___typename: typeInfo.fields[0],
           },
         },
       ])}
       data-render-stack-simple={renderStack
-        .concat([{ from: 'tuple_struct', parentPath }])
+        .concat([{ from: 'tuple_struct', path: path }])
         .map((r) => r.from)
         .join('>')}
     >

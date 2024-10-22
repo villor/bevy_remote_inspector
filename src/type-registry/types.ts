@@ -1,4 +1,11 @@
-import { TypeName } from './useTypeRegistry';
+import {
+  TEnumVariantStruct,
+  TEnumVariantTuple,
+  TValue,
+  TValueObject,
+  TypeName,
+  TypeRegistry,
+} from './useTypeRegistry';
 
 export const bevyTypes = {
   PARENT: 'bevy_hierarchy::components::parent::Parent',
@@ -14,8 +21,102 @@ export const bevyTypes = {
   POINTER_ID: 'bevy_picking::pointer::PointerId',
 };
 
+export function resolveTypeDefaultValue(
+  typeName: TypeName,
+  registry: TypeRegistry
+): TValue | undefined {
+  const typeInfo = registry.get(typeName);
+  if (!typeInfo) {
+    return undefined;
+  }
+
+  if (typeInfo.default !== undefined) {
+    return typeInfo.default;
+  }
+
+  if (typeInfo.kind === 'struct') {
+    if (typeInfo.fields.length === 0) {
+      return null;
+    }
+
+    const value: TValueObject = {};
+
+    for (const field of typeInfo.fields) {
+      value[field.name] = resolveTypeDefaultValue(field.type, registry)!;
+    }
+
+    return value;
+  }
+
+  if (typeInfo.kind === 'tuple_struct') {
+    if (typeInfo.fields.length === 1) {
+      return resolveTypeDefaultValue(typeInfo.fields[0], registry);
+    }
+
+    return typeInfo.fields.map((field) => {
+      return resolveTypeDefaultValue(field, registry)!;
+    });
+  }
+
+  if (typeInfo.kind === 'tuple') {
+    return typeInfo.fields.map((field) => {
+      return resolveTypeDefaultValue(field, registry)!;
+    });
+  }
+
+  if (typeInfo.kind === 'array') {
+    return [];
+  }
+
+  if (typeInfo.kind === 'map') {
+    return {};
+  }
+
+  if (typeInfo.kind === 'set') {
+    return [];
+  }
+
+  if (typeInfo.kind === 'enum') {
+    if (isOptionType(typeName)) {
+      return null;
+    }
+
+    const variant = typeInfo.variants[0];
+
+    if (variant.kind === 'unit') {
+      return variant.name;
+    }
+
+    return {
+      [variant.name]: resolveEnumVariantDefaultValue(variant, registry)!,
+    };
+  }
+}
+
+export function resolveEnumVariantDefaultValue(
+  variant: TEnumVariantTuple | TEnumVariantStruct,
+  registry: TypeRegistry
+) {
+  if (variant.kind === 'tuple') {
+    if (variant.fields.length === 1) {
+      return resolveTypeDefaultValue(variant.fields[0], registry);
+    }
+
+    return variant.fields.map((field) => {
+      return resolveTypeDefaultValue(field, registry)!;
+    });
+  }
+
+  const value: TValueObject = {};
+
+  for (const field of variant.fields) {
+    value[field.name] = resolveTypeDefaultValue(field.type, registry)!;
+  }
+  return value;
+}
+
 export function isOptionType(type: TypeName) {
-  return type.startsWith('Option<');
+  return type.startsWith('core::option::Option<');
 }
 
 const numberTypes = [
@@ -36,5 +137,9 @@ const numberTypes = [
 ];
 
 export function isNumberType(type: TypeName) {
-  return numberTypes.includes(type);
+  return numberTypes.includes(type) || type.startsWith('std::num::NonZero<');
+}
+
+export function isUnsignedInteger(type: TypeName) {
+  return type.startsWith('u') && isNumberType(type);
 }

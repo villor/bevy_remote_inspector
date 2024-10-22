@@ -3,28 +3,47 @@ import { StructInput } from './StructInput';
 import { OpaqueInput } from './OpaqueInput';
 import { EnumInput } from './EnumInput';
 import { TupleStructInput } from './TupleStructInput';
+import { ErrorBoundary } from 'react-error-boundary';
+import { useState } from 'react';
 
 export type DynamicInputProps = {
   typeName: TypeName;
-  value: any;
-  parentPath: string; // should be empty on first call
+  path: string; // should be empty on first call
   renderStack?: RenderStack[];
   defaultValue?: any;
 };
 
 export type RenderStack = {
   from: string;
-  parentPath: string;
+  path: string;
   ctx?: Record<string, any>;
 };
 
-export function DynamicInput({
+export function DynamicInput(props: DynamicInputProps) {
+  const [renderErrorMessage, setRenderErrorMessage] = useState<null | string>();
+
+  return (
+    <ErrorBoundary
+      onError={(error) => {
+        setRenderErrorMessage(error.message);
+      }}
+      onReset={() => setRenderErrorMessage(null)}
+      fallback={
+        <span className="text-red-500">{`Error while rendering ${props.typeName}. Error: ${renderErrorMessage}`}</span>
+      }
+    >
+      <DynamicInputInner {...props} />
+    </ErrorBoundary>
+  );
+}
+
+function DynamicInputInner({
   typeName,
   renderStack = [],
-  parentPath,
-  defaultValue,
-  ...props
+  path,
 }: DynamicInputProps) {
+  console.log(`rerender ${path}`);
+
   const registry = useTypeRegistry();
   const typeInfo = registry.get(typeName);
 
@@ -36,14 +55,13 @@ export function DynamicInput({
     return (
       <StructInput
         typeInfo={typeInfo}
-        parentPath={parentPath}
-        {...props}
+        path={path}
         renderStack={[
           ...renderStack,
           {
             from: 'dynamic',
             // value: props.value,
-            parentPath: parentPath,
+            path: path,
           },
         ]}
       />
@@ -54,10 +72,9 @@ export function DynamicInput({
     return (
       <OpaqueInput
         typeInfo={typeInfo}
-        {...props}
         renderStack={renderStack}
-        path={parentPath}
-        defaultValue={defaultValue}
+        path={path}
+        typeName={typeName}
       />
     );
   }
@@ -66,13 +83,13 @@ export function DynamicInput({
     return (
       <EnumInput
         typeInfo={typeInfo}
-        parentPath={parentPath}
-        {...props}
+        typeName={typeName}
+        path={path}
         renderStack={[
           ...renderStack,
           {
             from: 'dynamic',
-            parentPath: parentPath,
+            path: path,
           },
         ]}
       />
@@ -83,15 +100,14 @@ export function DynamicInput({
     return (
       <TupleStructInput
         typeInfo={typeInfo}
-        value={props.value}
         renderStack={[
           ...renderStack,
           {
             from: 'dynamic',
-            parentPath: parentPath,
+            path: path,
           },
         ]}
-        parentPath={parentPath}
+        path={path}
       />
     );
   }
@@ -99,9 +115,6 @@ export function DynamicInput({
   return (
     <>
       <div className="col-span-2">Unknown type {typeInfo.kind}</div>
-      <div className="col-span-2">
-        Unknown value {JSON.stringify(props.value)}
-      </div>
     </>
   );
 }

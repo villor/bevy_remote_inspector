@@ -1,47 +1,60 @@
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/shared/ui/select';
 import {
   TEnum,
   TEnumVariant,
+  TEnumVariantStruct,
+  TEnumVariantTuple,
+  TType,
+  TValue,
+  TValueArray,
+  TValueObject,
+  TValuePrimitive,
+  TypeName,
+  TypeRegistry,
   useTypeRegistry,
 } from '@/type-registry/useTypeRegistry';
-import { DynamicInput, RenderStack } from './DynamicInput';
-import { FormField } from '@/shared/ui/form';
-import {
-  useFormContext,
-  UseFormRegister,
-  UseFormRegisterReturn,
-  useWatch,
-} from 'react-hook-form';
-import { useEffect, useState } from 'react';
-import { pick } from 'es-toolkit';
+import { RenderStack } from './DynamicInput';
+import { useCallback, useState } from 'react';
 import { TupleStructInput } from './TupleStructInput';
 import { StructFieldInput, StructInputLayout } from './StructInput';
 import clsx from 'clsx';
+import { useDynamicForm } from './DynamicForm';
+import {
+  isOptionType,
+  resolveEnumVariantDefaultValue,
+  resolveTypeDefaultValue,
+} from '@/type-registry/types';
+import { TypeIcon } from 'lucide-react';
 
 export type EnumInputProps = {
   typeInfo: TEnum;
-  value: any;
+  typeName: TypeName;
   renderStack: RenderStack[];
-  parentPath: string;
+  path: string;
 };
 export function EnumInput({
   typeInfo,
-  value,
   renderStack,
-  parentPath,
+  path,
+  typeName,
 }: EnumInputProps) {
-  const { register, unregister } = useFormContext();
+  const registry = useTypeRegistry();
+  const { unregister, setValue, getValue } = useDynamicForm();
+  const value = getValue<TValueObject | string>(path);
+  const isOption = isOptionType(typeName);
 
-  const [selectedVariantName, setSelectedVariantName] = useState(
-    () =>
+  const [selectedVariantName, setSelectedVariantName] = useState(() => {
+    if (isOption) {
+      return value === null ? 'None' : 'Some';
+    }
+
+    return (
       typeInfo.variants.find((v) => {
         if (v.kind === 'unit') {
           return v.name === value;
@@ -55,23 +68,42 @@ export function EnumInput({
           return v.name === Object.keys(value)[0];
         }
       })?.name || typeInfo.variants[0].name
+    );
+  });
+
+  const handleVariantChange = useCallback(
+    (newVariantName: string) => {
+      const selectedVariant = typeInfo.variants.find(
+        (v) => v.name === newVariantName
+      )!;
+
+      setSelectedVariantName(newVariantName);
+      unregister(path);
+
+      if (selectedVariant.kind === 'unit') {
+        setValue(`${path}`, isOption ? null : selectedVariant.name);
+        return;
+      }
+
+      const value = resolveEnumVariantDefaultValue(selectedVariant, registry);
+      console.log(value);
+      if (value === undefined) {
+        throw new Error(
+          `Failed to resolve value for enum ${typeName} at path ${path}`
+        );
+      }
+      if (isOption) {
+        setValue(`${path}`, value);
+      } else {
+        setValue(`${path}.${selectedVariant.name}`, value);
+      }
+    },
+    [setValue]
   );
 
   const selectedVariant = typeInfo.variants.find(
     (v) => v.name === selectedVariantName
   )!;
-
-  const [registerFields, setRegisterFields] =
-    useState<UseFormRegisterReturn | null>(null);
-
-  useEffect(() => {
-    console.log(selectedVariant);
-    if (selectedVariant.kind === 'unit') {
-      setRegisterFields(register(parentPath));
-    } else {
-      unregister(parentPath);
-    }
-  }, [selectedVariant, setRegisterFields, register]);
 
   return (
     <div
@@ -79,13 +111,7 @@ export function EnumInput({
       data-value={JSON.stringify(value)}
       className="w-full"
     >
-      <Select
-        value={selectedVariantName}
-        onValueChange={setSelectedVariantName}
-        {...(registerFields
-          ? pick(registerFields, ['name', 'onBlur', 'ref'])
-          : {})}
-      >
+      <Select value={selectedVariantName} onValueChange={handleVariantChange}>
         <SelectTrigger
           className={clsx('w-full bg-background', {
             'mb-2': selectedVariant.kind !== 'unit',
@@ -102,57 +128,51 @@ export function EnumInput({
         </SelectContent>
       </Select>
       <EnumSubInput
-        parentPath={parentPath}
+        path={path}
         selectedVariant={selectedVariant}
         rennderStack={renderStack}
-        value={value}
+        isOption={isOption}
       />
     </div>
   );
 }
 
 function EnumSubInput({
-  parentPath,
+  path,
   selectedVariant,
   rennderStack,
-  value,
+  isOption,
 }: {
-  parentPath: string;
+  path: string;
   selectedVariant: TEnumVariant;
   rennderStack: RenderStack[];
-  value: any;
+  isOption: boolean;
 }) {
-  const registry = useTypeRegistry();
   if (selectedVariant.kind === 'unit') {
     return null;
   }
 
   if (selectedVariant.kind === 'struct') {
-    const newParentPath = parentPath
-      ? `${parentPath}.${selectedVariant.name}`
+    const newPath = path
+      ? `${path}.${selectedVariant.name}`
       : selectedVariant.name;
-    const enumValue = Array.from(Object.values(value))[0] as any;
     return (
       <StructInputLayout>
         {selectedVariant.fields.map((field, i) => {
-          const fieldValue = enumValue[field.name];
-          const fieldPath = field.name;
-          const fieldParentPath = `${newParentPath}.${fieldPath}`;
+          const path = `${newPath}.${field.name}`;
           return (
             <StructFieldInput
               key={i}
-              parentPath={fieldParentPath}
-              value={fieldValue}
+              path={path}
               renderStack={[
                 ...rennderStack,
                 {
                   from: 'enum-sub-input-struct',
-                  parentPath: fieldParentPath,
+                  path: path,
                 },
               ]}
               typeName={field.type}
               fieldName={field.name}
-              defaultValue={null}
             ></StructFieldInput>
           );
         })}
@@ -161,10 +181,11 @@ function EnumSubInput({
   }
 
   if (selectedVariant.kind === 'tuple') {
-    const newParentPath = parentPath
-      ? `${parentPath}.${selectedVariant.name}`
+    const newParentPath = isOption
+      ? path
+      : path
+      ? `${path}.${selectedVariant.name}`
       : selectedVariant.name;
-    const fieldLength = selectedVariant.fields.length;
     return (
       <TupleStructInput
         typeInfo={{
@@ -177,11 +198,10 @@ function EnumSubInput({
           ...rennderStack,
           {
             from: 'enum-sub-input-tuple',
-            parentPath: newParentPath,
+            path: newParentPath,
           },
         ]}
-        parentPath={newParentPath}
-        value={fieldLength === 1 ? Object.values(value) : Object.values(value)}
+        path={newParentPath}
       />
     );
   }

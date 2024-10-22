@@ -1,17 +1,12 @@
 import { useEntityTrees } from '@/entity/useEntitiesTrees';
-import { EntityId, EntityTreeNode, useEntity } from '@/entity/useEntity';
+import { EntityId, EntityTreeNode } from '@/entity/useEntity';
 import { useEntityName } from '@/entity/useEntityName';
-import { Button, buttonVariants, IconButton } from '@/shared/ui/button';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/shared/ui/collapsible';
+import { Button, buttonVariants } from '@/shared/ui/button';
 import { ScrollArea } from '@/shared/ui/scroll-area';
 import { useStore } from '@/store';
 import clsx from 'clsx';
-import { ChevronRight, CircleX } from 'lucide-react';
-import { memo, useCallback, useContext, useState } from 'react';
+import { ChevronRight } from 'lucide-react';
+import { memo, useCallback } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import {
   UNSTABLE_Tree as Tree,
@@ -26,7 +21,7 @@ import {
 import { cn } from '@/utils';
 import { Badge } from '@/shared/ui/badge';
 import { bevyTypes } from '@/type-registry/types';
-export function EntitiesTreeView() {
+export const EntitiesTreeView = memo(function EntitiesTreeView() {
   const entityTrees = useEntityTrees();
   const setInspectingEntity = useStore((state) => state.setInspectingEntity);
   const hanndleOnAction = useCallback((entityId: Key) => {
@@ -69,7 +64,7 @@ export function EntitiesTreeView() {
       </Tree>
     </ScrollArea>
   );
-}
+});
 
 const ignoreEntityNames = [bevyTypes.OBSERVER, bevyTypes.SYSTEM_ID_MARKER];
 
@@ -94,7 +89,9 @@ const EntityTreeItemContent = ({
   const name = useEntityName(item.id);
   const isHidden = useStore(
     useShallow((state) => {
-      const componentIds = Array.from(state.entities.get(item.id)!.keys());
+      const componentIds = Array.from(
+        state.entities.get(item.id)?.keys() || []
+      );
 
       for (const id of componentIds) {
         const name = state.components.get(id)?.name;

@@ -1,11 +1,12 @@
 mod component;
 mod entity;
+mod request;
 mod type_registry;
 
 use bevy::{
     ecs::{component::ComponentId, entity::EntityHashMap},
     prelude::*,
-    remote::BrpResult,
+    remote::{error_codes, BrpError, BrpResult},
     utils::{HashMap, HashSet},
 };
 use bevy_remote_stream::{
@@ -13,8 +14,9 @@ use bevy_remote_stream::{
 };
 use component::InspectorComponentInfo;
 use entity::EntityMutation;
+use request::ClientRequest;
 use serde::Serialize;
-use serde_json::{json, Value};
+use serde_json::Value;
 use type_registry::ZeroSizedTypes;
 pub mod remote_stream {
     pub use bevy_remote_stream::*;
@@ -75,11 +77,42 @@ fn stream(
 
     events.clear();
 
+    // return None;
     Some(BrpResult::Ok(serialized))
 }
 
-fn on_data(In((_, req)): OnDataHandlerInput) -> Option<BrpResult> {
-    return Some(BrpResult::Ok(json!("pong")));
+fn on_data(In((_, req)): OnDataHandlerInput, world: &mut World) -> Option<BrpResult> {
+    let request = match ClientRequest::try_from_brp(req) {
+        Ok(r) => r,
+        Err(e) => {
+            return Some(BrpResult::Err(BrpError {
+                code: error_codes::INVALID_REQUEST,
+                message: e.to_string(),
+                data: None,
+            }))
+        }
+    };
+
+    info!("New request: {:?}", request);
+
+    let result = request.execute(world);
+
+    let result: Option<BrpResult> = match result {
+        Ok(val) => {
+            if val == Value::Null {
+                None
+            } else {
+                Some(BrpResult::Ok(val))
+            }
+        }
+        Err(e) => Some(BrpResult::Err(BrpError {
+            code: error_codes::INTERNAL_ERROR,
+            message: e.to_string(),
+            data: None,
+        })),
+    };
+
+    return result;
 }
 
 fn on_disconnect(InRef(input): StreamHandlerInputRef, mut tracked: ResMut<TrackedDatas>) {

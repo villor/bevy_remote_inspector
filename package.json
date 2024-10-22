@@ -29,6 +29,7 @@
     "react": "^18.2.0",
     "react-aria-components": "^1.4.0",
     "react-dom": "^18.2.0",
+    "react-error-boundary": "^4.1.2",
     "react-hook-form": "^7.53.0",
     "react-resizable-panels": "^2.1.4",
     "react-use-websocket": "^4.8.1",

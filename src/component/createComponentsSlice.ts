@@ -1,6 +1,6 @@
 import { CreateSlice } from '@/store';
-import { ComponentsEvent } from '@/websocket/useWs';
 import { ComponentId, ComponentInfo, ComponentName } from './useComponents';
+import { ComponentsEvent } from '@/websocket/createWsSlice';
 
 export type ComponentsSlice = {
   components: Map<ComponentId, ComponentInfo>;

@@ -1,12 +1,20 @@
 import { SharedSlice } from '@/store';
 import { StateCreator } from 'zustand';
-import { WEB_SOCKET_MESSAGE_ID, WsEvent } from './useWs';
+import { WEB_SOCKET_MESSAGE_ID } from './useWs';
 import { ReadyState } from 'react-use-websocket';
 import { SendJsonMessage } from 'react-use-websocket/dist/lib/types';
+import { toast } from '@/hooks/use-toast';
+import { TType, TypeName } from '@/type-registry/useTypeRegistry';
+import {
+  ComponentId,
+  ComponentName,
+  ComponentValue,
+} from '@/component/useComponents';
+import { EntityId } from '@/entity/useEntity';
 export type WsSlice = {
   url?: string;
   readyState: ReadyState;
-  sendMessage: SendJsonMessage;
+  sendMessage: (data: { method: string; params: any }) => number;
   initSendMessage: (fn: SendJsonMessage) => void;
   setReadyState: (readyState: ReadyState) => void;
   onMessage: (message: MessageEvent<any>) => void;
@@ -15,6 +23,11 @@ export type WsSlice = {
   isManuallyConnect: boolean;
 };
 
+let sendMessageInteral: SendJsonMessage = () => {
+  console.error('sendMessage not initialized');
+};
+
+let id = 10;
 export const createWsSlice: StateCreator<SharedSlice, [], [], WsSlice> = (
   set,
   get
@@ -24,10 +37,19 @@ export const createWsSlice: StateCreator<SharedSlice, [], [], WsSlice> = (
   shouldReconnect: true,
   isManuallyConnect: false,
   hasConnected: false,
-  sendMessage: () => {
-    console.error('sendMessage not initialized');
+  sendMessage: (data: { method: string; params: any }) => {
+    let newId = id++;
+
+    sendMessageInteral({
+      ...data,
+      id: newId,
+      jsonrpc: '2.0',
+    });
+    console.log(`send message ${data.method} ${JSON.stringify(data.params)}`);
+
+    return newId;
   },
-  initSendMessage: (fn) => set({ sendMessage: fn }),
+  initSendMessage: (fn) => (sendMessageInteral = fn),
   setReadyState: (readyState) => {
     set({ readyState });
 
@@ -39,10 +61,19 @@ export const createWsSlice: StateCreator<SharedSlice, [], [], WsSlice> = (
   onMessage: (message) => {
     try {
       const event = JSON.parse(message.data) as WsEvent;
-      if (event.id !== WEB_SOCKET_MESSAGE_ID) {
-        // TODO handle normal actions
+      if (event.error) {
+        toast({
+          title: 'Error',
+          description: event.error.message,
+          variant: 'destructive',
+        });
         return;
       }
+
+      if (event.id !== WEB_SOCKET_MESSAGE_ID) {
+        return;
+      }
+
       for (const item of event.result) {
         if (item.kind === 'type_registry') {
           get().setRegistry(item.types);
@@ -69,3 +100,45 @@ export function parseWsURL(input: string): string | undefined {
     return;
   }
 }
+
+export type WsEvent = {
+  id: string | null;
+  result: StreamEvent[];
+  error?: {
+    code: number;
+    message: string;
+  };
+};
+
+type StreamEvent = TypeRegistryEvent | ComponentsEvent | EntityEvent;
+
+export type TypeRegistryEvent = {
+  kind: 'type_registry';
+  types: Array<[TypeName, TType]>;
+};
+
+export type ComponentsEvent = {
+  kind: 'component';
+  components: Array<{
+    id: ComponentId;
+    name: ComponentName;
+    reflected: boolean;
+    serializable: boolean;
+  }>;
+};
+
+export type EntityEvent = {
+  kind: 'entity';
+  entity: EntityId;
+  mutation: EntityMutaion;
+};
+
+export type EntityMutaion = EntityMutationChange | EntityMutationRemove;
+
+export type EntityMutationChange = {
+  kind: 'change';
+  changes: Array<[ComponentId, ComponentValue]>;
+  removes: ComponentId[];
+  is_new: boolean;
+};
+export type EntityMutationRemove = { kind: 'remove' };

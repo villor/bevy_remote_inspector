@@ -2,7 +2,7 @@ import { CreateSlice } from '@/store';
 import { bevyTypes } from '@/type-registry/types';
 import { EntityId, findParentChange } from './useEntity';
 import { ComponentId, ComponentValue } from '@/component/useComponents';
-import { EntityMutaion } from '@/websocket/useWs';
+import { EntityMutaion } from '@/websocket/createWsSlice';
 
 export type EntitiesSlice = {
   entities: Map<EntityId, Map<ComponentId, ComponentValue>>;
@@ -47,7 +47,7 @@ export const createEntitiesSlice: CreateSlice<EntitiesSlice> = (set, get) => ({
         for (const [componentId, value] of mutation.changes) {
           entityComponents.set(componentId, value);
           if (componentId === parentComponentId) {
-            childParentMap.set(entity, value);
+            childParentMap.set(entity, value as EntityId);
             set({ childParentMap: childParentMap });
           }
         }

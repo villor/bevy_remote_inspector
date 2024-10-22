@@ -1,11 +1,12 @@
 use bevy::{
     prelude::*,
     reflect::{
-        serde::TypedReflectSerializer, NamedField, TypeInfo, TypeRegistry, UnnamedField,
-        VariantInfo,
+        serde::TypedReflectSerializer, ArrayInfo, EnumInfo, ListInfo, MapInfo, OpaqueInfo, SetInfo,
+        StructInfo, TupleInfo, TupleStructInfo, TypeInfo, TypeRegistry, VariantInfo,
     },
     utils::TypeIdMap,
 };
+use serde::Serialize;
 use serde_json::{json, Value};
 
 use crate::{InspectorEvent, TrackedData};
@@ -35,16 +36,18 @@ fn serialize_type_registry(registry: &TypeRegistry, zsts: &mut ZeroSizedTypes) -
     let types = registry
         .iter()
         .map(|registration| {
-            let default_value = registration
-                .data::<ReflectDefault>()
-                .map(|d| {
+            let default_value: Option<Value> =
+                registration.data::<ReflectDefault>().and_then(|d| {
                     let reflect = d.default();
                     let serializer =
                         TypedReflectSerializer::new(reflect.as_partial_reflect(), &registry);
 
                     serde_json::to_value(serializer).ok()
-                })
-                .flatten();
+                });
+
+            if registration.type_info().is::<Vec3>() {
+                dbg!(&default_value);
+            }
 
             let type_name = registration.type_info().type_path();
             let type_info = match registration.type_info() {
@@ -52,134 +55,26 @@ fn serialize_type_registry(registry: &TypeRegistry, zsts: &mut ZeroSizedTypes) -
                     if info.field_len() == 0 {
                         zsts.insert(info.type_id(), ());
                     }
-                    let short_name = info.ty().short_path();
-                    let mut serialized = serialize_struct(info.iter(), default_value);
-
-                    serialized
-                        .as_object_mut()
-                        .unwrap()
-                        .insert("short_name".to_string(), json!(short_name));
-
-                    serialized
+                    RegistryItem::Struct(StructValue::new(info, default_value))
                 }
                 TypeInfo::TupleStruct(info) => {
                     if info.field_len() == 0 {
                         zsts.insert(info.type_id(), ());
                     }
-
-                    let fields = info
-                        .iter()
-                        .map(|field| field.type_path())
-                        .collect::<Vec<_>>();
-
-                    let short_name = info.ty().short_path();
-
-                    json!({
-                        "kind": "tuple_struct",
-                        "fields": fields,
-                        "default": default_value,
-                        "short_name": short_name
-                    })
+                    RegistryItem::TupleStruct(TupleStructValue::new(info, default_value))
                 }
-                TypeInfo::Tuple(info) => serialize_tuple(info.iter()),
+                TypeInfo::Tuple(info) => RegistryItem::Tuple(TupleValue::new(info)),
                 TypeInfo::List(info) => {
-                    let item = info.item_ty().path();
-                    let capacity: Option<usize> = None;
-                    let short_name = info.ty().short_path();
-
-                    json!({
-                        "kind": "array",
-                        "item": item,
-                        "capacity": capacity,
-                        "default": default_value,
-                        "short_name": short_name
-                    })
+                    RegistryItem::Array(ArrayValue::from_list(info, default_value))
                 }
                 TypeInfo::Array(info) => {
-                    let item = info.item_ty().path();
-                    let capacity = info.capacity();
-                    let short_name = info.ty().short_path();
-
-                    json!({
-                        "kind": "array",
-                        "item": item,
-                        "capacity": capacity,
-                        "default": default_value,
-                        "short_name": short_name
-                    })
+                    RegistryItem::Array(ArrayValue::from_array(info, default_value))
                 }
-                TypeInfo::Map(info) => {
-                    let key_type = info.key_ty().path();
-                    let value_type = info.value_ty().path();
-                    let short_name = info.ty().short_path();
-
-                    json!({
-                        "kind": "map",
-                        "key": key_type,
-                        "value": value_type,
-                        "default": default_value,
-                        "short_name": short_name
-                    })
-                }
-                TypeInfo::Set(infi) => {
-                    let item = infi.value_ty().path();
-                    let short_name = infi.ty().short_path();
-
-                    json!({
-                        "kind": "set",
-                        "item": item,
-                        "default": default_value,
-                        "short_name": short_name
-                    })
-                }
-                TypeInfo::Enum(info) => {
-                    let variants = info
-                        .iter()
-                        .map(|variant| {
-                            let name = variant.name();
-                            let mut value = match variant {
-                                VariantInfo::Struct(info) => serialize_struct(info.iter(), None),
-                                VariantInfo::Tuple(info) => serialize_tuple(info.iter()),
-                                VariantInfo::Unit(_) => {
-                                    json!({
-                                        "kind": "unit",
-                                    })
-                                }
-                            };
-
-                            value
-                                .as_object_mut()
-                                .unwrap()
-                                .insert("name".to_string(), json!(name));
-
-                            value
-                        })
-                        .collect::<Vec<_>>();
-
-                    if info.variant_len() == 0 {
-                        zsts.insert(info.type_id(), ());
-                    }
-
-                    let name = info.type_path();
-                    let short_name = info.ty().short_path();
-
-                    json!({
-                        "kind": "enum",
-                        "name": name,
-                        "variants": variants,
-                        "default": default_value,
-                        "short_name": short_name
-                    })
-                }
+                TypeInfo::Map(info) => RegistryItem::Map(MapValue::new(info, default_value)),
+                TypeInfo::Set(infi) => RegistryItem::Set(SetValue::new(infi, default_value)),
+                TypeInfo::Enum(info) => RegistryItem::Enum(EnumValue::new(info, default_value)),
                 TypeInfo::Opaque(info) => {
-                    let name = info.type_path();
-                    let short_name = info.ty().short_path();
-                    json!({
-                        "kind": "opaque",
-                        "name": name,
-                        "default": default_value,
-                        "short_name": short_name
-                    })
+                    RegistryItem::Opaque(OpaqueValue::new(info, default_value))
                 }
             };
 
@@ -190,33 +85,231 @@ fn serialize_type_registry(registry: &TypeRegistry, zsts: &mut ZeroSizedTypes) -
     types
 }
 
-fn serialize_struct<'a>(
-    s: impl Iterator<Item = &'a NamedField>,
-    default_value: Option<Value>,
-) -> Value {
-    let fields = s
-        .map(|field| {
-            let field_name = field.name();
-            let field_type = field.type_info().map(|info| info.type_path());
-            json!({
-                "name": field_name,
-                "type": field_type,
-            })
-        })
-        .collect::<Vec<_>>();
-
-    json!({
-        "kind": "struct",
-        "fields": fields,
-        "default": default_value,
-    })
+#[derive(Serialize)]
+#[serde(rename_all(serialize = "snake_case"))]
+#[serde(tag = "kind")]
+enum RegistryItem {
+    Struct(StructValue),
+    TupleStruct(TupleStructValue),
+    Tuple(TupleValue),
+    Array(ArrayValue),
+    Map(MapValue),
+    Set(SetValue),
+    Enum(EnumValue),
+    Opaque(OpaqueValue),
 }
 
-fn serialize_tuple<'a>(s: impl Iterator<Item = &'a UnnamedField>) -> Value {
-    let fields = s.map(|field| field.type_path()).collect::<Vec<_>>();
+#[derive(Serialize)]
+struct StructValue {
+    fields: Vec<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    default: Option<Value>,
+    short_name: &'static str,
+}
 
-    json!({
-        "kind": "tuple",
-        "fields": fields
-    })
+impl StructValue {
+    fn new(info: &StructInfo, default_value: Option<Value>) -> Self {
+        let fields = info
+            .iter()
+            .map(|field| {
+                let field_name = field.name();
+                let field_type = field.type_info().map(|info| info.type_path());
+                json!({
+                    "name": field_name,
+                    "type": field_type,
+                })
+            })
+            .collect::<Vec<_>>();
+
+        Self {
+            fields,
+            default: default_value,
+            short_name: info.ty().short_path(),
+        }
+    }
+}
+
+#[derive(Serialize)]
+struct TupleStructValue {
+    fields: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    default: Option<Value>,
+}
+
+impl TupleStructValue {
+    fn new(info: &TupleStructInfo, default_value: Option<Value>) -> Self {
+        let fields = info
+            .iter()
+            .map(|field| field.type_path().to_string())
+            .collect::<Vec<_>>();
+
+        Self {
+            fields,
+            default: default_value,
+        }
+    }
+}
+
+#[derive(Serialize)]
+struct TupleValue {
+    fields: Vec<String>,
+}
+
+impl TupleValue {
+    fn new(info: &TupleInfo) -> Self {
+        let fields = info
+            .iter()
+            .map(|field| field.type_path().to_string())
+            .collect::<Vec<_>>();
+
+        Self { fields }
+    }
+}
+
+#[derive(Serialize)]
+struct ArrayValue {
+    item: &'static str,
+    capacity: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    default: Option<Value>,
+}
+
+impl ArrayValue {
+    fn from_array(info: &ArrayInfo, default_value: Option<Value>) -> Self {
+        Self {
+            item: info.item_ty().path(),
+            capacity: Some(info.capacity()),
+            default: default_value,
+        }
+    }
+
+    fn from_list(info: &ListInfo, default_value: Option<Value>) -> Self {
+        Self {
+            item: info.item_ty().path(),
+            capacity: None,
+            default: default_value,
+        }
+    }
+}
+
+#[derive(Serialize)]
+struct MapValue {
+    key: &'static str,
+    value: &'static str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    default: Option<Value>,
+    short_name: &'static str,
+}
+
+impl MapValue {
+    fn new(info: &MapInfo, default_value: Option<Value>) -> Self {
+        Self {
+            key: info.key_ty().path(),
+            value: info.value_ty().path(),
+            default: default_value,
+            short_name: info.ty().short_path(),
+        }
+    }
+}
+
+#[derive(Serialize)]
+struct SetValue {
+    item: &'static str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    default: Option<Value>,
+    short_name: &'static str,
+}
+
+impl SetValue {
+    fn new(info: &SetInfo, default_value: Option<Value>) -> Self {
+        Self {
+            item: info.value_ty().path(),
+            default: default_value,
+            short_name: info.ty().short_path(),
+        }
+    }
+}
+
+#[derive(Serialize)]
+struct EnumValue {
+    variants: Vec<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    default: Option<Value>,
+    short_name: &'static str,
+}
+
+impl EnumValue {
+    fn new(info: &EnumInfo, default_value: Option<Value>) -> Self {
+        let variants = info
+            .iter()
+            .map(|variant| {
+                let name = variant.name();
+                let mut value = match variant {
+                    VariantInfo::Struct(info) => {
+                        let fields = info
+                            .iter()
+                            .map(|field| {
+                                let field_name = field.name();
+                                let field_type = field.type_info().map(|info| info.type_path());
+                                json!({
+                                    "name": field_name,
+                                    "type": field_type,
+                                })
+                            })
+                            .collect::<Vec<_>>();
+
+                        json!({
+                            "kind": "struct",
+                            "fields": fields,
+                        })
+                    }
+                    VariantInfo::Tuple(info) => {
+                        let fields = info
+                            .iter()
+                            .map(|field| field.type_path())
+                            .collect::<Vec<_>>();
+
+                        json!({
+                            "kind": "tuple",
+                            "fields": fields
+                        })
+                    }
+                    VariantInfo::Unit(_) => {
+                        json!({
+                            "kind": "unit",
+                        })
+                    }
+                };
+
+                value
+                    .as_object_mut()
+                    .unwrap()
+                    .insert("name".to_string(), json!(name));
+
+                value
+            })
+            .collect::<Vec<_>>();
+
+        Self {
+            variants,
+            default: default_value,
+            short_name: info.ty().short_path(),
+        }
+    }
+}
+
+#[derive(Serialize)]
+struct OpaqueValue {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    default: Option<Value>,
+    short_name: &'static str,
+}
+
+impl OpaqueValue {
+    fn new(info: &OpaqueInfo, default_value: Option<Value>) -> Self {
+        Self {
+            default: default_value,
+            short_name: info.ty().short_path(),
+        }
+    }
 }

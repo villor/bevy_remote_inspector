@@ -1,6 +1,6 @@
-import { TypeRegistryEvent } from '@/websocket/useWs';
 import { StateCreator } from 'zustand';
 import { TType, TypeName } from './useTypeRegistry';
+import { TypeRegistryEvent } from '@/websocket/createWsSlice';
 
 export type TypeRegistrySlice = {
   registry: Map<TypeName, TType>;

@@ -1,34 +1,32 @@
 import {
   TStruct,
+  TValueArray,
+  TValueObject,
   TypeName,
   useTypeRegistry,
 } from '@/type-registry/useTypeRegistry';
-import { deepStringify, snakeToWords } from '@/utils';
+import { snakeToWords } from '@/utils';
 import { DynamicInput, RenderStack } from './DynamicInput';
 import { Fragment, HTMLAttributes, ReactNode } from 'react';
 import clsx from 'clsx';
-import { isPlainObject } from 'es-toolkit';
 import { TupleStructInput } from './TupleStructInput';
+import { useDynamicForm } from './DynamicForm';
 type StructInputProps = {
   typeInfo: TStruct;
-  value: any;
-  parentPath: string;
+  path: string;
   renderStack: RenderStack[];
 };
 
-export function StructInput({
-  typeInfo,
-  value,
-  parentPath,
-  renderStack,
-}: StructInputProps) {
+export function StructInput({ typeInfo, path, renderStack }: StructInputProps) {
+  const { getValue } = useDynamicForm();
+  const value = getValue<TValueArray | TValueObject>(path);
   if (Array.isArray(value)) {
+    // TODO verify length
     return (
       <StructInputInline
-        parentPath={parentPath}
+        parentPath={path}
         renderStack={renderStack}
         typeInfo={typeInfo}
-        value={value}
       ></StructInputInline>
     );
   }
@@ -40,25 +38,19 @@ export function StructInput({
     >
       {typeInfo.fields.map((f, i) => {
         const fieldPath = Array.isArray(value) ? String(i) : f.name;
-
-        const fieldValue = value ? value[fieldPath] : null;
-
-        const newParentPath = parentPath
-          ? `${parentPath}.${fieldPath}`
-          : fieldPath;
+        const newPath = path ? `${path}.${fieldPath}` : fieldPath;
 
         return (
           <Fragment key={i}>
             <StructFieldInput
               typeName={f.type}
-              value={fieldValue}
               fieldName={f.name}
-              parentPath={newParentPath}
+              path={newPath}
               renderStack={[
                 ...renderStack,
                 {
                   from: 'struct',
-                  parentPath: newParentPath,
+                  path: newPath,
                 },
               ]}
             />
@@ -71,23 +63,20 @@ export function StructInput({
 
 type StructFieldInputProps = {
   typeName: TypeName;
-  value: any;
   fieldName: string;
   renderStack: RenderStack[];
-  parentPath: string;
-  defaultValue: any;
+  path: string;
 };
 
 export function StructFieldInput({
   typeName,
-  value,
   fieldName,
   renderStack,
-  parentPath,
-  defaultValue,
+  path,
 }: StructFieldInputProps) {
   const registry = useTypeRegistry();
   const info = registry.get(typeName);
+  const { getValue } = useDynamicForm();
   if (!info) {
     return <div>Unknown type {typeName}</div>;
   }
@@ -95,17 +84,17 @@ export function StructFieldInput({
   let children: ReactNode = null;
 
   if (info.kind === 'struct') {
+    const value = getValue(path);
     const shouldUnwrap = Array.isArray(value);
     const inner = (
       <StructInput
         typeInfo={info}
-        value={value}
-        parentPath={parentPath}
+        path={path}
         renderStack={[
           ...renderStack,
           {
             from: `struct-field`,
-            parentPath: parentPath,
+            path: path,
           },
         ]}
       />
@@ -120,13 +109,12 @@ export function StructFieldInput({
       <div className="col-span-2 pl-6">
         <TupleStructInput
           typeInfo={info}
-          value={value}
-          parentPath={parentPath}
+          path={path}
           renderStack={[
             ...renderStack,
             {
               from: 'struct-input-field-tuple-struct',
-              parentPath,
+              path: path,
               ctx: {
                 fieldName,
               },
@@ -139,13 +127,12 @@ export function StructFieldInput({
     children = (
       <DynamicInput
         typeName={typeName}
-        value={value}
-        parentPath={parentPath}
+        path={path}
         renderStack={[
           ...renderStack,
           {
             from: 'struct-input-field-dynamic',
-            parentPath,
+            path: path,
             ctx: {
               fieldName,
             },
@@ -170,12 +157,10 @@ export function StructInputLayout(props: HTMLAttributes<HTMLDivElement>) {
 }
 
 function StructInputInline({
-  value,
   typeInfo,
   parentPath,
   renderStack,
 }: {
-  value: any;
   typeInfo: TStruct;
   parentPath: string;
   renderStack: RenderStack[];
@@ -189,20 +174,18 @@ function StructInputInline({
       })}
     >
       {typeInfo.fields.map((f, i) => {
-        const fieldValue = value[i];
         const newParentPath = `${parentPath}.${i}`;
         return (
           <div className="flex w-full" key={i}>
             <StructFieldInput
               typeName={f.type}
-              value={fieldValue}
               fieldName={f.name}
-              parentPath={newParentPath}
+              path={newParentPath}
               renderStack={[
                 ...renderStack,
                 {
                   from: `struct-field-inline`,
-                  parentPath,
+                  path: parentPath,
                 },
               ]}
             />

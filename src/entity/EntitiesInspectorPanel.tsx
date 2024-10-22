@@ -1,12 +1,11 @@
 import { useComponentName } from '@/component/useComponentName';
+import { ComponentId, useComponentInfo } from '@/component/useComponents';
 import {
-  ComponentId,
-  ComponentValue,
-  useComponentInfo,
-} from '@/component/useComponents';
-import { EntityId, useEntity } from '@/entity/useEntity';
+  EntityId,
+  useEntityComponentIds,
+  useEntityComponentValue,
+} from '@/entity/useEntity';
 import { DynamicForm } from '@/inputs/DynamicForm';
-import { DynamicInput } from '@/inputs/DynamicInput';
 import { Button } from '@/shared/ui/button';
 import {
   Collapsible,
@@ -15,17 +14,15 @@ import {
 } from '@/shared/ui/collapsible';
 import { ScrollArea } from '@/shared/ui/scroll-area';
 import { useStore } from '@/store';
-import { useTypeRegistry } from '@/type-registry/useTypeRegistry';
-import { deepStringify } from '@/utils';
 import clsx from 'clsx';
 import { ChevronRight, Plus } from 'lucide-react';
-import { useState } from 'react';
-import { useShallow } from 'zustand/react/shallow';
+import { ReactNode, useState } from 'react';
+import { useUpdateEntityComponent } from './useUpdateEntityComponent';
+import { memo } from 'react';
+import { useTypeRegistry } from '@/type-registry/useTypeRegistry';
 
-export function EntitiesInspectorPanel() {
-  const inspectingEntity = useStore(
-    useShallow((state) => state.inspectingEntity)
-  );
+export const EntitiesInspectorPanel = memo(function EntitiesInspectorPanel() {
+  const inspectingEntity = useStore((state) => state.inspectingEntity);
 
   return (
     <div className="flex h-full w-full flex-col pt-4">
@@ -37,22 +34,21 @@ export function EntitiesInspectorPanel() {
       )}
     </div>
   );
-}
+});
 
 function InspectorComponentList({ entity }: { entity: EntityId }) {
-  const components = useEntity(entity);
+  const componentIds = useEntityComponentIds(entity);
+  console.log(`compoents rerender`);
 
-  if (!components) {
+  if (!componentIds) {
     return `No components`;
   }
-
-  console.log(`compoents rerender`);
 
   return (
     <div className="h-full w-full flex flex-col overflow-hidden items-center">
       <ScrollArea style={{ height: 'auto', width: '100%' }} className="gap-y-4">
-        {Array.from(components.entries()).map(([id, value]) => (
-          <InspectorComponent key={id} id={id} value={value} />
+        {componentIds.map((id) => (
+          <InspectorComponent entityId={entity} key={id} componentId={id} />
         ))}
       </ScrollArea>
       <div className="py-2">
@@ -66,18 +62,42 @@ function InspectorComponentList({ entity }: { entity: EntityId }) {
 }
 
 function InspectorComponent({
-  id,
-  value,
+  componentId,
+  entityId,
 }: {
-  id: ComponentId;
-  value: ComponentValue;
+  componentId: ComponentId;
+  entityId: EntityId;
 }) {
-  const { name, short_name } = useComponentName(id);
-  const info = useComponentInfo(id)!;
   const [open, setOpen] = useState(true);
-  const onChange = (value: any) => {
-    console.log(`component ${short_name} changed`, value);
-  };
+  const value = useEntityComponentValue(entityId, componentId);
+  const { name, short_name } = useComponentName(componentId);
+  const info = useComponentInfo(componentId)!;
+  const updateEntityComponent = useUpdateEntityComponent(entityId, componentId);
+
+  const registry = useTypeRegistry();
+
+  let children: ReactNode = null;
+  if (value === undefined) {
+    const typeInfo = registry.get(info.name);
+    const message =
+      typeInfo === undefined
+        ? 'is not registered in type registry'
+        : 'is not serializable';
+    children = (
+      <div>
+        Component {name} is {message}
+      </div>
+    );
+  } else {
+    children = (
+      <DynamicForm
+        typeName={info.name}
+        value={value}
+        onChange={updateEntityComponent}
+      ></DynamicForm>
+    );
+  }
+
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
       <CollapsibleTrigger
@@ -100,13 +120,7 @@ function InspectorComponent({
         </Button>
       </CollapsibleTrigger>
       <CollapsibleContent className="px-4 bg-muted py-2 overflow-hidden w-full">
-        {/* <pre>{deepStringify(value, 2)}</pre> */}
-        <DynamicForm typeName={info!.name} value={value}></DynamicForm>
-        {/* <DynamicInput
-          typeName={info!.name}
-          value={value}
-          onChange={onChange}
-        ></DynamicInput> */}
+        {children}
       </CollapsibleContent>
     </Collapsible>
   );

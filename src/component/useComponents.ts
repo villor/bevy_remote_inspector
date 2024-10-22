@@ -1,9 +1,8 @@
 import { useStore } from '@/store';
-import { TypeName } from '../type-registry/useTypeRegistry';
-import { useShallow } from 'zustand/react/shallow';
+import { TValue, TypeName } from '../type-registry/useTypeRegistry';
 
 export type ComponentName = TypeName;
-export type ComponentValue = any | null;
+export type ComponentValue = TValue;
 export type ComponentId = number;
 
 export type ComponentInfo = {
@@ -13,5 +12,5 @@ export type ComponentInfo = {
 };
 
 export function useComponentInfo(id: ComponentId) {
-  return useStore(useShallow((state) => state.components.get(id)));
+  return useStore((state) => state.components.get(id));
 }

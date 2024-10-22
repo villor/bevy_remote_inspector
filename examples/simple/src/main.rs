@@ -177,7 +177,7 @@ fn setup(
     commands.spawn(Text::default());
 }
 
-fn log_change(mut query: Query<&MyComponent, Changed<MyComponent>>) {
+fn log_change(query: Query<&MyComponent, Changed<MyComponent>>) {
     for my_component in query.iter() {
         println!("changed to {:?}", my_component);
     }

@@ -5,7 +5,7 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-function replacer(key: any, value: any) {
+function replacer(_key: any, value: any) {
   if (value instanceof Map) {
     const ret: Record<any, any> = {};
 

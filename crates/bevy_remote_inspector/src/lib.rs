@@ -130,8 +130,8 @@ struct TrackedData {
     type_registry: bool,
     components: HashSet<ComponentId>,
     entities: EntityHashMap<HashSet<ComponentId>>,
-    resources: HashSet<ComponentId>,
-    tables: Vec<usize>,
+    // resources: HashSet<ComponentId>,
+    // tables: Vec<usize>,
 }
 
 #[derive(Resource, Default, Deref, DerefMut)]
@@ -151,7 +151,7 @@ enum InspectorEvent {
         entity: Entity,
         mutation: EntityMutation,
     },
-    NewTables {
-        tables: Vec<usize>,
-    },
+    // NewTables {
+    //     tables: Vec<usize>,
+    // },
 }

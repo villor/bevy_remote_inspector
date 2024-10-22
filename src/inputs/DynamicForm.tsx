@@ -3,11 +3,10 @@ import {
   TValueObject,
   TypeName,
 } from '@/type-registry/useTypeRegistry';
-import { useForm, useFormContext, UseFormReturn } from 'react-hook-form';
+import { useForm, UseFormReturn } from 'react-hook-form';
 import { DynamicInput } from './DynamicInput';
 import { deepStringify } from '@/utils';
-import { flattenObject, uniq } from 'es-toolkit';
-import { get, has, set, unset } from 'es-toolkit/compat';
+import { flattenObject } from 'es-toolkit';
 import { Check } from 'lucide-react';
 import {
   createContext,

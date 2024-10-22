@@ -17,7 +17,7 @@ export function WebsocketConnector() {
         id: WEB_SOCKET_MESSAGE_ID,
       }),
     },
-    onError: (e) => {
+    onError: (_e) => {
       const isManuallyConnect = useStore.getState().isManuallyConnect;
       if (isManuallyConnect) {
         toast({

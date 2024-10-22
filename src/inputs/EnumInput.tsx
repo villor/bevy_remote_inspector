@@ -8,15 +8,8 @@ import {
 import {
   TEnum,
   TEnumVariant,
-  TEnumVariantStruct,
-  TEnumVariantTuple,
-  TType,
-  TValue,
-  TValueArray,
   TValueObject,
-  TValuePrimitive,
   TypeName,
-  TypeRegistry,
   useTypeRegistry,
 } from '@/type-registry/useTypeRegistry';
 import { RenderStack } from './DynamicInput';
@@ -28,9 +21,7 @@ import { useDynamicForm } from './DynamicForm';
 import {
   isOptionType,
   resolveEnumVariantDefaultValue,
-  resolveTypeDefaultValue,
 } from '@/type-registry/types';
-import { TypeIcon } from 'lucide-react';
 
 export type EnumInputProps = {
   typeInfo: TEnum;

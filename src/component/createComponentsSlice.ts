@@ -10,7 +10,7 @@ export type ComponentsSlice = {
 
 export const createComponentsSlice: CreateSlice<ComponentsSlice> = (
   set,
-  get
+  _get
 ) => ({
   components: new Map(),
   componentNameToIdMap: new Map(),

@@ -2,7 +2,7 @@ use anyhow::anyhow;
 use bevy::{
     ecs::component::ComponentId,
     prelude::*,
-    reflect::{serde::TypedReflectDeserializer, ReflectFromPtr, TypeRegistry},
+    reflect::{serde::TypedReflectDeserializer, ReflectFromPtr},
     remote::BrpRequest,
 };
 use serde::{de::DeserializeSeed, Deserialize, Serialize};

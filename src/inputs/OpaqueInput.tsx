@@ -5,7 +5,7 @@ import { Input } from '@/shared/ui/input';
 import clsx from 'clsx';
 import { Checkbox } from '@/shared/ui/checkbox';
 import { isNumberType, isUnsignedInteger } from '@/type-registry/types';
-import { forwardRef, useEffect } from 'react';
+import { forwardRef } from 'react';
 import { useDynamicForm } from './DynamicForm';
 
 type OpaqueInputProps = {

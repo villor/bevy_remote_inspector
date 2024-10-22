@@ -1,6 +1,6 @@
-import { Divide, Github } from "lucide-react";
-import { Button } from "../shared/ui/button";
-import { ThemeToggle } from "@/theme/ThemeToggle";
+import { Github } from 'lucide-react';
+import { Button } from '../shared/ui/button';
+import { ThemeToggle } from '@/theme/ThemeToggle';
 
 export function Header() {
   return (

@@ -1,7 +1,6 @@
 import { TTupleStruct, useTypeRegistry } from '@/type-registry/useTypeRegistry';
-import { ReactNode, useEffect } from 'react';
+import { ReactNode } from 'react';
 import { DynamicInput, RenderStack } from './DynamicInput';
-import { useFormContext } from 'react-hook-form';
 
 export type TupleStructInputProps = {
   typeInfo: TTupleStruct;

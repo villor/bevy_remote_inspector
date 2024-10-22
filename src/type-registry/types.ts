@@ -26,12 +26,17 @@ export function resolveTypeDefaultValue(
   registry: TypeRegistry
 ): TValue | undefined {
   const typeInfo = registry.get(typeName);
+  console.log(`resolving ${typeName}`, typeInfo);
   if (!typeInfo) {
     return undefined;
   }
 
   if (typeInfo.default !== undefined) {
     return typeInfo.default;
+  }
+
+  if (isNumberType(typeName)) {
+    return 1;
   }
 
   if (typeInfo.kind === 'struct') {
@@ -65,7 +70,12 @@ export function resolveTypeDefaultValue(
   }
 
   if (typeInfo.kind === 'array') {
-    return [];
+    if (typeInfo.capacity === null) {
+      return [];
+    }
+    return new Array(typeInfo.capacity)
+      .fill(0)
+      .map(() => resolveTypeDefaultValue(typeInfo.item, registry)!);
   }
 
   if (typeInfo.kind === 'map') {
@@ -137,7 +147,7 @@ const numberTypes = [
 ];
 
 export function isNumberType(type: TypeName) {
-  return numberTypes.includes(type) || type.startsWith('std::num::NonZero<');
+  return numberTypes.includes(type) || type.startsWith('core::num::NonZero');
 }
 
 export function isUnsignedInteger(type: TypeName) {

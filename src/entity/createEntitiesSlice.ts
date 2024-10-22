@@ -14,7 +14,6 @@ export const createEntitiesSlice: CreateSlice<EntitiesSlice> = (set, get) => ({
   entities: new Map(),
   childParentMap: new Map(),
   updateEntity: (entity, mutation) => {
-    // console.log('updateEntity', entity, mutation);
     const childParentMap = get().childParentMap;
     const componentNameToIdMap = get().componentNameToIdMap;
     const parentComponentId = componentNameToIdMap.get(bevyTypes.PARENT);

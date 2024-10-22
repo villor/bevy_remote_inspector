@@ -7,8 +7,6 @@ export type ComponentId = number;
 
 export type ComponentInfo = {
   name: ComponentName;
-  reflected: boolean;
-  serializable: boolean;
 };
 
 export function useComponentInfo(id: ComponentId) {

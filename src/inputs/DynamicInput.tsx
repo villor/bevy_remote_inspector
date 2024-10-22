@@ -5,6 +5,7 @@ import { EnumInput } from './EnumInput';
 import { TupleStructInput } from './TupleStructInput';
 import { ErrorBoundary } from 'react-error-boundary';
 import { useState } from 'react';
+import { ArrayInput } from './ArrayInput';
 
 export type DynamicInputProps = {
   typeName: TypeName;
@@ -110,6 +111,10 @@ function DynamicInputInner({
         path={path}
       />
     );
+  }
+
+  if (typeInfo.kind === 'array') {
+    return <ArrayInput path={path} typeInfo={typeInfo} />;
   }
 
   return (

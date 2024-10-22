@@ -31,7 +31,7 @@ export function OpaqueInput({
         data-render-stack-simple={renderStack.map((r) => r.from).join('>')}
         data-render-stack={deepStringify(renderStack)}
       >
-        <span>{path}</span>
+        {/* <span>{path}</span> */}
         <OpaqueInputInner
           typeInfo={typeInfo}
           path={path}
@@ -65,7 +65,6 @@ const OpaqueInputInner = forwardRef<
 
   if (typeInfo.short_name === 'bool') {
     const onChange = (e: React.SyntheticEvent) => {
-      console.log('called from bool');
       setValue(path, (e.target as HTMLInputElement).checked);
     };
 

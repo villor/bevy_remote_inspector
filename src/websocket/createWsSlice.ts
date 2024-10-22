@@ -32,7 +32,7 @@ export const createWsSlice: StateCreator<SharedSlice, [], [], WsSlice> = (
   set,
   get
 ) => ({
-  url: parseWsURL(localStorage.getItem('ws_url') || ''),
+  url: parseWsURL(localStorage.getItem('ws_url') || 'ws://localhost:3000'),
   readyState: ReadyState.UNINSTANTIATED,
   shouldReconnect: true,
   isManuallyConnect: false,
@@ -54,7 +54,16 @@ export const createWsSlice: StateCreator<SharedSlice, [], [], WsSlice> = (
     set({ readyState });
 
     if (readyState === ReadyState.OPEN) {
-      set({ hasConnected: true, shouldReconnect: true });
+      set({
+        hasConnected: true,
+        shouldReconnect: true,
+        childParentMap: new Map(),
+        entities: new Map(),
+        registry: new Map(),
+        componentNameToIdMap: new Map(),
+        components: new Map(),
+        inspectingEntity: null,
+      });
       localStorage.setItem('ws_url', get().url!);
     }
   },
@@ -122,8 +131,6 @@ export type ComponentsEvent = {
   components: Array<{
     id: ComponentId;
     name: ComponentName;
-    reflected: boolean;
-    serializable: boolean;
   }>;
 };
 

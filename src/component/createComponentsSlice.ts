@@ -6,11 +6,15 @@ export type ComponentsSlice = {
   components: Map<ComponentId, ComponentInfo>;
   componentNameToIdMap: Map<ComponentName, ComponentId>;
   updateComponents: (components: ComponentsEvent['components']) => void;
+  getComponentName: (componentId: ComponentId) => {
+    name?: ComponentName;
+    short_name?: ComponentName;
+  };
 };
 
 export const createComponentsSlice: CreateSlice<ComponentsSlice> = (
   set,
-  _get
+  get
 ) => ({
   components: new Map(),
   componentNameToIdMap: new Map(),
@@ -28,5 +32,22 @@ export const createComponentsSlice: CreateSlice<ComponentsSlice> = (
         componentNameToIdMap: new Map(componentNameToIdMap),
       };
     });
+  },
+  getComponentName(id) {
+    const info = get().components.get(id);
+
+    if (!info) {
+      return {
+        name: undefined,
+        short_name: undefined,
+      };
+    }
+
+    const registeredInfo = get().registry.get(info.name);
+
+    return {
+      name: info.name,
+      short_name: registeredInfo?.short_name || info.name,
+    };
   },
 });

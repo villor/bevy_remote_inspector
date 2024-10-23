@@ -1,6 +1,6 @@
 import { useEntityTrees } from '@/entity/useEntitiesTrees';
 import { EntityId, EntityTreeNode } from '@/entity/useEntity';
-import { useEntityName } from '@/entity/useEntityName';
+import { prettyEntityId, useEntityName } from '@/entity/useEntityName';
 import { Button, buttonVariants } from '@/shared/ui/button';
 import { ScrollArea } from '@/shared/ui/scroll-area';
 import { useStore } from '@/store';
@@ -109,7 +109,7 @@ const EntityTreeItemContent = ({
 
   const { level, hasChildRows, isExpanded, isSelected } = itemProps;
   const isRoot = level === 1;
-  const childrenCount = countChildren(item);
+  // const childrenCount = countChildren(item);
 
   return (
     <div
@@ -169,11 +169,9 @@ const EntityTreeItemContent = ({
         >
           <div className="flex gap-x-2">
             <span>{name}</span>
-            {!isExpanded && childrenCount > 0 && (
-              <Badge variant="secondary" className="px-1.5 rounded-full">
-                {childrenCount}
-              </Badge>
-            )}
+            <Badge variant="secondary" className="px-1.5 rounded-full">
+              {prettyEntityId(item.id)}
+            </Badge>
           </div>
         </Button>
       </div>
@@ -181,17 +179,17 @@ const EntityTreeItemContent = ({
   );
 };
 
-function countChildren(item: EntityTreeNode): number {
-  const q = [...item.children]; // clone to avoid mutate by `.pop()`
-  let count = q.length;
-  while (q.length > 0) {
-    const node = q.pop()!;
-    if (node.children.length === 0) {
-      continue;
-    }
-    count += node.children.length;
-    q.push(...node.children);
-  }
+// function countChildren(item: EntityTreeNode): number {
+//   const q = [...item.children]; // clone to avoid mutate by `.pop()`
+//   let count = q.length;
+//   while (q.length > 0) {
+//     const node = q.pop()!;
+//     if (node.children.length === 0) {
+//       continue;
+//     }
+//     count += node.children.length;
+//     q.push(...node.children);
+//   }
 
-  return count;
-}
+//   return count;
+// }

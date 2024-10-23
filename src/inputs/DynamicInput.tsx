@@ -3,123 +3,47 @@ import { StructInput } from './StructInput';
 import { OpaqueInput } from './OpaqueInput';
 import { EnumInput } from './EnumInput';
 import { TupleStructInput } from './TupleStructInput';
-import { ErrorBoundary } from 'react-error-boundary';
-import { useState } from 'react';
+import { createContext } from 'react';
 import { ArrayInput } from './ArrayInput';
+import { MapInput } from './MapInput';
+import { TupleInput } from './TupleInput';
 
 export type DynamicInputProps = {
   typeName: TypeName;
   path: string; // should be empty on first call
-  renderStack?: RenderStack[];
-  defaultValue?: any;
 };
 
-export type RenderStack = {
-  from: string;
-  path: string;
-  ctx?: Record<string, any>;
-};
+export const DynamicInputContext = createContext({} as { readOnly: boolean });
 
-export function DynamicInput(props: DynamicInputProps) {
-  const [renderErrorMessage, setRenderErrorMessage] = useState<null | string>();
-
-  return (
-    <ErrorBoundary
-      onError={(error) => {
-        setRenderErrorMessage(error.message);
-      }}
-      onReset={() => setRenderErrorMessage(null)}
-      fallback={
-        <span className="text-red-500">{`Error while rendering ${props.typeName}. Error: ${renderErrorMessage}`}</span>
-      }
-    >
-      <DynamicInputInner {...props} />
-    </ErrorBoundary>
-  );
-}
-
-function DynamicInputInner({
-  typeName,
-  renderStack = [],
-  path,
-}: DynamicInputProps) {
-  console.log(`rerender ${path}`);
-
+export function DynamicInput({ typeName, path }: DynamicInputProps) {
   const registry = useTypeRegistry();
-  const typeInfo = registry.get(typeName);
-
-  if (!typeInfo) {
-    return null;
-  }
+  const typeInfo = registry.get(typeName)!;
 
   if (typeInfo.kind === 'struct') {
-    return (
-      <StructInput
-        typeInfo={typeInfo}
-        path={path}
-        renderStack={[
-          ...renderStack,
-          {
-            from: 'dynamic',
-            // value: props.value,
-            path: path,
-          },
-        ]}
-      />
-    );
+    return <StructInput typeInfo={typeInfo} path={path} />;
   }
 
   if (typeInfo.kind === 'opaque') {
-    return (
-      <OpaqueInput
-        typeInfo={typeInfo}
-        renderStack={renderStack}
-        path={path}
-        typeName={typeName}
-      />
-    );
+    return <OpaqueInput typeInfo={typeInfo} path={path} typeName={typeName} />;
   }
 
   if (typeInfo.kind === 'enum') {
-    return (
-      <EnumInput
-        typeInfo={typeInfo}
-        typeName={typeName}
-        path={path}
-        renderStack={[
-          ...renderStack,
-          {
-            from: 'dynamic',
-            path: path,
-          },
-        ]}
-      />
-    );
+    return <EnumInput typeInfo={typeInfo} typeName={typeName} path={path} />;
   }
 
   if (typeInfo.kind === 'tuple_struct') {
-    return (
-      <TupleStructInput
-        typeInfo={typeInfo}
-        renderStack={[
-          ...renderStack,
-          {
-            from: 'dynamic',
-            path: path,
-          },
-        ]}
-        path={path}
-      />
-    );
+    return <TupleStructInput typeInfo={typeInfo} path={path} />;
   }
 
-  if (typeInfo.kind === 'array') {
+  if (typeInfo.kind === 'array' || typeInfo.kind === 'set') {
     return <ArrayInput path={path} typeInfo={typeInfo} />;
   }
 
-  return (
-    <>
-      <div className="col-span-2">Unknown type {typeInfo.kind}</div>
-    </>
-  );
+  if (typeInfo.kind === 'map') {
+    return <MapInput path={path} typeInfo={typeInfo} />;
+  }
+
+  if (typeInfo.kind === 'tuple') {
+    return <TupleInput path={path} typeInfo={typeInfo} />;
+  }
 }

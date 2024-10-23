@@ -45,9 +45,7 @@ fn serialize_type_registry(registry: &TypeRegistry, zsts: &mut ZeroSizedTypes) -
                     serde_json::to_value(serializer).ok()
                 });
 
-            if registration.type_info().is::<Vec3>() {
-                dbg!(&default_value);
-            }
+            if registration.type_info().is::<Vec3>() {}
 
             let type_name = registration.type_info().type_path();
             let type_info = match registration.type_info() {
@@ -134,6 +132,7 @@ struct TupleStructValue {
     fields: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     default: Option<Value>,
+    short_name: &'static str,
 }
 
 impl TupleStructValue {
@@ -146,6 +145,7 @@ impl TupleStructValue {
         Self {
             fields,
             default: default_value,
+            short_name: info.ty().short_path(),
         }
     }
 }
@@ -153,6 +153,7 @@ impl TupleStructValue {
 #[derive(Serialize)]
 struct TupleValue {
     fields: Vec<String>,
+    short_name: &'static str,
 }
 
 impl TupleValue {
@@ -162,7 +163,10 @@ impl TupleValue {
             .map(|field| field.type_path().to_string())
             .collect::<Vec<_>>();
 
-        Self { fields }
+        Self {
+            fields,
+            short_name: info.ty().short_path(),
+        }
     }
 }
 
@@ -172,6 +176,7 @@ struct ArrayValue {
     capacity: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
     default: Option<Value>,
+    short_name: &'static str,
 }
 
 impl ArrayValue {
@@ -180,6 +185,7 @@ impl ArrayValue {
             item: info.item_ty().path(),
             capacity: Some(info.capacity()),
             default: default_value,
+            short_name: info.ty().short_path(),
         }
     }
 
@@ -188,6 +194,7 @@ impl ArrayValue {
             item: info.item_ty().path(),
             capacity: None,
             default: default_value,
+            short_name: info.ty().short_path(),
         }
     }
 }

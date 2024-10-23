@@ -1,18 +1,16 @@
 import { TOpaque } from '@/type-registry/useTypeRegistry';
-import { deepStringify } from '@/utils';
-import { RenderStack } from './DynamicInput';
+import { DynamicInputContext } from './DynamicInput';
 import { Input } from '@/shared/ui/input';
 import clsx from 'clsx';
 import { Checkbox } from '@/shared/ui/checkbox';
-import { isNumberType, isUnsignedInteger } from '@/type-registry/types';
-import { forwardRef } from 'react';
+import { isNumberType, isUnsignedIntegerType } from '@/type-registry/types';
+import { forwardRef, useContext } from 'react';
 import { useDynamicForm } from './DynamicForm';
 
 type OpaqueInputProps = {
   typeInfo: TOpaque;
   className?: string;
   path: string;
-  renderStack: RenderStack[];
   typeName: string;
 };
 
@@ -20,22 +18,14 @@ export function OpaqueInput({
   typeInfo,
   className,
   path,
-  renderStack,
   typeName,
 }: OpaqueInputProps) {
   return (
     <>
-      <div
-        className={clsx(className, 'w-full')}
-        data-final-name={path}
-        data-render-stack-simple={renderStack.map((r) => r.from).join('>')}
-        data-render-stack={deepStringify(renderStack)}
-      >
-        {/* <span>{path}</span> */}
+      <div className={clsx(className, 'w-full flex items-center h-9')}>
         <OpaqueInputInner
           typeInfo={typeInfo}
           path={path}
-          renderStack={renderStack}
           typeName={typeName}
         ></OpaqueInputInner>
       </div>
@@ -48,31 +38,28 @@ const OpaqueInputInner = forwardRef<
   {
     typeInfo: TOpaque;
     path: string;
-    renderStack?: RenderStack[];
     typeName: string;
   }
->(({ typeInfo, path, renderStack, typeName }, ref) => {
-  const { getValue, setValue, readOnly } = useDynamicForm();
+>(({ path, typeName }, ref) => {
+  const { getValue, setValue, readOnly, allowUndefined } = useDynamicForm();
   const value = getValue(path);
-
-  if (value === undefined) {
-    throw new Error(
-      `Value is undefined for ${path} Render Stack: ${JSON.stringify(
-        renderStack
-      )}`
-    );
+  const inputReadOnly = useContext(DynamicInputContext)?.readOnly;
+  const isReadOnly = readOnly || inputReadOnly;
+  if (value === undefined && !allowUndefined) {
+    throw new Error(`Value is undefined for ${path}`);
   }
 
-  if (typeInfo.short_name === 'bool') {
-    const onChange = (e: React.SyntheticEvent) => {
-      setValue(path, (e.target as HTMLInputElement).checked);
+  if (typeName === 'bool') {
+    const onChange = (checked: boolean) => {
+      setValue(path, checked);
     };
 
     return (
       <Checkbox
         checked={value as boolean}
         ref={ref}
-        onChange={onChange}
+        disabled={isReadOnly}
+        onCheckedChange={onChange}
       ></Checkbox>
     );
   } else {
@@ -91,14 +78,12 @@ const OpaqueInputInner = forwardRef<
         value={value as string | number}
         onChange={onChange}
         className="bg-background"
-        readOnly={readOnly}
-        min={isUnsignedInteger(typeName) ? 0 : undefined}
+        readOnly={isReadOnly}
+        disabled={isReadOnly}
+        min={isUnsignedIntegerType(typeName) ? 0 : undefined}
         type={type}
-        data-type={typeInfo.short_name ?? JSON.stringify(typeInfo)}
         ref={ref}
       />
     );
   }
 });
-
-OpaqueInputInner.displayName = 'OpaqueInputInner';

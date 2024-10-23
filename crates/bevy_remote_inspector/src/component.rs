@@ -13,13 +13,13 @@ impl TrackedData {
         &mut self,
         events: &mut Vec<InspectorEvent>,
         world: &World,
-        type_registry: &TypeRegistry,
+        _type_registry: &TypeRegistry,
     ) {
         let mut new_components = vec![];
         for info in world.components().iter() {
             if !self.components.contains(&info.id()) {
                 self.components.insert(info.id());
-                new_components.push(InspectorComponentInfo::new(info, &type_registry));
+                new_components.push(InspectorComponentInfo::new(info));
             }
         }
 
@@ -35,26 +35,13 @@ impl TrackedData {
 pub struct InspectorComponentInfo {
     id: usize,
     name: String,
-    reflected: bool,
-    serializable: bool,
 }
 
 impl InspectorComponentInfo {
-    pub fn new(component_info: &ComponentInfo, type_registry: &TypeRegistry) -> Self {
-        let (reflected, serializable) = match type_registry.get(component_info.type_id().unwrap()) {
-            Some(type_registration) => {
-                let serializeable = type_registration.data::<ReflectSerialize>().is_some();
-
-                (true, serializeable)
-            }
-            None => (false, false),
-        };
-
+    pub fn new(component_info: &ComponentInfo) -> Self {
         Self {
             id: component_info.id().index(),
             name: component_info.name().into(),
-            reflected,
-            serializable,
         }
     }
 }

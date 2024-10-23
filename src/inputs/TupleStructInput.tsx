@@ -1,18 +1,15 @@
 import { TTupleStruct, useTypeRegistry } from '@/type-registry/useTypeRegistry';
 import { ReactNode } from 'react';
-import { DynamicInput, RenderStack } from './DynamicInput';
+import { DynamicInput } from './DynamicInput';
+import clsx from 'clsx';
+import { InputLabel } from './InputLabel';
 
 export type TupleStructInputProps = {
   typeInfo: TTupleStruct;
-  renderStack: RenderStack[];
   path: string;
 };
-export function TupleStructInput({
-  typeInfo,
-  path,
-  renderStack,
-}: TupleStructInputProps) {
-  let children: ReactNode = <span>tuple struct with more than 1 fields</span>;
+export function TupleStructInput({ typeInfo, path }: TupleStructInputProps) {
+  let children: ReactNode = null;
   const registry = useTypeRegistry();
 
   if (typeInfo.fields.length === 1) {
@@ -21,50 +18,18 @@ export function TupleStructInput({
     if (!typeName) {
       return <div>Unknown type {typeInfo.fields[0]}</div>;
     }
-
+    const shortName = registry.get(typeName)?.short_name;
     children = (
-      <div className="grid grid-cols-[auto_1fr] gap-x-4">
-        <div className="pt-1.5 capitalize">
-          {registry.get(typeName)?.short_name}
-        </div>
-        <DynamicInput
-          typeName={typeName}
-          path={path}
-          renderStack={[
-            ...renderStack,
-            {
-              from: 'tuple_struct',
-              path: path,
-              ctx: {
-                ___TupleTypename: typeName,
-              },
-            },
-          ]}
-        />
+      <div className={clsx('grid gap-x-4', 'grid-cols-[8rem_1fr]')}>
+        <InputLabel>{shortName}</InputLabel>
+        <DynamicInput typeName={typeName} path={path} />
       </div>
     );
+  } else {
+    children = typeInfo.fields.map((field, i) => {
+      return <DynamicInput path={`${path}.${i}`} typeName={field} key={i} />;
+    });
   }
 
-  return (
-    <div
-      data-input="tuple-struct"
-      data-type={JSON.stringify(typeInfo)}
-      data-render-stack={JSON.stringify([
-        ...renderStack,
-        {
-          from: 'tuple_struct',
-          parentPath: path,
-          ctx: {
-            ___typename: typeInfo.fields[0],
-          },
-        },
-      ])}
-      data-render-stack-simple={renderStack
-        .concat([{ from: 'tuple_struct', path: path }])
-        .map((r) => r.from)
-        .join('>')}
-    >
-      {children}
-    </div>
-  );
+  return <div>{children}</div>;
 }

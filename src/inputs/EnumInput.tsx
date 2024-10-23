@@ -12,7 +12,6 @@ import {
   TypeName,
   useTypeRegistry,
 } from '@/type-registry/useTypeRegistry';
-import { RenderStack } from './DynamicInput';
 import { useCallback, useState } from 'react';
 import { TupleStructInput } from './TupleStructInput';
 import { StructFieldInput, StructInputLayout } from './StructInput';
@@ -26,15 +25,9 @@ import {
 export type EnumInputProps = {
   typeInfo: TEnum;
   typeName: TypeName;
-  renderStack: RenderStack[];
   path: string;
 };
-export function EnumInput({
-  typeInfo,
-  renderStack,
-  path,
-  typeName,
-}: EnumInputProps) {
+export function EnumInput({ typeInfo, path, typeName }: EnumInputProps) {
   const registry = useTypeRegistry();
   const { unregister, setValue, getValue } = useDynamicForm();
   const value = getValue<TValueObject | string>(path);
@@ -121,7 +114,6 @@ export function EnumInput({
       <EnumSubInput
         path={path}
         selectedVariant={selectedVariant}
-        rennderStack={renderStack}
         isOption={isOption}
       />
     </div>
@@ -131,12 +123,10 @@ export function EnumInput({
 function EnumSubInput({
   path,
   selectedVariant,
-  rennderStack,
   isOption,
 }: {
   path: string;
   selectedVariant: TEnumVariant;
-  rennderStack: RenderStack[];
   isOption: boolean;
 }) {
   if (selectedVariant.kind === 'unit') {
@@ -155,13 +145,6 @@ function EnumSubInput({
             <StructFieldInput
               key={i}
               path={path}
-              renderStack={[
-                ...rennderStack,
-                {
-                  from: 'enum-sub-input-struct',
-                  path: path,
-                },
-              ]}
               typeName={field.type}
               fieldName={field.name}
             ></StructFieldInput>
@@ -185,13 +168,6 @@ function EnumSubInput({
           short_name: selectedVariant.name,
           default: null,
         }}
-        renderStack={[
-          ...rennderStack,
-          {
-            from: 'enum-sub-input-tuple',
-            path: newParentPath,
-          },
-        ]}
         path={newParentPath}
       />
     );

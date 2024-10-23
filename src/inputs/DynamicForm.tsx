@@ -21,11 +21,13 @@ export type DynamicFormProps = {
   value: any;
   typeName: TypeName;
   onChange: (value: any) => void;
+  allowUndefined?: boolean;
 };
 
 export type DynamicFormContext = Pick<UseFormReturn, 'unregister'> & {
   setValue(name: string, value: any): void;
   getValue<T extends TValue = TValue>(name?: string): T;
+  allowUndefined: boolean;
   readOnly: boolean;
 };
 const Context = createContext({} as DynamicFormContext);
@@ -62,6 +64,7 @@ function DynamicFormInner({
   value,
   onChange,
   readOnly,
+  allowUndefined = false,
 }: DynamicFormProps & { readOnly: boolean }) {
   const {
     setValue: rhfSetValue,
@@ -94,15 +97,14 @@ function DynamicFormInner({
       unregister,
       getValue,
       readOnly,
+      allowUndefined,
     };
-  }, [unregister, setValue, getValue, readOnly]);
+  }, [unregister, setValue, getValue, readOnly, allowUndefined]);
 
   return (
     <Context.Provider value={ctx}>
-      <form>
-        <DynamicInput typeName={typeName} path={ROOT_KEY}></DynamicInput>
-        {import.meta.env.DEV && <Debug value={{ [ROOT_KEY]: value }} />}
-      </form>
+      <DynamicInput typeName={typeName} path={ROOT_KEY}></DynamicInput>
+      {import.meta.env.DEV && <Debug value={{ [ROOT_KEY]: value }} />}
     </Context.Provider>
   );
 }

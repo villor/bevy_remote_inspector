@@ -1,4 +1,3 @@
-import { useComponentName } from '@/component/useComponentName';
 import { ComponentId, useComponentInfo } from '@/component/useComponents';
 import {
   EntityId,
@@ -70,7 +69,9 @@ function InspectorComponent({
 }) {
   const [open, setOpen] = useState(true);
   const value = useEntityComponentValue(entityId, componentId);
-  const { name, short_name } = useComponentName(componentId);
+  const { name, short_name } = useStore((state) => state.getComponentName)(
+    componentId
+  );
   const info = useComponentInfo(componentId)!;
   const updateEntityComponent = useUpdateEntityComponent(entityId, componentId);
 
@@ -114,7 +115,11 @@ function InspectorComponent({
               'transform rotate-90': open,
             })}
           />
-          <div className="text-wrap overflow-hidden break-all">
+          <div
+            className="text-wrap overflow-hidden break-all"
+            data-short-name={short_name}
+            data-name={name}
+          >
             {short_name}
           </div>
         </Button>

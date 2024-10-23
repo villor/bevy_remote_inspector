@@ -1,8 +1,9 @@
 import { bevyTypes } from '@/type-registry/types';
 import { EntityId, useEntity } from './useEntity';
 import { useStore } from '@/store';
+import { TValue } from '@/type-registry/useTypeRegistry';
 
-const FALLBACK_NAMES: Record<string, string> = {
+const FALLBACK_NAMES: Record<string, string | ((value: TValue) => string)> = {
   [bevyTypes.CAMERA_3D]: 'Camera3d',
   [bevyTypes.POINT_LIGHT]: 'PointLight',
   [bevyTypes.MESH_3D]: 'Mesh3d',
@@ -10,7 +11,7 @@ const FALLBACK_NAMES: Record<string, string> = {
   [bevyTypes.WINDOW]: 'Window',
   [bevyTypes.PRIMARY_MONITOR]: 'PrimaryMonitor',
   [bevyTypes.MONITOR]: 'Monitor',
-  [bevyTypes.POINTER_ID]: 'PointerId', // TODO support callback
+  [bevyTypes.POINTER_ID]: (val) => ` PointerId (${val as string})`,
 };
 
 export function useEntityName(id: EntityId) {
@@ -22,15 +23,13 @@ export function useEntityName(id: EntityId) {
     return 'Unknown Entity (probaly bug)';
   }
 
-  const componentId = componentNameToIdMap.get(bevyTypes.NAME);
-  if (componentId !== undefined) {
-    const nameComponent = components.get(componentId);
+  const nameComponentId = componentNameToIdMap.get(bevyTypes.NAME);
+  if (nameComponentId !== undefined) {
+    const nameComponent = components.get(nameComponentId);
     if (nameComponent) {
       return nameComponent as string;
     }
   }
-
-  let name: string = `Entity ${prettyEntityId(id)}`;
 
   for (const fallbackName in FALLBACK_NAMES) {
     const componentId = componentNameToIdMap.get(fallbackName);
@@ -39,12 +38,23 @@ export function useEntityName(id: EntityId) {
     }
 
     if (components.has(componentId)) {
-      name = FALLBACK_NAMES[fallbackName];
-      break;
+      return typeof FALLBACK_NAMES[fallbackName] === 'function'
+        ? FALLBACK_NAMES[fallbackName](components.get(componentId)!)
+        : FALLBACK_NAMES[fallbackName];
     }
   }
 
-  return name;
+  const firstComponent = components.keys().next().value;
+
+  if (!firstComponent) {
+    return `Entity ${prettyEntityId(id)}`;
+  }
+
+  const { short_name } = useStore((state) => state.getComponentName)(
+    firstComponent
+  );
+
+  return short_name;
 }
 
 export function prettyEntityId(id: EntityId) {

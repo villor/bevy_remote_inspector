@@ -26,7 +26,6 @@ export function resolveTypeDefaultValue(
   registry: TypeRegistry
 ): TValue | undefined {
   const typeInfo = registry.get(typeName);
-  console.log(`resolving ${typeName}`, typeInfo);
   if (!typeInfo) {
     return undefined;
   }
@@ -150,6 +149,10 @@ export function isNumberType(type: TypeName) {
   return numberTypes.includes(type) || type.startsWith('core::num::NonZero');
 }
 
-export function isUnsignedInteger(type: TypeName) {
+export function isUnsignedIntegerType(type: TypeName) {
   return type.startsWith('u') && isNumberType(type);
+}
+
+export function isStringType(type: TypeName) {
+  return type === 'alloc::string::String';
 }

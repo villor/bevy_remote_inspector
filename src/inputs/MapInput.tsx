@@ -8,7 +8,7 @@ import {
 import { StructInputLayout } from './StructInput';
 import { DynamicForm, useDynamicForm } from './DynamicForm';
 import { Fragment, useState } from 'react';
-import { DynamicInput, DynamicInputContext } from './DynamicInput';
+import { getInputComponent, DynamicInputContext } from './DynamicInput';
 import {
   isNumberType,
   isStringType,
@@ -20,7 +20,12 @@ export type MapInputProps = {
   typeInfo: TMap;
   path: string;
 };
-export function MapInput({ path, typeInfo }: MapInputProps) {
+import { memo } from 'react';
+
+export const MapInput = memo(function MapInput({
+  path,
+  typeInfo,
+}: MapInputProps) {
   const { getValue, setValue } = useDynamicForm();
   const value = getValue<TValueObject>(path);
 
@@ -55,6 +60,7 @@ export function MapInput({ path, typeInfo }: MapInputProps) {
       Add new item
     </Button>
   );
+  const registry = useTypeRegistry();
 
   return (
     <StructInputLayout className="gap-x-4 grid-cols-[8rem_1fr]">
@@ -68,7 +74,11 @@ export function MapInput({ path, typeInfo }: MapInputProps) {
             <DynamicInputContext.Provider
               value={{ readOnly: !isString && !isNumber }}
             >
-              <DynamicInput typeName={typeInfo.value} path={`${path}.${k}`} />
+              {getInputComponent({
+                typeName: typeInfo.value,
+                path: `${path}.${k}`,
+                registry,
+              })}
             </DynamicInputContext.Provider>
           </Fragment>
         );
@@ -76,7 +86,8 @@ export function MapInput({ path, typeInfo }: MapInputProps) {
       {(isString || isNumber) && editSlot}
     </StructInputLayout>
   );
-}
+});
+
 function PendingMapInput({
   valueType: valueType,
   keyType,

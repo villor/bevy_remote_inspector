@@ -1,4 +1,4 @@
-import { TypeName, useTypeRegistry } from '@/type-registry/useTypeRegistry';
+import { TypeName, TypeRegistry } from '@/type-registry/useTypeRegistry';
 import { StructInput } from './StructInput';
 import { OpaqueInput } from './OpaqueInput';
 import { EnumInput } from './EnumInput';
@@ -10,15 +10,18 @@ import { TupleInput } from './TupleInput';
 
 export type DynamicInputProps = {
   typeName: TypeName;
-  path: string; // should be empty on first call
+  path: string;
+  registry: TypeRegistry;
 };
 
 export const DynamicInputContext = createContext({} as { readOnly: boolean });
 
-export function DynamicInput({ typeName, path }: DynamicInputProps) {
-  const registry = useTypeRegistry();
+export function getInputComponent({
+  typeName,
+  path,
+  registry,
+}: DynamicInputProps) {
   const typeInfo = registry.get(typeName)!;
-
   if (typeInfo.kind === 'struct') {
     return <StructInput typeInfo={typeInfo} path={path} />;
   }

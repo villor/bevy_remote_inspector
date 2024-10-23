@@ -1,14 +1,19 @@
 import { TTuple, useTypeRegistry } from '@/type-registry/useTypeRegistry';
 import clsx from 'clsx';
 import { Fragment } from 'react';
-import { DynamicInput } from './DynamicInput';
+import { getInputComponent } from './DynamicInput';
 import { InputLabel } from './InputLabel';
 
 export type TupleInputProps = {
   path: string;
   typeInfo: TTuple;
 };
-export function TupleInput({ path, typeInfo }: TupleInputProps) {
+import { memo } from 'react';
+
+export const TupleInput = memo(function TupleInput({
+  path,
+  typeInfo,
+}: TupleInputProps) {
   const registry = useTypeRegistry();
   return (
     <>
@@ -22,11 +27,15 @@ export function TupleInput({ path, typeInfo }: TupleInputProps) {
               )}
             >
               <InputLabel>{registry.get(field)?.short_name}</InputLabel>
-              <DynamicInput typeName={field} path={`${path}.${i}`} />
+              {getInputComponent({
+                typeName: field,
+                path: `${path}.${i}`,
+                registry,
+              })}
             </div>
           </Fragment>
         );
       })}
     </>
   );
-}
+});

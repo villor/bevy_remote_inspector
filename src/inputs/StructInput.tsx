@@ -6,8 +6,8 @@ import {
   useTypeRegistry,
 } from '@/type-registry/useTypeRegistry';
 import { cn, snakeToWords } from '@/utils';
-import { DynamicInput } from './DynamicInput';
-import { Fragment, HTMLAttributes, ReactNode } from 'react';
+import { getInputComponent } from './DynamicInput';
+import { Fragment, HTMLAttributes, memo, ReactNode } from 'react';
 import clsx from 'clsx';
 import { TupleStructInput } from './TupleStructInput';
 import { useDynamicForm } from './DynamicForm';
@@ -17,7 +17,10 @@ type StructInputProps = {
   path: string;
 };
 
-export function StructInput({ typeInfo, path }: StructInputProps) {
+export const StructInput = memo(function StructInput({
+  typeInfo,
+  path,
+}: StructInputProps) {
   const { getValue } = useDynamicForm();
   const value = getValue<TValueArray | TValueObject>(path);
   if (Array.isArray(value) && value.length === typeInfo.fields.length) {
@@ -47,7 +50,7 @@ export function StructInput({ typeInfo, path }: StructInputProps) {
       })}
     </StructInputLayout>
   );
-}
+});
 
 type StructFieldInputProps = {
   typeName: TypeName;
@@ -55,17 +58,14 @@ type StructFieldInputProps = {
   path: string;
 };
 
-export function StructFieldInput({
+export const StructFieldInput = memo(function StructFieldInput({
   typeName,
   fieldName,
   path,
 }: StructFieldInputProps) {
   const registry = useTypeRegistry();
-  const info = registry.get(typeName);
+  const info = registry.get(typeName)!;
   const { getValue } = useDynamicForm();
-  if (!info) {
-    return <div>Unknown type {typeName}</div>;
-  }
 
   let children: ReactNode = null;
 
@@ -85,22 +85,22 @@ export function StructFieldInput({
       </div>
     );
   } else {
-    children = <DynamicInput typeName={typeName} path={path} />;
+    children = getInputComponent({ typeName, path, registry });
   }
 
   return (
     <>
-      <InputLabel>{snakeToWords(fieldName)}</InputLabel>
+      <InputLabel className="pr-2">{snakeToWords(fieldName)}</InputLabel>
       {children}
     </>
   );
-}
+});
 
 export function StructInputLayout(props: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       {...props}
-      className={cn('grid gap-y-2 grid-cols-[4rem,1fr]', props.className)}
+      className={cn('grid gap-2 grid-cols-[6rem,1fr]', props.className)}
     ></div>
   );
 }
@@ -114,7 +114,7 @@ function StructInputInline({
 }) {
   return (
     <div
-      className={clsx('grid', {
+      className={clsx('grid gap-x-2', {
         'grid-cols-2': typeInfo.fields.length === 2,
         'grid-cols-3': typeInfo.fields.length === 3,
         'grid-cols-4': typeInfo.fields.length === 4,

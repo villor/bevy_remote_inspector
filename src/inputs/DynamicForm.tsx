@@ -1,13 +1,10 @@
 import {
   TValue,
-  TValueObject,
   TypeName,
+  useTypeRegistry,
 } from '@/type-registry/useTypeRegistry';
-import { useForm, UseFormReturn } from 'react-hook-form';
-import { DynamicInput } from './DynamicInput';
-import { deepStringify } from '@/utils';
-import { flattenObject } from 'es-toolkit';
-import { Check } from 'lucide-react';
+import { Control, useForm, UseFormReturn } from 'react-hook-form';
+import { getInputComponent } from './DynamicInput';
 import {
   createContext,
   useCallback,
@@ -22,6 +19,7 @@ export type DynamicFormProps = {
   typeName: TypeName;
   onChange: (value: any) => void;
   allowUndefined?: boolean;
+  readOnly?: boolean;
 };
 
 export type DynamicFormContext = Pick<UseFormReturn, 'unregister'> & {
@@ -29,6 +27,7 @@ export type DynamicFormContext = Pick<UseFormReturn, 'unregister'> & {
   getValue<T extends TValue = TValue>(name?: string): T;
   allowUndefined: boolean;
   readOnly: boolean;
+  control: Control<any>;
 };
 const Context = createContext({} as DynamicFormContext);
 
@@ -39,7 +38,7 @@ export function useDynamicForm() {
 const ROOT_KEY = '__root__';
 
 export function DynamicForm(props: DynamicFormProps) {
-  const [readOnly, setReadOnly] = useState(false);
+  const [readOnly, setReadOnly] = useState(props.readOnly ?? false);
   const [renderErrorMessage, setRenderErrorMessage] = useState<null | string>();
   return (
     <ErrorBoundary
@@ -70,6 +69,7 @@ function DynamicFormInner({
     setValue: rhfSetValue,
     unregister,
     getValues,
+    control,
   } = useForm<any>({
     defaultValues: {
       [ROOT_KEY]: value,
@@ -98,73 +98,74 @@ function DynamicFormInner({
       getValue,
       readOnly,
       allowUndefined,
+      control,
     };
-  }, [unregister, setValue, getValue, readOnly, allowUndefined]);
-
+  }, [unregister, setValue, getValue, readOnly, allowUndefined, control]);
+  const registry = useTypeRegistry();
   return (
     <Context.Provider value={ctx}>
-      <DynamicInput typeName={typeName} path={ROOT_KEY}></DynamicInput>
-      {import.meta.env.DEV && <Debug value={{ [ROOT_KEY]: value }} />}
+      {getInputComponent({ path: ROOT_KEY, typeName, registry })}
+      {/* {import.meta.env.DEV && <Debug value={{ [ROOT_KEY]: value }} />} */}
     </Context.Provider>
   );
 }
 
-function Debug({ value }: { value: any }) {
-  const { getValue } = useContext(Context);
-  const valueFields = Object.keys(flattenObject(value)).sort();
-  const jsonValueFields = deepStringify(valueFields);
-  const formFields = Object.keys(
-    flattenObject(getValue() as TValueObject)
-  ).sort();
-  const jsonFormFields = deepStringify(formFields);
+// function Debug({ value }: { value: any }) {
+//   const { getValue } = useContext(Context);
+//   const valueFields = Object.keys(flattenObject(value)).sort();
+//   const jsonValueFields = deepStringify(valueFields);
+//   const formFields = Object.keys(
+//     flattenObject(getValue() as TValueObject)
+//   ).sort();
+//   const jsonFormFields = deepStringify(formFields);
 
-  return (
-    <div className="bg-black mt-2">
-      {jsonValueFields === jsonFormFields ? (
-        <span className="text-green-500 block">Matched</span>
-      ) : (
-        <span className="text-red-500 block">Not Matched</span>
-      )}
-      <div className="grid grid-cols-4">
-        <div>
-          <span>FormFields</span>
-          {formFields.map((f) => (
-            <div key={f} className="flex">
-              <span className="break-all hyphens-auto">{f}</span>
-              {valueFields.includes(f) ? (
-                <span className="text-green-500">
-                  <Check />
-                </span>
-              ) : (
-                <span>❌</span>
-              )}
-            </div>
-          ))}
-        </div>
-        <div>
-          <span>OriginalFields</span>
-          {valueFields.map((f) => (
-            <div key={f} className="flex">
-              <span className="break-all">{f}</span>
-              {formFields.includes(f) ? (
-                <span className="text-green-500">
-                  <Check />
-                </span>
-              ) : (
-                <span>❌</span>
-              )}
-            </div>
-          ))}
-        </div>
-        <div>
-          <span>Values</span>
-          <pre>{`${deepStringify(value, 2)}`}</pre>
-        </div>
-        <div>
-          <span>FormValues</span>
-          <pre>{`${deepStringify(getValue(), 2)}`}</pre>
-        </div>
-      </div>
-    </div>
-  );
-}
+//   return (
+//     <div className="bg-black mt-2">
+//       {jsonValueFields === jsonFormFields ? (
+//         <span className="text-green-500 block">Matched</span>
+//       ) : (
+//         <span className="text-red-500 block">Not Matched</span>
+//       )}
+//       <div className="grid grid-cols-4">
+//         <div>
+//           <span>FormFields</span>
+//           {formFields.map((f) => (
+//             <div key={f} className="flex">
+//               <span className="break-all hyphens-auto">{f}</span>
+//               {valueFields.includes(f) ? (
+//                 <span className="text-green-500">
+//                   <Check />
+//                 </span>
+//               ) : (
+//                 <span>❌</span>
+//               )}
+//             </div>
+//           ))}
+//         </div>
+//         <div>
+//           <span>OriginalFields</span>
+//           {valueFields.map((f) => (
+//             <div key={f} className="flex">
+//               <span className="break-all">{f}</span>
+//               {formFields.includes(f) ? (
+//                 <span className="text-green-500">
+//                   <Check />
+//                 </span>
+//               ) : (
+//                 <span>❌</span>
+//               )}
+//             </div>
+//           ))}
+//         </div>
+//         <div>
+//           <span>Values</span>
+//           <pre>{`${deepStringify(value, 2)}`}</pre>
+//         </div>
+//         <div>
+//           <span>FormValues</span>
+//           <pre>{`${deepStringify(getValue(), 2)}`}</pre>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }

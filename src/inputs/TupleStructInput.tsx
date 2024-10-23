@@ -1,6 +1,6 @@
 import { TTupleStruct, useTypeRegistry } from '@/type-registry/useTypeRegistry';
-import { ReactNode } from 'react';
-import { DynamicInput } from './DynamicInput';
+import { Fragment, ReactNode } from 'react';
+import { getInputComponent } from './DynamicInput';
 import clsx from 'clsx';
 import { InputLabel } from './InputLabel';
 
@@ -8,7 +8,12 @@ export type TupleStructInputProps = {
   typeInfo: TTupleStruct;
   path: string;
 };
-export function TupleStructInput({ typeInfo, path }: TupleStructInputProps) {
+import { memo } from 'react';
+
+export const TupleStructInput = memo(function TupleStructInput({
+  typeInfo,
+  path,
+}: TupleStructInputProps) {
   let children: ReactNode = null;
   const registry = useTypeRegistry();
 
@@ -22,14 +27,22 @@ export function TupleStructInput({ typeInfo, path }: TupleStructInputProps) {
     children = (
       <div className={clsx('grid gap-x-4', 'grid-cols-[8rem_1fr]')}>
         <InputLabel>{shortName}</InputLabel>
-        <DynamicInput typeName={typeName} path={path} />
+        {getInputComponent({ registry, typeName, path })}
       </div>
     );
   } else {
     children = typeInfo.fields.map((field, i) => {
-      return <DynamicInput path={`${path}.${i}`} typeName={field} key={i} />;
+      return (
+        <Fragment key={i}>
+          {getInputComponent({
+            registry,
+            typeName: field,
+            path: `${path}.${i}`,
+          })}
+        </Fragment>
+      );
     });
   }
 
   return <div>{children}</div>;
-}
+});

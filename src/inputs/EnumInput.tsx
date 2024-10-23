@@ -1,11 +1,4 @@
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/shared/ui/select';
-import {
   TEnum,
   TEnumVariant,
   TValueObject,
@@ -27,7 +20,13 @@ export type EnumInputProps = {
   typeName: TypeName;
   path: string;
 };
-export function EnumInput({ typeInfo, path, typeName }: EnumInputProps) {
+import { memo } from 'react';
+
+export const EnumInput = memo(function EnumInput({
+  typeInfo,
+  path,
+  typeName,
+}: EnumInputProps) {
   const registry = useTypeRegistry();
   const { unregister, setValue, getValue } = useDynamicForm();
   const value = getValue<TValueObject | string>(path);
@@ -70,7 +69,6 @@ export function EnumInput({ typeInfo, path, typeName }: EnumInputProps) {
       }
 
       const value = resolveEnumVariantDefaultValue(selectedVariant, registry);
-      console.log(value);
       if (value === undefined) {
         throw new Error(
           `Failed to resolve value for enum ${typeName} at path ${path}`
@@ -90,27 +88,24 @@ export function EnumInput({ typeInfo, path, typeName }: EnumInputProps) {
   )!;
 
   return (
-    <div
-      data-type={JSON.stringify(typeInfo)}
-      data-value={JSON.stringify(value)}
-      className="w-full"
-    >
-      <Select value={selectedVariantName} onValueChange={handleVariantChange}>
-        <SelectTrigger
-          className={clsx('w-full bg-background', {
+    <div className="w-full">
+      {/* Need to use native select for performance reason */}
+      <select
+        className={clsx(
+          'bg-background flex h-9 w-full items-center justify-between whitespace-nowrap rounded-md border border-input px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1',
+          {
             'mb-2': selectedVariant.kind !== 'unit',
-          })}
-        >
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {typeInfo.variants.map((variant) => (
-            <SelectItem key={variant.name} value={variant.name}>
-              {variant.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+          }
+        )}
+        value={selectedVariantName}
+        onChange={(e) => handleVariantChange(e.target.value)}
+      >
+        {typeInfo.variants.map((variant) => (
+          <option key={variant.name} value={variant.name}>
+            {variant.name}
+          </option>
+        ))}
+      </select>
       <EnumSubInput
         path={path}
         selectedVariant={selectedVariant}
@@ -118,7 +113,7 @@ export function EnumInput({ typeInfo, path, typeName }: EnumInputProps) {
       />
     </div>
   );
-}
+});
 
 function EnumSubInput({
   path,

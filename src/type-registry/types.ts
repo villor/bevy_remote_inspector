@@ -19,6 +19,13 @@ export const bevyTypes = {
   MONITOR: 'bevy_window::monitor::Monitor',
   PRIMARY_MONITOR: 'bevy_window::monitor::PrimaryMonitor',
   POINTER_ID: 'bevy_picking::pointer::PointerId',
+  COMPUTED_NODE: 'bevy_ui::ui_node::ComputedNode',
+  NODE: 'bevy_ui::ui_node::Node',
+  TEXT: 'bevy_ui::widget::text::Text',
+  TEXT_LAYOUT_INFO: 'bevy_text::pipeline::TextLayoutInfo',
+  GLOBAL_TRANSFORM:
+    'bevy_transform::components::global_transform::GlobalTransform',
+  VIEW_VISIBILITY: 'bevy_render::view::visibility::ViewVisibility',
 };
 
 export function resolveTypeDefaultValue(

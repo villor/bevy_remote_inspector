@@ -5,7 +5,7 @@ import {
   useEntityComponentValue,
 } from '@/entity/useEntity';
 import { DynamicForm } from '@/inputs/DynamicForm';
-import { Button } from '@/shared/ui/button';
+import { Button, IconButton } from '@/shared/ui/button';
 import {
   Collapsible,
   CollapsibleContent,
@@ -14,11 +14,13 @@ import {
 import { ScrollArea } from '@/shared/ui/scroll-area';
 import { useStore } from '@/store';
 import clsx from 'clsx';
-import { ChevronRight, Plus } from 'lucide-react';
+import { ChevronRight, Copy, Plus } from 'lucide-react';
 import { ReactNode, useState } from 'react';
 import { useUpdateEntityComponent } from './useUpdateEntityComponent';
 import { memo } from 'react';
 import { useTypeRegistry } from '@/type-registry/useTypeRegistry';
+import { toast } from '@/hooks/use-toast';
+import { bevyTypes } from '@/type-registry/types';
 
 export const EntitiesInspectorPanel = memo(function EntitiesInspectorPanel() {
   const inspectingEntity = useStore((state) => state.inspectingEntity);
@@ -37,7 +39,6 @@ export const EntitiesInspectorPanel = memo(function EntitiesInspectorPanel() {
 
 function InspectorComponentList({ entity }: { entity: EntityId }) {
   const componentIds = useEntityComponentIds(entity);
-  console.log(`compoents rerender`);
 
   if (!componentIds) {
     return `No components`;
@@ -60,6 +61,13 @@ function InspectorComponentList({ entity }: { entity: EntityId }) {
   );
 }
 
+const DEFAULT_HIDDEN_COMPONENTS = [bevyTypes.TEXT_LAYOUT_INFO];
+const READ_ONLY_COMPONENTS = [
+  bevyTypes.TEXT_LAYOUT_INFO,
+  bevyTypes.COMPUTED_NODE,
+  bevyTypes.GLOBAL_TRANSFORM,
+];
+
 function InspectorComponent({
   componentId,
   entityId,
@@ -67,10 +75,12 @@ function InspectorComponent({
   componentId: ComponentId;
   entityId: EntityId;
 }) {
-  const [open, setOpen] = useState(true);
   const value = useEntityComponentValue(entityId, componentId);
   const { name, short_name } = useStore((state) => state.getComponentName)(
     componentId
+  );
+  const [open, setOpen] = useState(
+    !DEFAULT_HIDDEN_COMPONENTS.includes(name || '')
   );
   const info = useComponentInfo(componentId)!;
   const updateEntityComponent = useUpdateEntityComponent(entityId, componentId);
@@ -94,6 +104,7 @@ function InspectorComponent({
       <DynamicForm
         typeName={info.name}
         value={value}
+        readOnly={READ_ONLY_COMPONENTS.includes(name || '')}
         onChange={updateEntityComponent}
       ></DynamicForm>
     );
@@ -101,29 +112,37 @@ function InspectorComponent({
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
-      <CollapsibleTrigger
-        asChild
-        className="px-4 py-2 w-full flex flex-wrap justify-start"
-      >
-        <Button
-          size="default"
-          variant="ghost"
-          className="w-full flex-wrap justify-start py-1 gap-x-2 px-2 text-base rounded-none bg-transparent"
+      <div className="flex items-center">
+        <CollapsibleTrigger
+          asChild
+          className="px-4 py-2 w-full flex flex-wrap justify-start"
         >
-          <ChevronRight
-            className={clsx('size-5', {
-              'transform rotate-90': open,
-            })}
-          />
-          <div
-            className="text-wrap overflow-hidden break-all"
-            data-short-name={short_name}
-            data-name={name}
+          <Button
+            size="default"
+            variant="ghost"
+            className="w-full flex-wrap justify-start py-1 gap-x-2 px-2 text-base rounded-none bg-transparent"
           >
-            {short_name}
-          </div>
-        </Button>
-      </CollapsibleTrigger>
+            <ChevronRight
+              className={clsx('size-5', {
+                'transform rotate-90': open,
+              })}
+            />
+            <div className="text-wrap overflow-hidden break-all">
+              {short_name}
+            </div>
+          </Button>
+        </CollapsibleTrigger>
+        <IconButton
+          icon={<Copy className="size-4" />}
+          className="px-2"
+          onClick={() => {
+            navigator.clipboard.writeText(name || '');
+            toast({
+              description: `Copied component name to clipboard`,
+            });
+          }}
+        ></IconButton>
+      </div>
       <CollapsibleContent className="px-4 bg-muted py-2 overflow-hidden w-full">
         {children}
       </CollapsibleContent>

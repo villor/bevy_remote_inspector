@@ -6,18 +6,24 @@ import {
   useTypeRegistry,
 } from '@/type-registry/useTypeRegistry';
 import { DynamicForm, useDynamicForm } from './DynamicForm';
-import { DynamicInput, DynamicInputContext } from './DynamicInput';
+import { getInputComponent, DynamicInputContext } from './DynamicInput';
 import { Button } from '@/shared/ui/button';
 import { resolveTypeDefaultValue } from '@/type-registry/types';
 import { toast } from '@/hooks/use-toast';
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import clsx from 'clsx';
 import { InputLabel } from './InputLabel';
 
 export type ArrayInputProps = { typeInfo: TArray | TSet; path: string };
-export function ArrayInput({ path, typeInfo }: ArrayInputProps) {
-  const { getValue, setValue } = useDynamicForm();
+import { memo } from 'react';
+import { useWatch } from 'react-hook-form';
 
+export const ArrayInput = memo(function ArrayInput({
+  path,
+  typeInfo,
+}: ArrayInputProps) {
+  const { getValue, setValue, control } = useDynamicForm();
+  useWatch({ control, name: path }); // force rerender to update newest value
   const value = getValue(path);
   const registry = useTypeRegistry();
   if (!Array.isArray(value)) {
@@ -43,6 +49,7 @@ export function ArrayInput({ path, typeInfo }: ArrayInputProps) {
 
   const [isEditting, setIsEditting] = useState(false);
   const canAddItem = typeInfo.kind === 'array' && typeInfo.capacity === null;
+
   return (
     <div className="flex flex-col gap-4 w-full">
       <div
@@ -50,22 +57,25 @@ export function ArrayInput({ path, typeInfo }: ArrayInputProps) {
           'grid-cols-[auto_1fr]': typeInfo.kind === 'array',
         })}
       >
+        {value.length === 0 && (
+          <div className="text-muted-foreground">Empty list</div>
+        )}
         {value.map((item, i) => {
           const newPath = `${path}.${i}`;
           const key = typeInfo.kind === 'array' ? i : JSON.stringify(item);
           return (
-            <>
+            <Fragment key={key}>
               {typeInfo.kind === 'array' && <span>{i}</span>}
               <DynamicInputContext.Provider
                 value={{ readOnly: typeInfo.kind === 'set' }}
               >
-                <DynamicInput
-                  key={key}
-                  typeName={typeInfo.item}
-                  path={newPath}
-                ></DynamicInput>
+                {getInputComponent({
+                  typeName: typeInfo.item,
+                  path: newPath,
+                  registry,
+                })}
               </DynamicInputContext.Provider>
-            </>
+            </Fragment>
           );
         })}
         {canAddItem && (
@@ -74,6 +84,7 @@ export function ArrayInput({ path, typeInfo }: ArrayInputProps) {
               <Button
                 onClick={onAddButtonClick}
                 type="button"
+                size="sm"
                 className={clsx({
                   'col-span-2': typeInfo.kind === 'array',
                 })}
@@ -99,7 +110,7 @@ export function ArrayInput({ path, typeInfo }: ArrayInputProps) {
       </div>
     </div>
   );
-}
+});
 
 function PendingArrayInput({
   itemType,
@@ -131,7 +142,12 @@ function PendingArrayInput({
         typeName={itemType}
         allowUndefined
       ></DynamicForm>
-      <Button type="button" onClick={handleOnAdd} className="col-span-2 w-full">
+      <Button
+        type="button"
+        onClick={handleOnAdd}
+        size="sm"
+        className="col-span-2 w-full"
+      >
         Add
       </Button>
     </>

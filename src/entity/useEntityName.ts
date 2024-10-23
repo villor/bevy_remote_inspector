@@ -12,6 +12,8 @@ const FALLBACK_NAMES: Record<string, string | ((value: TValue) => string)> = {
   [bevyTypes.PRIMARY_MONITOR]: 'PrimaryMonitor',
   [bevyTypes.MONITOR]: 'Monitor',
   [bevyTypes.POINTER_ID]: (val) => ` PointerId (${val as string})`,
+  [bevyTypes.TEXT]: 'Text',
+  [bevyTypes.NODE]: 'Node',
 };
 
 export function useEntityName(id: EntityId) {
@@ -38,9 +40,13 @@ export function useEntityName(id: EntityId) {
     }
 
     if (components.has(componentId)) {
-      return typeof FALLBACK_NAMES[fallbackName] === 'function'
-        ? FALLBACK_NAMES[fallbackName](components.get(componentId)!)
-        : FALLBACK_NAMES[fallbackName];
+      try {
+        return typeof FALLBACK_NAMES[fallbackName] === 'function'
+          ? FALLBACK_NAMES[fallbackName](components.get(componentId)!)
+          : FALLBACK_NAMES[fallbackName];
+      } catch {
+        break;
+      }
     }
   }
 

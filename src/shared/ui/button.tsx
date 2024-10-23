@@ -89,7 +89,7 @@ export const IconButton = React.forwardRef<
     const children = (
       <Button
         asChild
-        className={cn(buttonVariants({ variant, size, className }), 'p-1')}
+        className={cn('p-1', buttonVariants({ variant, size, className }))}
         variant={variant}
         size={size}
         ref={ref}

@@ -82,7 +82,7 @@ export const ArrayInput = memo(function ArrayInput({
           <>
             {!isEditting && (
               <Button
-                onClick={onAddButtonClick}
+                onPress={onAddButtonClick}
                 type="button"
                 size="sm"
                 className={clsx({
@@ -144,7 +144,7 @@ function PendingArrayInput({
       ></DynamicForm>
       <Button
         type="button"
-        onClick={handleOnAdd}
+        onPress={handleOnAdd}
         size="sm"
         className="col-span-2 w-full"
       >

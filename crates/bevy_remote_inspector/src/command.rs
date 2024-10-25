@@ -1,6 +1,6 @@
 use anyhow::{anyhow, bail};
 use bevy::{
-    ecs::component::ComponentId,
+    ecs::{component::ComponentId, entity},
     prelude::*,
     reflect::{serde::TypedReflectDeserializer, ReflectFromPtr, TypeData},
     remote::BrpRequest,
@@ -34,6 +34,7 @@ macro_rules! try_deserialize_req {
 pub enum Command {
     UpdateComponent(UpdateComponent),
     ToggleComponent(ToggleComponent),
+    RemoveComponent(RemoveComponent),
 }
 
 impl Command {
@@ -41,6 +42,7 @@ impl Command {
         try_deserialize_req!(req,
             "update_component", UpdateComponent
             "toggle_component", ToggleComponent
+            "remove_component", RemoveComponent
         )
     }
 
@@ -52,6 +54,7 @@ impl Command {
         let result = match self {
             Command::UpdateComponent(command) => command.execute(world).and_then(map_result),
             Command::ToggleComponent(command) => command.execute(world).and_then(map_result),
+            Command::RemoveComponent(command) => command.execute(world).and_then(map_result),
         };
         result
     }
@@ -163,5 +166,30 @@ impl Execute for ToggleComponent {
                 Ok(())
             })
         })
+    }
+}
+
+#[derive(Deserialize, Debug)]
+struct RemoveComponent {
+    entity: Entity,
+    component: usize,
+}
+
+impl Execute for RemoveComponent {
+    type Output = ();
+
+    fn execute(self, world: &mut World) -> anyhow::Result<Self::Output> {
+        let component_id = ComponentId::new(self.component);
+
+        let mut entity = world.get_entity_mut(self.entity)?;
+        entity.remove_by_id(component_id);
+
+        drop(entity);
+
+        let mut disabled_components = world.resource_mut::<DisabledComponents>();
+
+        disabled_components.remove(&self.entity);
+
+        Ok(())
     }
 }

@@ -1,13 +1,9 @@
 import { ElementType } from 'react';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '../shared/ui/tooltip';
+import { Tooltip, TooltipTrigger } from '../shared/ui/tooltip';
 import { ComponentIcon, TableProperties } from 'lucide-react';
 import { Page, usePage } from '@/usePage';
 import clsx from 'clsx';
+import { Button } from 'react-aria-components';
 
 export function SideBar() {
   return (
@@ -34,27 +30,20 @@ function SideBarItem({
     setPage(name);
   };
   return (
-    <TooltipProvider>
-      <Tooltip delayDuration={300}>
-        <TooltipTrigger asChild>
-          <div
-            onClick={handleClick}
-            className={clsx(
-              'flex w-full py-3 items-center justify-center transition-colors hover:text-foreground',
-              {
-                'text-accent-foreground bg-muted': isActive,
-                'text-muted-foreground hover:bg-muted': !isActive,
-              }
-            )}
-          >
-            <Icon className="h-5 w-5" />
-            <span className="sr-only">{label}</span>
-          </div>
-        </TooltipTrigger>
-        <TooltipContent side="right" align="center">
-          {label}
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <TooltipTrigger>
+      <Button
+        onClick={handleClick}
+        className={clsx(
+          'flex w-full py-3 items-center justify-center transition-colors hover:text-foreground',
+          {
+            'text-accent-foreground bg-muted': isActive,
+            'text-muted-foreground hover:bg-muted': !isActive,
+          }
+        )}
+      >
+        <Icon className="h-5 w-5" />
+      </Button>
+      <Tooltip placement="right">{label}</Tooltip>
+    </TooltipTrigger>
   );
 }

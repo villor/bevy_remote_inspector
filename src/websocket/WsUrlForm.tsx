@@ -43,7 +43,7 @@ export function WsUrlForm() {
         <Button
           type="submit"
           size="lg"
-          disabled={readyState === ReadyState.CONNECTING && isManuallyConnect}
+          isDisabled={readyState === ReadyState.CONNECTING && isManuallyConnect}
         >
           {readyState === ReadyState.CONNECTING && isManuallyConnect
             ? 'Connecting...'

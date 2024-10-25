@@ -1,16 +1,14 @@
-import * as React from 'react';
-import { Slot } from '@radix-ui/react-slot';
+'use client';
+
+import { forwardRef } from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
+import {
+  Button as AriaButton,
+  composeRenderProps,
+  type ButtonProps as AriaButtonProps,
+} from 'react-aria-components';
 
 import { cn } from '@/utils';
-import { ReactNode } from 'react';
-import { TooltipContentProps, TooltipProps } from '@radix-ui/react-tooltip';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from './tooltip';
 
 const buttonVariants = cva(
   'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50',
@@ -42,74 +40,31 @@ const buttonVariants = cva(
   }
 );
 
-export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
-  asChild?: boolean;
-}
+interface ButtonProps
+  extends AriaButtonProps,
+    VariantProps<typeof buttonVariants> {}
 
-const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
-    const Comp = asChild ? Slot : 'button';
+const Button = forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant, size, ...props }, ref) => {
     return (
-      <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
+      <AriaButton
         ref={ref}
+        className={composeRenderProps(className, (className) =>
+          cn(
+            buttonVariants({
+              variant,
+              size,
+              className,
+            })
+          )
+        )}
         {...props}
       />
     );
   }
 );
+
 Button.displayName = 'Button';
 
 export { Button, buttonVariants };
-
-export const IconButton = React.forwardRef<
-  HTMLButtonElement,
-  ButtonProps & {
-    icon: ReactNode;
-    tooltip?: {
-      content?: TooltipContentProps;
-      tooltip?: TooltipProps;
-    };
-  }
->(
-  (
-    {
-      className,
-      variant = 'ghost',
-      size = 'sm',
-      asChild = false,
-      icon,
-      tooltip,
-      ...props
-    },
-    ref
-  ) => {
-    const children = (
-      <Button
-        asChild
-        className={cn('p-1', buttonVariants({ variant, size, className }))}
-        variant={variant}
-        size={size}
-        ref={ref}
-        {...props}
-      >
-        <div>{icon}</div>
-      </Button>
-    );
-
-    if (tooltip) {
-      return (
-        <TooltipProvider>
-          <Tooltip {...tooltip.tooltip} delayDuration={100}>
-            <TooltipTrigger>{children}</TooltipTrigger>
-            <TooltipContent {...tooltip.content}></TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      );
-    }
-
-    return children;
-  }
-);
+export type { ButtonProps };

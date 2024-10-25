@@ -127,7 +127,6 @@ const EntityTreeItemContent = ({
       <div className="w-6">
         {hasChildRows && (
           <>
-            {/* TODO add back tooltip */}
             {/* <IconButton
             tooltip={{
               content: {
@@ -161,19 +160,22 @@ const EntityTreeItemContent = ({
         )}
       </div>
       <div className="flex flex-1">
-        <Button
-          asChild
-          size="sm"
-          variant={isSelected ? 'default' : 'ghost'}
-          className={clsx('w-full justify-start py-1 px-1')}
+        <div
+          className={cn(
+            buttonVariants({
+              size: 'sm',
+              variant: isSelected ? 'default' : 'ghost',
+            }),
+            'w-full justify-start py-1 px-1'
+          )}
         >
-          <div className="flex gap-x-2">
+          <div className="flex gap-x-2 items-center">
             <span>{name}</span>
             <Badge variant="secondary" className="px-1.5 rounded-full">
               {prettyEntityId(item.id)}
             </Badge>
           </div>
-        </Button>
+        </div>
       </div>
     </div>
   );

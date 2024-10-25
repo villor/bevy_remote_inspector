@@ -5,7 +5,7 @@ import {
   useEntityComponentValue,
 } from '@/entity/useEntity';
 import { DynamicForm } from '@/inputs/DynamicForm';
-import { Button, IconButton } from '@/shared/ui/button';
+import { Button } from '@/shared/ui/button';
 import {
   Collapsible,
   CollapsibleContent,
@@ -14,7 +14,7 @@ import {
 import { ScrollArea } from '@/shared/ui/scroll-area';
 import { useStore } from '@/store';
 import clsx from 'clsx';
-import { ChevronRight, Copy, Eye, EyeOff, Plus } from 'lucide-react';
+import { ChevronRight, Copy, Ellipsis, Eye, EyeOff, Plus } from 'lucide-react';
 import { ReactNode, useState } from 'react';
 import { useUpdateComponent } from './useUpdateComponent';
 import { memo } from 'react';
@@ -22,6 +22,9 @@ import { useTypeRegistry } from '@/type-registry/useTypeRegistry';
 import { toast } from '@/hooks/use-toast';
 import { bevyTypes } from '@/type-registry/types';
 import { useToggleComponent } from './useToggleComponent';
+import { IconButton } from '@/shared/ui/icon-button';
+import { Menu, MenuItem, MenuPopover, MenuTrigger } from '@/shared/ui/menu';
+import { useRemoveComponent } from './useRemoveComponent';
 
 export const EntitiesInspectorPanel = memo(function EntitiesInspectorPanel() {
   const inspectingEntity = useStore((state) => state.inspectingEntity);
@@ -62,7 +65,6 @@ function InspectorComponentList({ entity }: { entity: EntityId }) {
   );
 }
 
-const DEFAULT_HIDDEN_COMPONENTS = [bevyTypes.TEXT_LAYOUT_INFO];
 const READ_ONLY_COMPONENTS = [
   bevyTypes.TEXT_LAYOUT_INFO,
   bevyTypes.COMPUTED_NODE,
@@ -80,9 +82,7 @@ function InspectorComponent({
   const { name, short_name } = useStore((state) => state.getComponentName)(
     componentId
   );
-  const [open, setOpen] = useState(
-    !DEFAULT_HIDDEN_COMPONENTS.includes(name || '')
-  );
+
   const info = useComponentInfo(componentId)!;
   const updateEntityComponent = useUpdateComponent(entityId, componentId);
 
@@ -96,7 +96,7 @@ function InspectorComponent({
         ? 'is not registered in type registry'
         : 'is not serializable or zero sized type';
     children = (
-      <div>
+      <div className="text-wrap break-all hyphens-auto">
         Component {name} {message}
       </div>
     );
@@ -112,10 +112,11 @@ function InspectorComponent({
   }
 
   const toggleComponent = useToggleComponent(entityId, componentId);
+  const removeComponent = useRemoveComponent(entityId, componentId);
 
   return (
     <div className="bg-muted rounded p-2 mt-4 mx-4">
-      <Collapsible open={open} onOpenChange={setOpen}>
+      <Collapsible>
         <div className="flex items-center">
           <CollapsibleTrigger
             asChild
@@ -127,38 +128,42 @@ function InspectorComponent({
                   'transform rotate-90': open,
                 })}
               />
-              <div className="text-wrap overflow-hidden break-all flex items-center ml-2">
+              <div className="text-wrap overflow-hidden break-all flex items-center ml-2 font-medium">
                 {short_name}
               </div>
             </div>
           </CollapsibleTrigger>
-          {/* <IconButton
-          icon={<Copy className="size-4" />}
-          className="px-2"
-          onClick={() => {
-            navigator.clipboard.writeText(name || '');
-            toast({
-              description: `Copied component name to clipboard`,
-              });
-              }}
-              ></IconButton> */}
           <IconButton
-            tooltip={{
-              content: {
-                side: 'top',
-                children: disabled ? 'Enable component' : 'Disable component',
-              },
-            }}
-            icon={
-              disabled ? (
-                <EyeOff className="size-4" />
-              ) : (
-                <Eye className="size-4" />
-              )
-            }
-            className="px-2"
-            onClick={toggleComponent}
-          ></IconButton>
+            onPress={toggleComponent}
+            className="hover:bg-primary-foreground/75"
+            tooltip={disabled ? 'Enable component' : 'Disable component'}
+          >
+            {disabled ? (
+              <Eye className="size-4" />
+            ) : (
+              <EyeOff className="size-4" />
+            )}
+          </IconButton>
+          <MenuTrigger>
+            <IconButton className="hover:bg-primary-foreground/75">
+              <Ellipsis className="size-4" />
+            </IconButton>
+            <MenuPopover placement="bottom left" crossOffset={-60}>
+              <Menu>
+                <MenuItem onAction={removeComponent}>Remove</MenuItem>
+                <MenuItem
+                  onAction={() => {
+                    navigator.clipboard.writeText(name || '');
+                    toast({
+                      description: `Copied component name to clipboard`,
+                    });
+                  }}
+                >
+                  Copy name
+                </MenuItem>
+              </Menu>
+            </MenuPopover>
+          </MenuTrigger>
         </div>
         <CollapsibleContent className="px-4 overflow-hidden w-full">
           {children}

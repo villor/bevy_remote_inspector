@@ -1,4 +1,4 @@
-import { AnyColor, ColorSpace, convertThrough } from './ColorInput';
+import { AnyColor, ColorSpace } from './ColorInput';
 import { Rgba } from './linearRgba';
 
 export type Xyza = { x: number; y: number; z: number; alpha: number };

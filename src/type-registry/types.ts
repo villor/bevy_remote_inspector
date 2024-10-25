@@ -26,6 +26,7 @@ export const bevyTypes = {
   GLOBAL_TRANSFORM:
     'bevy_transform::components::global_transform::GlobalTransform',
   VIEW_VISIBILITY: 'bevy_render::view::visibility::ViewVisibility',
+  COLOR: 'bevy_color::color::Color',
 };
 
 export function resolveTypeDefaultValue(

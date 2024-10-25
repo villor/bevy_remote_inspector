@@ -1,4 +1,4 @@
-import { TypeName, TypeRegistry } from '@/type-registry/useTypeRegistry';
+import { TEnum, TypeName, TypeRegistry } from '@/type-registry/useTypeRegistry';
 import { StructInput } from './StructInput';
 import { OpaqueInput } from './OpaqueInput';
 import { EnumInput } from './EnumInput';
@@ -7,6 +7,8 @@ import { createContext } from 'react';
 import { ArrayInput } from './ArrayInput';
 import { MapInput } from './MapInput';
 import { TupleInput } from './TupleInput';
+import { bevyTypes } from '@/type-registry/types';
+import { ColorInput } from './ColorInput/ColorInput';
 
 export type DynamicInputProps = {
   typeName: TypeName;
@@ -22,6 +24,10 @@ export function getInputComponent({
   registry,
 }: DynamicInputProps) {
   const typeInfo = registry.get(typeName)!;
+  if (typeName === bevyTypes.COLOR) {
+    return <ColorInput path={path} typeInfo={typeInfo as TEnum} />;
+  }
+
   if (typeInfo.kind === 'struct') {
     return <StructInput typeInfo={typeInfo} path={path} />;
   }

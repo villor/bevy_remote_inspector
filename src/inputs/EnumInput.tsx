@@ -21,6 +21,7 @@ export type EnumInputProps = {
   path: string;
 };
 import { memo } from 'react';
+import { NativeSelect } from '../shared/ui/native-select';
 
 export const EnumInput = memo(function EnumInput({
   typeInfo,
@@ -90,13 +91,10 @@ export const EnumInput = memo(function EnumInput({
   return (
     <div className="w-full">
       {/* Need to use native select for performance reason */}
-      <select
-        className={clsx(
-          'bg-background flex h-9 w-full items-center justify-between whitespace-nowrap rounded-md border border-input px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1',
-          {
-            'mb-2': selectedVariant.kind !== 'unit',
-          }
-        )}
+      <NativeSelect
+        className={clsx({
+          'mb-2': selectedVariant.kind !== 'unit',
+        })}
         value={selectedVariantName}
         onChange={(e) => handleVariantChange(e.target.value)}
       >
@@ -105,7 +103,7 @@ export const EnumInput = memo(function EnumInput({
             {variant.name}
           </option>
         ))}
-      </select>
+      </NativeSelect>
       <EnumSubInput
         path={path}
         selectedVariant={selectedVariant}

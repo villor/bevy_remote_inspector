@@ -1,6 +1,7 @@
 import { useStore } from '@/store';
 import { EntityId, EntityTreeNode } from './useEntity';
 import { useMemo } from 'react';
+import { getEntityIndex } from './useEntityName';
 
 export function useEntityTrees() {
   const childParentMap = useStore((state) => state.childParentMap);
@@ -28,9 +29,9 @@ export function useEntityTrees() {
         return curr;
       }
 
-      curr.children = children.map((child) =>
-        recur({ id: child, parent: curr.id, children: [] })
-      );
+      curr.children = children
+        .map((child) => recur({ id: child, parent: curr.id, children: [] }))
+        .sort((a, b) => getEntityIndex(a.id) - getEntityIndex(b.id));
 
       return curr;
     }
@@ -39,6 +40,6 @@ export function useEntityTrees() {
       recur(tree);
     }
 
-    return trees;
+    return trees.sort((a, b) => getEntityIndex(a.id) - getEntityIndex(b.id));
   }, [childParentMap]);
 }

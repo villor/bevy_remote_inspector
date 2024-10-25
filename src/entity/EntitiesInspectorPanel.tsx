@@ -14,13 +14,14 @@ import {
 import { ScrollArea } from '@/shared/ui/scroll-area';
 import { useStore } from '@/store';
 import clsx from 'clsx';
-import { ChevronRight, Copy, Plus } from 'lucide-react';
+import { ChevronRight, Copy, Eye, EyeOff, Plus } from 'lucide-react';
 import { ReactNode, useState } from 'react';
-import { useUpdateEntityComponent } from './useUpdateEntityComponent';
+import { useUpdateComponent } from './useUpdateComponent';
 import { memo } from 'react';
 import { useTypeRegistry } from '@/type-registry/useTypeRegistry';
 import { toast } from '@/hooks/use-toast';
 import { bevyTypes } from '@/type-registry/types';
+import { useToggleComponent } from './useToggleComponent';
 
 export const EntitiesInspectorPanel = memo(function EntitiesInspectorPanel() {
   const inspectingEntity = useStore((state) => state.inspectingEntity);
@@ -75,7 +76,7 @@ function InspectorComponent({
   componentId: ComponentId;
   entityId: EntityId;
 }) {
-  const value = useEntityComponentValue(entityId, componentId);
+  const { value, disabled } = useEntityComponentValue(entityId, componentId);
   const { name, short_name } = useStore((state) => state.getComponentName)(
     componentId
   );
@@ -83,7 +84,7 @@ function InspectorComponent({
     !DEFAULT_HIDDEN_COMPONENTS.includes(name || '')
   );
   const info = useComponentInfo(componentId)!;
-  const updateEntityComponent = useUpdateEntityComponent(entityId, componentId);
+  const updateEntityComponent = useUpdateComponent(entityId, componentId);
 
   const registry = useTypeRegistry();
 
@@ -93,10 +94,10 @@ function InspectorComponent({
     const message =
       typeInfo === undefined
         ? 'is not registered in type registry'
-        : 'is not serializable';
+        : 'is not serializable or zero sized type';
     children = (
       <div>
-        Component {name} is {message}
+        Component {name} {message}
       </div>
     );
   } else {
@@ -109,6 +110,8 @@ function InspectorComponent({
       ></DynamicForm>
     );
   }
+
+  const toggleComponent = useToggleComponent(entityId, componentId);
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
@@ -132,7 +135,7 @@ function InspectorComponent({
             </div>
           </Button>
         </CollapsibleTrigger>
-        <IconButton
+        {/* <IconButton
           icon={<Copy className="size-4" />}
           className="px-2"
           onClick={() => {
@@ -141,6 +144,23 @@ function InspectorComponent({
               description: `Copied component name to clipboard`,
             });
           }}
+        ></IconButton> */}
+        <IconButton
+          tooltip={{
+            content: {
+              side: 'top',
+              children: disabled ? 'Enable component' : 'Disable component',
+            },
+          }}
+          icon={
+            disabled ? (
+              <EyeOff className="size-4" />
+            ) : (
+              <Eye className="size-4" />
+            )
+          }
+          className="px-2"
+          onClick={toggleComponent}
         ></IconButton>
       </div>
       <CollapsibleContent className="px-4 bg-muted py-2 overflow-hidden w-full">

@@ -144,8 +144,7 @@ export type EntityMutaion = EntityMutationChange | EntityMutationRemove;
 
 export type EntityMutationChange = {
   kind: 'change';
-  changes: Array<[ComponentId, ComponentValue]>;
-  removes: ComponentId[];
-  is_new: boolean;
+  changes: Array<[ComponentId, boolean, ComponentValue]>;
+  removes: Array<[ComponentId, boolean]>;
 };
 export type EntityMutationRemove = { kind: 'remove' };

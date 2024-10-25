@@ -2,6 +2,8 @@ import { useShallow } from 'zustand/react/shallow';
 import { useStore } from '@/store';
 import { ComponentId } from '@/component/useComponents';
 import { EntityMutationChange } from '@/websocket/createWsSlice';
+import { TValue } from '@/type-registry/useTypeRegistry';
+import { useMemo } from 'react';
 
 export type EntityId = number;
 
@@ -27,13 +29,17 @@ export function useEntityComponentIds(id: EntityId): ComponentId[] | undefined {
 export function useEntityComponentValue(
   entityId: EntityId,
   componentId: ComponentId
-): any | undefined {
-  return useStore(
+): { disabled: boolean; value: TValue | undefined } {
+  const value = useStore(
     useShallow((state) => {
       const entity = state.entities.get(entityId);
       return entity?.get(componentId);
     })
   );
+
+  return useMemo(() => {
+    return value ?? { disabled: false, value: undefined };
+  }, [value]);
 }
 
 export function findParentChange(
@@ -44,5 +50,5 @@ export function findParentChange(
     ([componentId, _]) => componentId === parentComponentId
   );
 
-  return changedParent?.[1] as EntityId | null | undefined;
+  return changedParent?.[2] as EntityId | null | undefined;
 }

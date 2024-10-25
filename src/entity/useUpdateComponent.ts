@@ -3,10 +3,7 @@ import { EntityId } from './useEntity';
 import { useStore } from '@/store';
 import { useCallback } from 'react';
 
-export function useUpdateEntityComponent(
-  entity: EntityId,
-  component: ComponentId
-) {
+export function useUpdateComponent(entity: EntityId, component: ComponentId) {
   const sendMessage = useStore((state) => state.sendMessage);
   return useCallback(
     (value: any) => {

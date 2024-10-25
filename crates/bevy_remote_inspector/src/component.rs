@@ -1,7 +1,10 @@
 use bevy::{
     ecs::component::{ComponentId, ComponentInfo},
     prelude::{EntityRef, World},
-    reflect::{serde::TypedReflectSerializer, ReflectFromPtr, ReflectSerialize, TypeRegistry},
+    reflect::{
+        serde::TypedReflectSerializer, PartialReflect, ReflectFromPtr, ReflectSerialize,
+        TypeRegistry,
+    },
 };
 use serde::Serialize;
 use serde_json::Value;

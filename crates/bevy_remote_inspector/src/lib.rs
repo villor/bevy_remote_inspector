@@ -1,6 +1,6 @@
+mod command;
 mod component;
 mod entity;
-mod request;
 mod type_registry;
 
 use bevy::{
@@ -12,9 +12,9 @@ use bevy::{
 use bevy_remote_stream::{
     OnDataHandlerInput, RemoteStreamHandlers, StreamClientId, StreamHandlerInputRef, StreamMethods,
 };
+use command::Command;
 use component::InspectorComponentInfo;
 use entity::EntityMutation;
-use request::ClientRequest;
 use serde::Serialize;
 use serde_json::Value;
 use type_registry::ZeroSizedTypes;
@@ -39,7 +39,8 @@ impl Plugin for RemoteInspectorPlugin {
                 on_data: Some(on_data),
             },
         );
-        app.init_resource::<TrackedDatas>();
+        app.init_resource::<TrackedDatas>()
+            .init_resource::<DisabledComponents>();
     }
 }
 
@@ -50,23 +51,31 @@ fn stream(
     mut zsts: Local<ZeroSizedTypes>,
 ) -> Option<BrpResult> {
     world.resource_scope(|world, mut tracked: Mut<TrackedDatas>| {
-        let tracked = tracked.entry(input.client_id).or_default();
-        let type_registry = world.resource::<AppTypeRegistry>().read();
-        tracked.track_type_registry(&mut events, &type_registry, &mut zsts);
-        // let new_tables = world
-        //     .archetypes()
-        //     .iter()
-        //     .filter(|archetype| !tracked.tables.contains(&archetype.table_id().as_usize()))
-        //     .map(|archetype| archetype.table_id().as_usize())
-        //     .collect::<Vec<_>>();
+        world.resource_scope(|world, mut disabled_components: Mut<DisabledComponents>| {
+            let tracked = tracked.entry(input.client_id).or_default();
+            let type_registry = world.resource::<AppTypeRegistry>().read();
+            tracked.track_type_registry(&mut events, &type_registry, &mut zsts);
+            // let new_tables = world
+            //     .archetypes()
+            //     .iter()
+            //     .filter(|archetype| !tracked.tables.contains(&archetype.table_id().as_usize()))
+            //     .map(|archetype| archetype.table_id().as_usize())
+            //     .collect::<Vec<_>>();
 
-        // if !new_tables.is_empty() {
-        //     tracked.tables.extend_from_slice(new_tables.as_slice());
-        //     events.push(StreamEvent::NewTables { tables: new_tables });
-        // }
+            // if !new_tables.is_empty() {
+            //     tracked.tables.extend_from_slice(new_tables.as_slice());
+            //     events.push(StreamEvent::NewTables { tables: new_tables });
+            // }
 
-        tracked.track_components(&mut events, world, &type_registry);
-        tracked.track_entities(&mut events, world, &type_registry, &zsts);
+            tracked.track_components(&mut events, world, &type_registry);
+            tracked.track_entities(
+                &mut events,
+                world,
+                &type_registry,
+                &zsts,
+                &mut disabled_components,
+            );
+        });
     });
 
     if events.is_empty() {
@@ -77,12 +86,11 @@ fn stream(
 
     events.clear();
 
-    // return None;
     Some(BrpResult::Ok(serialized))
 }
 
 fn on_data(In((_, req)): OnDataHandlerInput, world: &mut World) -> Option<BrpResult> {
-    let request = match ClientRequest::try_from_brp(req) {
+    let command = match Command::try_from_brp(req) {
         Ok(r) => r,
         Err(e) => {
             return Some(BrpResult::Err(BrpError {
@@ -93,18 +101,12 @@ fn on_data(In((_, req)): OnDataHandlerInput, world: &mut World) -> Option<BrpRes
         }
     };
 
-    info!("New request: {:?}", request);
+    info!("New request: {:?}", command);
 
-    let result = request.execute(world);
+    let result = command.execute(world);
 
     let result: Option<BrpResult> = match result {
-        Ok(val) => {
-            if val == Value::Null {
-                None
-            } else {
-                Some(BrpResult::Ok(val))
-            }
-        }
+        Ok(val) => Some(BrpResult::Ok(val)),
         Err(e) => Some(BrpResult::Err(BrpError {
             code: error_codes::INTERNAL_ERROR,
             message: e.to_string(),
@@ -155,3 +157,6 @@ enum InspectorEvent {
     //     tables: Vec<usize>,
     // },
 }
+
+#[derive(Resource, Default, DerefMut, Deref)]
+struct DisabledComponents(EntityHashMap<HashMap<ComponentId, Box<dyn PartialReflect>>>);

@@ -29,7 +29,7 @@ export function useEntityName(id: EntityId) {
   if (nameComponentId !== undefined) {
     const nameComponent = components.get(nameComponentId);
     if (nameComponent) {
-      return nameComponent as string;
+      return nameComponent.value as string;
     }
   }
 
@@ -42,7 +42,7 @@ export function useEntityName(id: EntityId) {
     if (components.has(componentId)) {
       try {
         return typeof FALLBACK_NAMES[fallbackName] === 'function'
-          ? FALLBACK_NAMES[fallbackName](components.get(componentId)!)
+          ? FALLBACK_NAMES[fallbackName](components.get(componentId)!.value)
           : FALLBACK_NAMES[fallbackName];
       } catch {
         break;
@@ -69,4 +69,9 @@ export function prettyEntityId(id: EntityId) {
   const generation = Number(bid >> 32n);
 
   return `${index}v${generation}`;
+}
+
+export function getEntityIndex(id: EntityId) {
+  const bid = BigInt(id);
+  return Number(bid & 0xffffffffn);
 }

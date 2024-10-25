@@ -5,7 +5,16 @@ import { ComponentId, ComponentValue } from '@/component/useComponents';
 import { EntityMutaion } from '@/websocket/createWsSlice';
 
 export type EntitiesSlice = {
-  entities: Map<EntityId, Map<ComponentId, ComponentValue>>;
+  entities: Map<
+    EntityId,
+    Map<
+      ComponentId,
+      {
+        value: ComponentValue;
+        disabled: boolean;
+      }
+    >
+  >;
   updateEntity: (id: EntityId, mutation: EntityMutaion) => void;
   childParentMap: Map<EntityId, EntityId | null>;
 };
@@ -35,16 +44,33 @@ export const createEntitiesSlice: CreateSlice<EntitiesSlice> = (set, get) => ({
       const entityComponents = entities.get(entity);
 
       if (entityComponents) {
-        for (const removedCommponentId of mutation.removes) {
-          entityComponents.delete(removedCommponentId);
+        for (const [removedCommponentId, isDisabled] of mutation.removes) {
           if (removedCommponentId === parentComponentId) {
             childParentMap.delete(entity);
             set({ childParentMap: childParentMap });
           }
+
+          const component = entityComponents.get(removedCommponentId);
+
+          if (!component) {
+            continue;
+          }
+
+          if (isDisabled) {
+            entityComponents.set(removedCommponentId, {
+              disabled: true,
+              value: component.value,
+            });
+          } else {
+            entityComponents.delete(removedCommponentId);
+          }
         }
 
-        for (const [componentId, value] of mutation.changes) {
-          entityComponents.set(componentId, value);
+        for (const [componentId, isDisabled, value] of mutation.changes) {
+          entityComponents.set(componentId, {
+            value: value,
+            disabled: isDisabled,
+          });
           if (componentId === parentComponentId) {
             childParentMap.set(entity, value as EntityId);
             set({ childParentMap: childParentMap });
@@ -62,7 +88,15 @@ export const createEntitiesSlice: CreateSlice<EntitiesSlice> = (set, get) => ({
         }
         const parent = findParentChange(mutation.changes, parentComponentId);
         childParentMap.set(entity, parent || null);
-        entities.set(entity, new Map(mutation.changes));
+        entities.set(
+          entity,
+          new Map(
+            mutation.changes.map(([componentId, disabled, value]) => [
+              componentId,
+              { value, disabled },
+            ])
+          )
+        );
 
         set({ childParentMap: new Map(childParentMap) });
       }

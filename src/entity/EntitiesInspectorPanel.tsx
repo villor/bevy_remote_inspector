@@ -46,8 +46,8 @@ function InspectorComponentList({ entity }: { entity: EntityId }) {
   }
 
   return (
-    <div className="h-full w-full flex flex-col overflow-hidden items-center">
-      <ScrollArea style={{ height: 'auto', width: '100%' }} className="gap-y-4">
+    <div className="h-full w-full flex flex-col overflow-hidden items-center bg-background">
+      <ScrollArea style={{ height: 'auto', width: '100%' }}>
         {componentIds.map((id) => (
           <InspectorComponent entityId={entity} key={id} componentId={id} />
         ))}
@@ -114,58 +114,56 @@ function InspectorComponent({
   const toggleComponent = useToggleComponent(entityId, componentId);
 
   return (
-    <Collapsible open={open} onOpenChange={setOpen}>
-      <div className="flex items-center">
-        <CollapsibleTrigger
-          asChild
-          className="px-4 py-2 w-full flex flex-wrap justify-start"
-        >
-          <Button
-            size="default"
-            variant="ghost"
-            className="w-full flex-wrap justify-start py-1 gap-x-2 px-2 text-base rounded-none bg-transparent"
+    <div className="bg-muted rounded p-2 mt-4 mx-4">
+      <Collapsible open={open} onOpenChange={setOpen}>
+        <div className="flex items-center">
+          <CollapsibleTrigger
+            asChild
+            className="px-4 py-2 w-full flex flex-wrap justify-start"
           >
-            <ChevronRight
-              className={clsx('size-5', {
-                'transform rotate-90': open,
-              })}
-            />
-            <div className="text-wrap overflow-hidden break-all">
-              {short_name}
+            <div className="flex items-center">
+              <ChevronRight
+                className={clsx('size-5', {
+                  'transform rotate-90': open,
+                })}
+              />
+              <div className="text-wrap overflow-hidden break-all flex items-center ml-2">
+                {short_name}
+              </div>
             </div>
-          </Button>
-        </CollapsibleTrigger>
-        {/* <IconButton
+          </CollapsibleTrigger>
+          {/* <IconButton
           icon={<Copy className="size-4" />}
           className="px-2"
           onClick={() => {
             navigator.clipboard.writeText(name || '');
             toast({
               description: `Copied component name to clipboard`,
-            });
-          }}
-        ></IconButton> */}
-        <IconButton
-          tooltip={{
-            content: {
-              side: 'top',
-              children: disabled ? 'Enable component' : 'Disable component',
-            },
-          }}
-          icon={
-            disabled ? (
-              <EyeOff className="size-4" />
-            ) : (
-              <Eye className="size-4" />
-            )
-          }
-          className="px-2"
-          onClick={toggleComponent}
-        ></IconButton>
-      </div>
-      <CollapsibleContent className="px-4 bg-muted py-2 overflow-hidden w-full">
-        {children}
-      </CollapsibleContent>
-    </Collapsible>
+              });
+              }}
+              ></IconButton> */}
+          <IconButton
+            tooltip={{
+              content: {
+                side: 'top',
+                children: disabled ? 'Enable component' : 'Disable component',
+              },
+            }}
+            icon={
+              disabled ? (
+                <EyeOff className="size-4" />
+              ) : (
+                <Eye className="size-4" />
+              )
+            }
+            className="px-2"
+            onClick={toggleComponent}
+          ></IconButton>
+        </div>
+        <CollapsibleContent className="px-4 overflow-hidden w-full">
+          {children}
+        </CollapsibleContent>
+      </Collapsible>
+    </div>
   );
 }

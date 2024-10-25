@@ -102,7 +102,7 @@ export const IconButton = React.forwardRef<
     if (tooltip) {
       return (
         <TooltipProvider>
-          <Tooltip {...tooltip.tooltip}>
+          <Tooltip {...tooltip.tooltip} delayDuration={100}>
             <TooltipTrigger>{children}</TooltipTrigger>
             <TooltipContent {...tooltip.content}></TooltipContent>
           </Tooltip>

@@ -1,6 +1,6 @@
 use bevy::{
     ecs::component::{ComponentId, ComponentInfo},
-    prelude::{EntityRef, World},
+    prelude::{EntityRef, ReflectComponent, World},
     reflect::{
         serde::TypedReflectSerializer, PartialReflect, ReflectFromPtr, ReflectSerialize,
         TypeRegistry,
@@ -16,13 +16,21 @@ impl TrackedData {
         &mut self,
         events: &mut Vec<InspectorEvent>,
         world: &World,
-        _type_registry: &TypeRegistry,
+        type_registry: &TypeRegistry,
     ) {
         let mut new_components = vec![];
         for info in world.components().iter() {
+            let Some(type_id) = info.type_id() else {
+                continue;
+            };
+
+            let reflected = type_registry
+                .get_type_data::<ReflectComponent>(type_id)
+                .is_some();
+
             if !self.components.contains(&info.id()) {
                 self.components.insert(info.id());
-                new_components.push(InspectorComponentInfo::new(info));
+                new_components.push(InspectorComponentInfo::new(info, reflected));
             }
         }
 
@@ -38,13 +46,15 @@ impl TrackedData {
 pub struct InspectorComponentInfo {
     id: usize,
     name: String,
+    reflected: bool,
 }
 
 impl InspectorComponentInfo {
-    pub fn new(component_info: &ComponentInfo) -> Self {
+    pub fn new(component_info: &ComponentInfo, reflected: bool) -> Self {
         Self {
             id: component_info.id().index(),
             name: component_info.name().into(),
+            reflected,
         }
     }
 }

@@ -5,7 +5,7 @@ import { useWs } from '@/websocket/useWs';
 import { parseWsURL } from './createWsSlice';
 import { useStore } from '@/store';
 import { ReadyState } from 'react-use-websocket';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/shared/hooks/use-toast';
 
 export function WsUrlForm() {
   const { url, readyState } = useWs();

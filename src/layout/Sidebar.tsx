@@ -32,7 +32,7 @@ function SideBarItem({
   return (
     <TooltipTrigger>
       <Button
-        onClick={handleClick}
+        onPress={handleClick}
         className={clsx(
           'flex w-full py-3 items-center justify-center transition-colors hover:text-foreground',
           {

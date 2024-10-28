@@ -5,7 +5,6 @@ import {
   useEntityComponentValue,
 } from '@/entity/useEntity';
 import { DynamicForm } from '@/inputs/DynamicForm';
-import { Button } from '@/shared/ui/button';
 import {
   Collapsible,
   CollapsibleContent,
@@ -13,25 +12,28 @@ import {
 } from '@/shared/ui/collapsible';
 import { ScrollArea } from '@/shared/ui/scroll-area';
 import { useStore } from '@/store';
-import clsx from 'clsx';
-import { ChevronRight, Copy, Ellipsis, Eye, EyeOff, Plus } from 'lucide-react';
-import { ReactNode, useState } from 'react';
+import { ChevronRight, Ellipsis, Eye, EyeOff } from 'lucide-react';
+import { ReactNode } from 'react';
 import { useUpdateComponent } from './useUpdateComponent';
 import { memo } from 'react';
 import { useTypeRegistry } from '@/type-registry/useTypeRegistry';
-import { toast } from '@/hooks/use-toast';
+import { toast } from '@/shared/hooks/use-toast';
 import { bevyTypes } from '@/type-registry/types';
 import { useToggleComponent } from './useToggleComponent';
 import { IconButton } from '@/shared/ui/icon-button';
 import { Menu, MenuItem, MenuPopover, MenuTrigger } from '@/shared/ui/menu';
 import { useRemoveComponent } from './useRemoveComponent';
-
+import { AddComponentDialog } from './AddComponentDialog';
+import { ComponentBadge } from '@/component/ComponentBadge';
 export const EntitiesInspectorPanel = memo(function EntitiesInspectorPanel() {
   const inspectingEntity = useStore((state) => state.inspectingEntity);
 
   return (
     <div className="flex h-full w-full flex-col pt-4">
-      <div className="px-4 text-lg font-bold">Inspector</div>
+      <div className="px-4 text-lg font-bold py-2 flex items-center justify-between">
+        Inspector
+        {inspectingEntity !== null && <AddComponentDialog />}
+      </div>
       {inspectingEntity ? (
         <InspectorComponentList entity={inspectingEntity} />
       ) : (
@@ -51,16 +53,12 @@ function InspectorComponentList({ entity }: { entity: EntityId }) {
   return (
     <div className="h-full w-full flex flex-col overflow-hidden items-center bg-background">
       <ScrollArea style={{ height: 'auto', width: '100%' }}>
-        {componentIds.map((id) => (
-          <InspectorComponent entityId={entity} key={id} componentId={id} />
-        ))}
+        <div className="flex flex-col gap-y-4 px-2">
+          {componentIds.map((id) => (
+            <InspectorComponent entityId={entity} key={id} componentId={id} />
+          ))}
+        </div>
       </ScrollArea>
-      <div className="py-2">
-        <Button size="sm" className="max-w-48">
-          <Plus></Plus>
-          <span>Add new components</span>
-        </Button>
-      </div>
     </div>
   );
 }
@@ -97,7 +95,7 @@ function InspectorComponent({
         : 'is not serializable or zero sized type';
     children = (
       <div className="text-wrap break-all hyphens-auto">
-        Component {name} {message}
+        Component <ComponentBadge>{name}</ComponentBadge> {message}
       </div>
     );
   } else {
@@ -115,33 +113,26 @@ function InspectorComponent({
   const removeComponent = useRemoveComponent(entityId, componentId);
 
   return (
-    <div className="bg-muted rounded p-2 mt-4 mx-4">
+    <div className="bg-muted rounded p-3">
       <Collapsible>
         <div className="flex items-center">
-          <CollapsibleTrigger
-            asChild
-            className="px-4 py-2 w-full flex flex-wrap justify-start"
-          >
-            <div className="flex items-center">
-              <ChevronRight
-                className={clsx('size-5', {
-                  'transform rotate-90': open,
-                })}
-              />
-              <div className="text-wrap overflow-hidden break-all flex items-center ml-2 font-medium">
-                {short_name}
-              </div>
-            </div>
+          <CollapsibleTrigger asChild>
+            <IconButton className="hover:bg-primary-foreground/75 group transform data-[state=open]:rotate-90">
+              <ChevronRight className="size-4" />
+            </IconButton>
           </CollapsibleTrigger>
+          <div className="text-wrap overflow-hidden break-all flex items-center font-medium flex-grow">
+            {short_name}
+          </div>
           <IconButton
             onPress={toggleComponent}
             className="hover:bg-primary-foreground/75"
             tooltip={disabled ? 'Enable component' : 'Disable component'}
           >
             {disabled ? (
-              <Eye className="size-4" />
-            ) : (
               <EyeOff className="size-4" />
+            ) : (
+              <Eye className="size-4" />
             )}
           </IconButton>
           <MenuTrigger>
@@ -165,7 +156,7 @@ function InspectorComponent({
             </MenuPopover>
           </MenuTrigger>
         </div>
-        <CollapsibleContent className="px-4 overflow-hidden w-full">
+        <CollapsibleContent className="overflow-hidden w-full">
           {children}
         </CollapsibleContent>
       </Collapsible>

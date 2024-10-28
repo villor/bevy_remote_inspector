@@ -14,7 +14,7 @@ import {
   isStringType,
   resolveTypeDefaultValue,
 } from '@/type-registry/types';
-import { toast } from '@/hooks/use-toast';
+import { toast } from '@/shared/hooks/use-toast';
 import { Button } from '@/shared/ui/button';
 export type MapInputProps = {
   typeInfo: TMap;
@@ -53,7 +53,7 @@ export const MapInput = memo(function MapInput({
   ) : (
     <Button
       type="button"
-      onClick={() => setIsEditting(true)}
+      onPress={() => setIsEditting(true)}
       size="sm"
       className="col-span-2 mt-2"
     >
@@ -133,7 +133,7 @@ function PendingMapInput({
           allowUndefined
         ></DynamicForm>
       </div>
-      <Button type="button" onClick={handleOnAdd} className="col-span-2">
+      <Button type="button" onPress={handleOnAdd} className="col-span-2">
         Add
       </Button>
     </>

@@ -22,7 +22,7 @@ export function WebSocketReconnectOverlay() {
             type="button"
             variant="link"
             className="mt-4"
-            onClick={() => {
+            onPress={() => {
               useStore.setState({
                 hasConnected: false,
                 shouldReconnect: false,

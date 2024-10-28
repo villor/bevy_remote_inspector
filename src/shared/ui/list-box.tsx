@@ -1,4 +1,4 @@
-import { Check } from "lucide-react"
+import { Check } from 'lucide-react';
 import {
   Collection as AriaCollection,
   Header as AriaHeader,
@@ -8,13 +8,12 @@ import {
   ListBoxProps as AriaListBoxProps,
   Section as AriaSection,
   composeRenderProps,
-} from "react-aria-components"
+} from 'react-aria-components';
+import { cn } from '@/utils';
 
-import { cn } from "@/utils"
+const ListBoxSection = AriaSection;
 
-const ListBoxSection = AriaSection
-
-const ListBoxCollection = AriaCollection
+const ListBoxCollection = AriaCollection;
 
 function ListBox<T extends object>({
   className,
@@ -25,37 +24,38 @@ function ListBox<T extends object>({
       className={composeRenderProps(className, (className) =>
         cn(
           className,
-          "group overflow-auto rounded-md border bg-popover p-1 text-popover-foreground shadow-md outline-none",
+          'group overflow-auto rounded-md border bg-popover p-1 text-popover-foreground shadow-md outline-none',
           /* Empty */
-          "data-[empty]:p-6 data-[empty]:text-center data-[empty]:text-sm"
+          'data-[empty]:p-6 data-[empty]:text-center data-[empty]:text-sm'
         )
       )}
       {...props}
     />
-  )
+  );
 }
 
 const ListBoxItem = <T extends object>({
   className,
   children,
+  hideCheckbox,
   ...props
-}: AriaListBoxItemProps<T>) => {
+}: AriaListBoxItemProps<T> & { hideCheckbox?: boolean }) => {
   return (
     <AriaListBoxItem
       textValue={
-        props.textValue || (typeof children === "string" ? children : undefined)
+        props.textValue || (typeof children === 'string' ? children : undefined)
       }
       className={composeRenderProps(className, (className) =>
         cn(
-          "relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none",
+          'relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none',
           /* Disabled */
-          "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+          'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
           /* Focused */
-          "data-[focused]:bg-accent data-[focused]:text-accent-foreground",
+          'data-[focused]:bg-accent data-[focused]:text-accent-foreground',
           /* Hovered */
-          "data-[hovered]:bg-accent data-[hovered]:text-accent-foreground",
+          'data-[hovered]:bg-accent data-[hovered]:text-accent-foreground',
           /* Selection */
-          "data-[selection-mode]:pl-8",
+          'data-[selection-mode]:pl-8',
           className
         )
       )}
@@ -63,7 +63,7 @@ const ListBoxItem = <T extends object>({
     >
       {composeRenderProps(children, (children, renderProps) => (
         <>
-          {renderProps.isSelected && (
+          {renderProps.isSelected && !hideCheckbox && (
             <span className="absolute left-2 flex size-4 items-center justify-center">
               <Check className="size-4" />
             </span>
@@ -72,8 +72,8 @@ const ListBoxItem = <T extends object>({
         </>
       ))}
     </AriaListBoxItem>
-  )
-}
+  );
+};
 
 function ListBoxHeader({
   className,
@@ -81,10 +81,10 @@ function ListBoxHeader({
 }: React.ComponentProps<typeof AriaHeader>) {
   return (
     <AriaHeader
-      className={cn("py-1.5 pl-8 pr-2 text-sm font-semibold", className)}
+      className={cn('py-1.5 pl-8 pr-2 text-sm font-semibold', className)}
       {...props}
     />
-  )
+  );
 }
 
 export {
@@ -93,4 +93,51 @@ export {
   ListBoxHeader,
   ListBoxSection,
   ListBoxCollection,
-}
+};
+
+// export type VirtualizedListBoxProps<T> = AriaListBoxProps<T> & {
+//   listBoxRef?: React.RefObject<HTMLUListElement>;
+//   state: ListState<unknown>;
+// };
+
+// export function VirtualizedListBox<T>(props: VirtualizedListBoxProps<T>) {
+//   let ref = useRef<HTMLUListElement>(null);
+//   let { listBoxRef = ref, state } = props;
+
+//   let collator = useCollator({ usage: 'search', sensitivity: 'base' });
+//   let layout = useMemo(
+//     () =>
+//       new ListLayout({
+//         rowHeight: 40,
+//       }),
+//     []
+//   );
+
+//   layout.collection = state.collection;
+
+//   let { listBoxProps } = useListBox(
+//     { ...props, isVirtualized: true },
+//     state,
+//     listBoxRef
+//   );
+
+//   console.log(state.collection.size);
+
+//   return (
+//     <ListBoxContext.Provider value={state}>
+//       <Virtualizer
+//         {...listBoxProps}
+//         ref={listBoxRef}
+//         className="max-h-72 outline-none"
+//         focusedKey={state.selectionManager.focusedKey}
+//         sizeToFit="height"
+//         scrollDirection="vertical"
+//         layout={layout}
+//         collection={state.collection}
+//         shouldUseVirtualFocus={props.shouldUseVirtualFocus}
+//       >
+//         {(type, item) => <Option item={item} />}
+//       </Virtualizer>
+//     </ListBoxContext.Provider>
+//   );
+// }

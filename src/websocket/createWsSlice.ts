@@ -3,21 +3,26 @@ import { StateCreator } from 'zustand';
 import { WEB_SOCKET_MESSAGE_ID } from './useWs';
 import { ReadyState } from 'react-use-websocket';
 import { SendJsonMessage } from 'react-use-websocket/dist/lib/types';
-import { toast } from '@/hooks/use-toast';
+import { toast } from '@/shared/hooks/use-toast';
 import { TType, TypeName } from '@/type-registry/useTypeRegistry';
 import {
   ComponentId,
-  ComponentName,
+  ComponentInfo,
   ComponentValue,
 } from '@/component/useComponents';
 import { EntityId } from '@/entity/useEntity';
 export type WsSlice = {
   url?: string;
   readyState: ReadyState;
-  sendMessage: (data: { method: string; params: any }) => number;
+  sendMessage: (data: {
+    method: string;
+    params: any;
+    callback?: (data: WsEvent) => void;
+  }) => void;
   initSendMessage: (fn: SendJsonMessage) => void;
   setReadyState: (readyState: ReadyState) => void;
   onMessage: (message: MessageEvent<any>) => void;
+  commandCallbacks: Map<string, (data: WsEvent) => void>;
   shouldReconnect: boolean;
   hasConnected: boolean;
   isManuallyConnect: boolean;
@@ -33,21 +38,36 @@ export const createWsSlice: StateCreator<SharedSlice, [], [], WsSlice> = (
   get
 ) => ({
   url: parseWsURL(localStorage.getItem('ws_url') || 'ws://localhost:3000'),
+  commandCallbacks: new Map(),
   readyState: ReadyState.UNINSTANTIATED,
   shouldReconnect: true,
   isManuallyConnect: false,
   hasConnected: false,
-  sendMessage: (data: { method: string; params: any }) => {
-    let newId = id++;
+  sendMessage: ({
+    callback,
+    ...data
+  }: {
+    method: string;
+    params: any;
+    callback?: (data: WsEvent) => void;
+  }) => {
+    let newId = String(id++);
+    if (callback !== undefined) {
+      const commandCallbacks = get().commandCallbacks;
+
+      commandCallbacks.set(newId, callback);
+
+      set({ commandCallbacks: commandCallbacks });
+    }
 
     sendMessageInteral({
       ...data,
       id: newId,
       jsonrpc: '2.0',
     });
-    console.log(`send message ${data.method} ${JSON.stringify(data.params)}`);
 
-    return newId;
+    import.meta.env.DEV &&
+      console.log(`send message ${data.method} ${JSON.stringify(data.params)}`);
   },
   initSendMessage: (fn) => (sendMessageInteral = fn),
   setReadyState: (readyState) => {
@@ -70,16 +90,27 @@ export const createWsSlice: StateCreator<SharedSlice, [], [], WsSlice> = (
   onMessage: (message) => {
     try {
       const event = JSON.parse(message.data) as WsEvent;
-      if (event.error) {
-        toast({
-          title: 'Error',
-          description: event.error.message,
-          variant: 'destructive',
-        });
+      if (event.id === null) {
         return;
       }
 
       if (event.id !== WEB_SOCKET_MESSAGE_ID) {
+        const commandCallbacks = get().commandCallbacks;
+
+        const callback = commandCallbacks.get(event.id);
+        if (typeof callback === 'function') {
+          callback(event);
+          commandCallbacks.delete(event.id);
+          set({ commandCallbacks });
+        }
+
+        if (event.error) {
+          toast({
+            title: 'Error',
+            description: event.error.message,
+            variant: 'destructive',
+          });
+        }
         return;
       }
 
@@ -128,10 +159,7 @@ export type TypeRegistryEvent = {
 
 export type ComponentsEvent = {
   kind: 'component';
-  components: Array<{
-    id: ComponentId;
-    name: ComponentName;
-  }>;
+  components: Array<ComponentInfo & { id: ComponentId }>;
 };
 
 export type EntityEvent = {

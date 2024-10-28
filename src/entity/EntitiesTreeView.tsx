@@ -1,7 +1,6 @@
 import { useEntityTrees } from '@/entity/useEntitiesTrees';
 import { EntityId, EntityTreeNode } from '@/entity/useEntity';
-import { prettyEntityId, useEntityName } from '@/entity/useEntityName';
-import { Button, buttonVariants } from '@/shared/ui/button';
+import { buttonVariants } from '@/shared/ui/button';
 import { ScrollArea } from '@/shared/ui/scroll-area';
 import { useStore } from '@/store';
 import clsx from 'clsx';
@@ -19,8 +18,8 @@ import {
   Checkbox as AriaCheckbox,
 } from 'react-aria-components';
 import { cn } from '@/utils';
-import { Badge } from '@/shared/ui/badge';
 import { bevyTypes } from '@/type-registry/types';
+import { EntityName } from './EntityName';
 export const EntitiesTreeView = memo(function EntitiesTreeView() {
   const entityTrees = useEntityTrees();
   const setInspectingEntity = useStore((state) => state.setInspectingEntity);
@@ -86,7 +85,6 @@ const EntityTreeItemContent = ({
   item: EntityTreeNode;
   itemProps: TreeItemContentRenderProps;
 }) => {
-  const name = useEntityName(item.id);
   const isHidden = useStore(
     useShallow((state) => {
       const componentIds = Array.from(
@@ -113,9 +111,7 @@ const EntityTreeItemContent = ({
 
   return (
     <div
-      className={clsx('gap-y-2 flex', {
-        // 'pr-4': isRoot,
-      })}
+      className={clsx('gap-y-2 flex')}
       style={
         !isRoot
           ? {
@@ -169,12 +165,7 @@ const EntityTreeItemContent = ({
             'w-full justify-start py-1 px-1'
           )}
         >
-          <div className="flex gap-x-2 items-center">
-            <span>{name}</span>
-            <Badge variant="secondary" className="px-1.5 rounded-full">
-              {prettyEntityId(item.id)}
-            </Badge>
-          </div>
+          <EntityName id={item.id}></EntityName>
         </div>
       </div>
     </div>

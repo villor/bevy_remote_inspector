@@ -51,11 +51,11 @@ export type ColorSpace =
 export function ColorInput({ typeInfo, path }: ColorInputProps) {
   const { unregister, setValue, control } = useDynamicForm();
   const value = useWatch({ control, name: path }) as TValueObject;
-  const currentColor = Object.values(value!)[0] as AnyColor;
+  const currentColor = Object.values(value)[0] as AnyColor;
   const [selectedColorSpace, setSelectedColorSpace] = useState<ColorSpace>(
     () => {
       return typeInfo.variants.find((v) => {
-        return v.name === Object.keys(value!)[0];
+        return v.name === Object.keys(value)[0];
       })!.name as ColorSpace;
     }
   );

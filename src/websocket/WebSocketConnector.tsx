@@ -1,4 +1,4 @@
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/shared/hooks/use-toast';
 import { useStore } from '@/store';
 import { useEffect } from 'react';
 import useWebSocket from 'react-use-websocket';

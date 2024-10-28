@@ -2,6 +2,7 @@ use anyhow::{anyhow, bail};
 use bevy::{
     ecs::{component::ComponentId, entity},
     prelude::*,
+    ptr::OwningPtr,
     reflect::{serde::TypedReflectDeserializer, ReflectFromPtr, TypeData},
     remote::BrpRequest,
 };
@@ -35,6 +36,7 @@ pub enum Command {
     UpdateComponent(UpdateComponent),
     ToggleComponent(ToggleComponent),
     RemoveComponent(RemoveComponent),
+    InsertComponent(InsertComponent),
 }
 
 impl Command {
@@ -43,6 +45,7 @@ impl Command {
             "update_component", UpdateComponent
             "toggle_component", ToggleComponent
             "remove_component", RemoveComponent
+            "insert_component", InsertComponent
         )
     }
 
@@ -55,6 +58,7 @@ impl Command {
             Command::UpdateComponent(command) => command.execute(world).and_then(map_result),
             Command::ToggleComponent(command) => command.execute(world).and_then(map_result),
             Command::RemoveComponent(command) => command.execute(world).and_then(map_result),
+            Command::InsertComponent(command) => command.execute(world).and_then(map_result),
         };
         result
     }
@@ -191,5 +195,50 @@ impl Execute for RemoveComponent {
         disabled_components.remove(&self.entity);
 
         Ok(())
+    }
+}
+
+#[derive(Debug, Deserialize)]
+struct InsertComponent {
+    entity: Entity,
+    component: usize,
+    value: Value,
+}
+
+impl Execute for InsertComponent {
+    type Output = ();
+
+    fn execute(self, world: &mut World) -> anyhow::Result<Self::Output> {
+        let component_id = ComponentId::new(self.component);
+
+        world.resource_scope(|world, registry: Mut<AppTypeRegistry>| {
+            let registry = registry.read();
+            let type_id = world
+                .components()
+                .get_info(component_id)
+                .and_then(|info| info.type_id())
+                .ok_or(anyhow!("Component not found"))?;
+            let registration = registry
+                .get(type_id)
+                .ok_or(anyhow!("Component is not registered"))?;
+
+            let deserializer = TypedReflectDeserializer::new(registration, &registry);
+            let deserialized = deserializer.deserialize(self.value)?;
+            let reflect = deserialized
+                .try_as_reflect()
+                .ok_or(anyhow!("Can not convert to Reflect"))?;
+
+            let mut entity = world.get_entity_mut(self.entity)?;
+
+            if entity.get_by_id(component_id).is_ok() {
+                bail!("Component already exists")
+            }
+
+            OwningPtr::make(reflect, |ptr| unsafe {
+                entity.insert_by_id(component_id, ptr);
+            });
+
+            Ok(())
+        })
     }
 }

@@ -1,5 +1,7 @@
 //! A Bevy app that you can connect to with the BRP and edit.
 
+use std::fmt::Debug;
+
 use bevy::{
     input::common_conditions::input_just_pressed,
     prelude::*,
@@ -29,7 +31,7 @@ fn main() {
                 add_cube_children.run_if(input_just_pressed(KeyCode::KeyA)),
                 remove_cube_children.run_if(input_just_pressed(KeyCode::KeyS)),
                 update_text,
-                log_change,
+                log_change::<MyColor>,
             ),
         )
         .register_type::<Cube>()
@@ -44,10 +46,11 @@ fn main() {
         .register_type::<MyEnum>()
         .register_type::<MyEnum2>()
         .register_type::<MyComponent>()
-        .register_type::<OptionComponent>();
+        .register_type::<OptionComponent>()
+        .register_type::<SimpleStruct>()
+        .register_type::<MyColor>()
+        .register_type::<ShouldRotate>();
 
-    let component_id = app.world_mut().register_component::<MyComponent>();
-    dbg!(component_id);
     app.run();
 }
 
@@ -62,14 +65,10 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    let id = commands
-        .spawn(MyComponent {
-            number: 42,
-            string: "Hello, Bevy!".to_string(),
-        })
-        .id();
-
-    dbg!(id.to_bits());
+    commands.spawn(MyComponent {
+        number: 42,
+        string: "Hello, Bevy!".to_string(),
+    });
 
     // circular base
     commands.spawn((
@@ -85,6 +84,7 @@ fn setup(
             MeshMaterial3d(materials.add(Color::srgb_u8(124, 144, 255))),
             Transform::from_xyz(0.0, 0.5, 0.0),
             Cube(1.0),
+            ShouldRotate,
         ))
         .with_children(|parent| {
             parent.spawn(CubeChild(0));
@@ -105,79 +105,83 @@ fn setup(
         Transform::from_xyz(-2.5, 4.5, 9.0).looking_at(Vec3::ZERO, Vec3::Y),
     ));
 
-    // commands.spawn((
-    //     Transform::from_xyz(1.0, 1.0, 1.),
-    //     MyStruct {
-    //         vec2: Vec2::new(1.0, 2.0),
-    //         vec3: Vec3::new(3.0, 4.0, 5.0),
-    //         wrap_trans: WrapTrans(Transform::from_xyz(6.0, 7.0, 8.0)),
-    //         vec: vec![1, 2, 3],
-    //         map: {
-    //             let mut map = HashMap::new();
-    //             map.insert("key1".to_string(), 1);
-    //             map.insert("key2".to_string(), 2);
-    //             map.insert("key3".to_string(), 3);
-    //             map
-    //         },
-    //         set: {
-    //             let mut set = HashSet::new();
-    //             set.insert(1);
-    //             set.insert(2);
-    //             set.insert(3);
-    //             set
-    //         },
-    //         nest_struct: NestStruct {
-    //             my_enum: MyEnum::UnitA,
-    //             nest_struct2: NestStruct2 {
-    //                 my_enum2: MyEnum2::TupleVariant(Vec2::new(1.0, 2.0)),
-    //                 nest_struct3: NestStruct3(MyEnum2::StructVariant {
-    //                     a: Vec3::new(3.0, 4.0, 5.0),
-    //                 }),
-    //                 string: "Hello, world!".to_string(),
-    //             },
-    //             my_enum2: MyEnum2::TupleVariant2(2),
-    //         },
-    //     },
-    //     NestStruct {
-    //         my_enum: MyEnum::UnitA,
-    //         nest_struct2: NestStruct2 {
-    //             my_enum2: MyEnum2::TupleVariant(Vec2::new(1.0, 2.0)),
-    //             nest_struct3: NestStruct3(MyEnum2::StructVariant {
-    //                 a: Vec3::new(3.0, 4.0, 5.0),
-    //             }),
-    //             string: "Hello, world!".to_string(),
-    //         },
-    //         my_enum2: MyEnum2::TupleVariant2(2),
-    //     },
-    //     NestStruct2 {
-    //         my_enum2: MyEnum2::TupleVariant(Vec2::new(1.0, 2.0)),
-    //         nest_struct3: NestStruct3(MyEnum2::StructVariant {
-    //             a: Vec3::new(3.0, 4.0, 5.0),
-    //         }),
-    //         string: "Hello, world!".to_string(),
-    //     },
-    //     NestStruct3(MyEnum2::StructVariant {
-    //         a: Vec3::new(3.0, 4.0, 5.0),
-    //     }),
-    //     TupleStruct(42),
-    //     TupleStruct2(Vec3::new(6.0, 7.0, 8.0)),
-    // ));
-
-    // commands.spawn((MyEnum2::TupleVariant(Vec2::new(10.0, 20.0)), MyEnum::UnitA));
-    // commands.spawn((MyEnum2::Unit, MyEnum::UnitA));
     commands.spawn((
-        OptionComponent(Some(SimpleStruct {
-            a: 42,
-            b: "Hello, world!".to_string(),
-            c: vec![1, 2, 3],
-        })),
-        Name::new("OptionComponent"),
+        // Transform::from_xyz(1.0, 1.0, 1.),
+        MyStruct {
+            vec2: Vec2::new(1.0, 2.0),
+            vec3: Vec3::new(3.0, 4.0, 5.0),
+            wrap_trans: WrapTrans(Transform::from_xyz(6.0, 7.0, 8.0)),
+            vec: vec![1, 2, 3],
+            map: {
+                let mut map = HashMap::new();
+                map.insert("key1".to_string(), 1);
+                map.insert("key2".to_string(), 2);
+                map.insert("key3".to_string(), 3);
+                map
+            },
+            set: {
+                let mut set = HashSet::new();
+                set.insert(1);
+                set.insert(2);
+                set.insert(3);
+                set
+            },
+            nest_struct: NestStruct {
+                my_enum: MyEnum::UnitA,
+                nest_struct2: NestStruct2 {
+                    my_enum2: MyEnum2::TupleVariant(Vec2::new(1.0, 2.0)),
+                    nest_struct3: NestStruct3(MyEnum2::StructVariant {
+                        a: Vec3::new(3.0, 4.0, 5.0),
+                    }),
+                    string: "Hello, world!".to_string(),
+                },
+                my_enum2: MyEnum2::TupleVariant2(2),
+            },
+            checked: true,
+        },
+        NestStruct {
+            my_enum: MyEnum::UnitA,
+            nest_struct2: NestStruct2 {
+                my_enum2: MyEnum2::TupleVariant(Vec2::new(1.0, 2.0)),
+                nest_struct3: NestStruct3(MyEnum2::StructVariant {
+                    a: Vec3::new(3.0, 4.0, 5.0),
+                }),
+                string: "Hello, world!".to_string(),
+            },
+            my_enum2: MyEnum2::TupleVariant2(2),
+        },
+        NestStruct2 {
+            my_enum2: MyEnum2::TupleVariant(Vec2::new(1.0, 2.0)),
+            nest_struct3: NestStruct3(MyEnum2::StructVariant {
+                a: Vec3::new(3.0, 4.0, 5.0),
+            }),
+            string: "Hello, world!".to_string(),
+        },
+        NestStruct3(MyEnum2::StructVariant {
+            a: Vec3::new(3.0, 4.0, 5.0),
+        }),
+        TupleStruct(42),
+        TupleStruct2(Vec3::new(6.0, 7.0, 8.0)),
     ));
 
+    commands.spawn((MyEnum2::TupleVariant(Vec2::new(10.0, 20.0)), MyEnum::UnitA));
+    commands.spawn((
+        OptionComponent({
+            let mut hashmap = HashMap::new();
+            hashmap.insert("my_key".to_string(), 1);
+            hashmap
+        }),
+        SimpleStruct {
+            a: 123,
+            b: "Example String".to_string(),
+        },
+    ));
     commands.spawn(Text::default());
+
+    commands.spawn(MyColor(Color::srgb(1., 0., 0.)));
 }
 
-fn log_change(query: Query<&MyComponent, Changed<MyComponent>>) {
+fn log_change<T: Component + Debug>(query: Query<&T, Changed<T>>) {
     for my_component in query.iter() {
         println!("changed to {:?}", my_component);
     }
@@ -194,7 +198,7 @@ fn update_text(
     text.0 = format!("{:?}", my_enum2);
 }
 
-fn rotate(mut query: Query<&mut Transform, With<Cube>>, time: Res<Time>) {
+fn rotate(mut query: Query<&mut Transform, (With<Cube>, With<ShouldRotate>)>, time: Res<Time>) {
     for mut transform in &mut query {
         transform.rotate_y(time.delta_secs() / 2.);
     }
@@ -242,6 +246,7 @@ struct MyStruct {
     map: HashMap<String, usize>,
     set: HashSet<usize>,
     nest_struct: NestStruct,
+    checked: bool,
 }
 
 #[derive(Component, Reflect)]
@@ -275,6 +280,7 @@ enum MyEnum2 {
     TupleVariant2(usize),
     StructVariant { a: Vec3 },
     Unit,
+    StringVariant(String),
 }
 
 #[derive(Component, Reflect)]
@@ -284,11 +290,17 @@ struct TupleStruct(usize);
 struct TupleStruct2(Vec3);
 
 #[derive(Component, Reflect)]
-struct OptionComponent(Option<SimpleStruct>);
+struct OptionComponent(HashMap<String, usize>);
 
-#[derive(Reflect)]
+#[derive(Reflect, Component)]
 struct SimpleStruct {
     a: usize,
     b: String,
-    c: Vec<usize>,
 }
+
+#[derive(Component, Reflect, Debug)]
+struct MyColor(Color);
+
+#[derive(Component, Reflect)]
+#[reflect(Component)]
+struct ShouldRotate;

@@ -19,6 +19,7 @@ const FALLBACK_NAMES: Record<string, string | ((value: TValue) => string)> = {
 export function useEntityName(id: EntityId) {
   const componentNameToIdMap = useStore((state) => state.componentNameToIdMap);
 
+  const getComponentName = useStore((state) => state.getComponentName);
   const components = useEntity(id);
 
   if (!components) {
@@ -56,9 +57,7 @@ export function useEntityName(id: EntityId) {
     return `Entity ${prettyEntityId(id)}`;
   }
 
-  const { short_name } = useStore((state) => state.getComponentName)(
-    firstComponent
-  );
+  const { short_name } = getComponentName(firstComponent);
 
   return short_name;
 }

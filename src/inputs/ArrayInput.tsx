@@ -9,7 +9,7 @@ import { DynamicForm, useDynamicForm } from './DynamicForm';
 import { getInputComponent, DynamicInputContext } from './DynamicInput';
 import { Button } from '@/shared/ui/button';
 import { resolveTypeDefaultValue } from '@/type-registry/types';
-import { toast } from '@/hooks/use-toast';
+import { toast } from '@/shared/hooks/use-toast';
 import { Fragment, useState } from 'react';
 import clsx from 'clsx';
 import { InputLabel } from './InputLabel';

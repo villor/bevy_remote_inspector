@@ -8,6 +8,7 @@ export type ComponentId = number;
 export type ComponentInfo = {
   name: ComponentName;
   reflected: boolean;
+  required_components: ComponentId[];
 };
 
 export function useComponentInfo(id: ComponentId) {

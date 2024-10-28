@@ -30,7 +30,16 @@ impl TrackedData {
 
             if !self.components.contains(&info.id()) {
                 self.components.insert(info.id());
-                new_components.push(InspectorComponentInfo::new(info, reflected));
+                let required_components = info
+                    .required_components()
+                    .iter_ids()
+                    .map(|id| id.index())
+                    .collect::<Vec<_>>();
+                new_components.push(InspectorComponentInfo::new(
+                    info,
+                    reflected,
+                    required_components,
+                ));
             }
         }
 
@@ -47,14 +56,20 @@ pub struct InspectorComponentInfo {
     id: usize,
     name: String,
     reflected: bool,
+    required_components: Vec<usize>,
 }
 
 impl InspectorComponentInfo {
-    pub fn new(component_info: &ComponentInfo, reflected: bool) -> Self {
+    pub fn new(
+        component_info: &ComponentInfo,
+        reflected: bool,
+        required_components: Vec<usize>,
+    ) -> Self {
         Self {
             id: component_info.id().index(),
             name: component_info.name().into(),
             reflected,
+            required_components,
         }
     }
 }

@@ -22,7 +22,7 @@ import {
 } from '@/shared/ui/dialog';
 import { IconButton } from '@/shared/ui/icon-button';
 import { ChevronDown, Plus } from 'lucide-react';
-import { FieldGroup, Label } from '@/shared/ui/field';
+import { FieldGroup, FormDescription, Label } from '@/shared/ui/field';
 import { ScrollArea } from '@/shared/ui/scroll-area';
 import { Button } from '@/shared/ui/button';
 import {
@@ -32,13 +32,18 @@ import {
   ComboboxListBox,
   ComboboxItem,
 } from '@/shared/ui/combobox';
-import { ComponentId, ComponentName } from '@/component/useComponents';
+import {
+  ComponentId,
+  ComponentInfo,
+  ComponentName,
+} from '@/component/useComponents';
 import { Key } from 'react-aria-components';
 import { resolveTypeDefaultValue } from '@/type-registry/types';
 import { DynamicForm } from '@/inputs/DynamicForm';
 import { EntityName } from './EntityName';
 import { useAddComponent } from './useAddComponent';
 import { toast } from '@/shared/hooks/use-toast';
+import { ComponentBadge } from '@/component/ComponentBadge';
 
 export function AddComponentDialog() {
   const registry = useTypeRegistry();
@@ -83,7 +88,7 @@ function AddComponentDialogContent({
 }) {
   const [selectedComponent, setSelectedComponent] = useState<{
     id: ComponentId;
-    name: ComponentName;
+    info: ComponentInfo;
   } | null>(null);
 
   const allComponents = useStore((state) => state.components);
@@ -101,7 +106,7 @@ function AddComponentDialogContent({
 
       setSelectedComponent({
         id: componentId as ComponentId,
-        name: info.name,
+        info,
       });
 
       const value = resolveTypeDefaultValue(info.name, registry);
@@ -153,6 +158,19 @@ function AddComponentDialogContent({
             <ChevronDown aria-hidden="true" className="size-4 opacity-50" />
           </Button>
         </FieldGroup>
+        {selectedComponent !== null &&
+          selectedComponent.info.required_components.length > 0 && (
+            <FormDescription className="mt-2 flex flex-wrap gap-1">
+              <span>Insert this component will also insert</span>
+              {selectedComponent.info.required_components.map((id) => {
+                const { name, short_name } = getComponetName(id);
+                return (
+                  <ComponentBadge key={id}>{short_name || name}</ComponentBadge>
+                );
+              })}
+            </FormDescription>
+          )}
+
         <ComboboxPopover
           className="w-[calc(var(--trigger-width)+28px)]"
           placement="bottom"
@@ -165,7 +183,7 @@ function AddComponentDialogContent({
       {selectedComponent !== null && (
         <ComponentForm
           formRef={formRef}
-          typeName={selectedComponent.name}
+          typeName={selectedComponent.info.name}
           onSubmit={handleAddComponent}
         ></ComponentForm>
       )}

@@ -1,9 +1,9 @@
-use anyhow::{anyhow, bail};
+use anyhow::{anyhow, bail, Ok};
 use bevy::{
-    ecs::{component::ComponentId, entity},
+    ecs::component::ComponentId,
     prelude::*,
     ptr::OwningPtr,
-    reflect::{serde::TypedReflectDeserializer, ReflectFromPtr, TypeData},
+    reflect::{serde::TypedReflectDeserializer, ReflectFromPtr},
     remote::BrpRequest,
 };
 use serde::{de::DeserializeSeed, Deserialize, Serialize};
@@ -136,36 +136,55 @@ impl Execute for ToggleComponent {
             let type_registration = registry
                 .get(type_id)
                 .ok_or_else(|| anyhow!("Component is not registered in TypeRegistry"))?;
-            let reflect_component = type_registration.data::<ReflectComponent>().ok_or_else(|| {
-                anyhow!("Can not get ReflectComponent. Make sure you add [reflect(Component)] to your component")
-            })?;
+            let reflect_component = type_registration.data::<ReflectComponent>();
+            let reflect_from_ptr = type_registration.data::<ReflectFromPtr>();
+
+            match (reflect_component, reflect_from_ptr) {
+                (None, None) => bail!("Cannot get ReflectComponent or ReflectFromPtr"),
+                _ => {}
+            };
 
             world.resource_scope(|world, mut disbled_components: Mut<DisabledComponents>| {
                 let entity_disabled_components = disbled_components.entry(self.entity).or_default();
                 let mut entity_mut = world.get_entity_mut(self.entity)?;
 
-                if entity_disabled_components.contains_key(&component_id) {
+                if let Some(component_val) = entity_disabled_components.remove(&component_id) {
                     // enable
                     let component_exists = entity_mut.get_by_id(component_id).is_ok();
                     if component_exists {
-                        entity_disabled_components.remove(&component_id);
                         bail!("Can not enable component that already exists. Probably bug");
                     }
 
-                    let component_val = entity_disabled_components.remove(&component_id).unwrap();
-                    reflect_component.insert(&mut entity_mut, component_val.as_partial_reflect(), &registry);
+                    if let Some(reflect_component) = reflect_component {
+                        reflect_component.insert(
+                            &mut entity_mut,
+                            component_val.as_partial_reflect(),
+                            &registry,
+                        );
+                    } else {
+                        OwningPtr::make(component_val, |ptr| unsafe {
+                            entity_mut.insert_by_id(component_id, ptr);
+                        });
+                    }
                 } else {
                     // disable
-                    let component_val = reflect_component
-                    .reflect(entity_mut)
-                    .ok_or_else(|| anyhow!("Component does not exits. Probaly bug"))?
-                    .clone_value();
-                    entity_disabled_components.insert(component_id, component_val);
+                    let component_val = if let Some(reflect_component) = reflect_component {
+                        reflect_component
+                            .reflect(entity_mut)
+                            .ok_or_else(|| anyhow!("Component does not exits. Probaly bug"))?
+                            .clone_value()
+                    } else {
+                        let component_val = entity_mut
+                            .get_by_id(component_id)
+                            .map_err(|_| anyhow!("Component does not exits. Probaly bug"))?;
 
+                        unsafe { reflect_from_ptr.unwrap().as_reflect(component_val) }.clone_value()
+                    };
+
+                    entity_disabled_components.insert(component_id, component_val);
                     let mut entity_mut = world.get_entity_mut(self.entity)?;
                     entity_mut.remove_by_id(component_id);
                 };
-
 
                 Ok(())
             })
@@ -174,7 +193,7 @@ impl Execute for ToggleComponent {
 }
 
 #[derive(Deserialize, Debug)]
-struct RemoveComponent {
+pub struct RemoveComponent {
     entity: Entity,
     component: usize,
 }
@@ -199,7 +218,7 @@ impl Execute for RemoveComponent {
 }
 
 #[derive(Debug, Deserialize)]
-struct InsertComponent {
+pub struct InsertComponent {
     entity: Entity,
     component: usize,
     value: Value,

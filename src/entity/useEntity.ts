@@ -1,7 +1,6 @@
 import { useShallow } from 'zustand/react/shallow';
 import { useStore } from '@/store';
 import { ComponentId } from '@/component/useComponents';
-import { EntityMutationChange } from '@/websocket/createWsSlice';
 import { TValue } from '@/type-registry/useTypeRegistry';
 import { useMemo } from 'react';
 

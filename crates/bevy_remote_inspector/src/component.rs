@@ -1,10 +1,7 @@
 use bevy::{
     ecs::component::{ComponentId, ComponentInfo},
-    prelude::{EntityRef, ReflectComponent, World},
-    reflect::{
-        serde::TypedReflectSerializer, PartialReflect, ReflectFromPtr, ReflectSerialize,
-        TypeRegistry,
-    },
+    prelude::{EntityRef, World},
+    reflect::{serde::TypedReflectSerializer, ReflectFromPtr, TypeRegistry},
 };
 use serde::Serialize;
 use serde_json::Value;
@@ -15,18 +12,21 @@ impl TrackedData {
     pub fn track_components(
         &mut self,
         events: &mut Vec<InspectorEvent>,
-        world: &World,
+        world: &mut World,
         type_registry: &TypeRegistry,
     ) {
         let mut new_components = vec![];
+        let components = world.components();
         for info in world.components().iter() {
             let Some(type_id) = info.type_id() else {
                 continue;
             };
 
-            let reflected = type_registry
-                .get_type_data::<ReflectComponent>(type_id)
-                .is_some();
+            let reflected = type_registry.get_type_info(type_id).is_some();
+
+            if components.get_resource_id(type_id).is_some() {
+                continue;
+            }
 
             if !self.components.contains(&info.id()) {
                 self.components.insert(info.id());

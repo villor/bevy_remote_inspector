@@ -9,12 +9,13 @@ use bevy::{
 use serde::{de::DeserializeSeed, Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::DisabledComponents;
+use crate::{DisabledComponents, InspectorContext};
 
 trait Execute {
     type Output: Serialize;
 
-    fn execute(self, world: &mut World) -> anyhow::Result<Self::Output>;
+    fn execute(self, ctx: &mut InspectorContext, world: &mut World)
+        -> anyhow::Result<Self::Output>;
 }
 
 macro_rules! try_deserialize_req {
@@ -38,6 +39,7 @@ pub enum Command {
     RemoveComponent(RemoveComponent),
     InsertComponent(InsertComponent),
     DespawnEntity(DespawnEntity),
+    ToggleVisibity(ToggleVisibity),
 }
 
 impl Command {
@@ -48,20 +50,22 @@ impl Command {
             "remove_component", RemoveComponent
             "insert_component", InsertComponent
             "despawn_entity", DespawnEntity
+            "toggle_visibility", ToggleVisibity
         )
     }
 
-    pub fn execute(self, world: &mut World) -> anyhow::Result<Value> {
+    pub fn execute(self, ctx: &mut InspectorContext, world: &mut World) -> anyhow::Result<Value> {
         fn map_result<T: Serialize>(r: T) -> anyhow::Result<Value> {
             serde_json::to_value(r).map_err(|_| anyhow!("Error while serizalizing result"))
         }
 
         let result = match self {
-            Command::UpdateComponent(command) => command.execute(world).and_then(map_result),
-            Command::ToggleComponent(command) => command.execute(world).and_then(map_result),
-            Command::RemoveComponent(command) => command.execute(world).and_then(map_result),
-            Command::InsertComponent(command) => command.execute(world).and_then(map_result),
-            Command::DespawnEntity(command) => command.execute(world).and_then(map_result),
+            Command::UpdateComponent(command) => command.execute(ctx, world).and_then(map_result),
+            Command::ToggleComponent(command) => command.execute(ctx, world).and_then(map_result),
+            Command::RemoveComponent(command) => command.execute(ctx, world).and_then(map_result),
+            Command::InsertComponent(command) => command.execute(ctx, world).and_then(map_result),
+            Command::DespawnEntity(command) => command.execute(ctx, world).and_then(map_result),
+            Command::ToggleVisibity(command) => command.execute(ctx, world).and_then(map_result),
         };
         result
     }
@@ -77,7 +81,11 @@ pub struct UpdateComponent {
 impl Execute for UpdateComponent {
     type Output = ();
 
-    fn execute(self, world: &mut World) -> anyhow::Result<Self::Output> {
+    fn execute(
+        self,
+        _ctx: &mut InspectorContext,
+        world: &mut World,
+    ) -> anyhow::Result<Self::Output> {
         world.resource_scope(|world, registry: Mut<AppTypeRegistry>| {
             let registry = registry.read();
             let component_id = ComponentId::new(self.component);
@@ -125,7 +133,11 @@ pub struct ToggleComponent {
 impl Execute for ToggleComponent {
     type Output = ();
 
-    fn execute(self, world: &mut World) -> anyhow::Result<Self::Output> {
+    fn execute(
+        self,
+        ctx: &mut InspectorContext,
+        world: &mut World,
+    ) -> anyhow::Result<Self::Output> {
         let component_id = ComponentId::new(self.component);
         let type_id = world
             .components()
@@ -147,50 +159,49 @@ impl Execute for ToggleComponent {
                 _ => {}
             };
 
-            world.resource_scope(|world, mut disbled_components: Mut<DisabledComponents>| {
-                let entity_disabled_components = disbled_components.entry(self.entity).or_default();
-                let mut entity_mut = world.get_entity_mut(self.entity)?;
+            let entity_disabled_components =
+                ctx.disabled_components.entry(self.entity).or_default();
+            let mut entity_mut = world.get_entity_mut(self.entity)?;
 
-                if let Some(component_val) = entity_disabled_components.remove(&component_id) {
-                    // enable
-                    let component_exists = entity_mut.get_by_id(component_id).is_ok();
-                    if component_exists {
-                        bail!("Can not enable component that already exists. Probably bug");
-                    }
+            if let Some(component_val) = entity_disabled_components.remove(&component_id) {
+                // enable
+                let component_exists = entity_mut.get_by_id(component_id).is_ok();
+                if component_exists {
+                    bail!("Can not enable component that already exists. Probably bug");
+                }
 
-                    if let Some(reflect_component) = reflect_component {
-                        reflect_component.insert(
-                            &mut entity_mut,
-                            component_val.as_partial_reflect(),
-                            &registry,
-                        );
-                    } else {
-                        OwningPtr::make(component_val, |ptr| unsafe {
-                            entity_mut.insert_by_id(component_id, ptr);
-                        });
-                    }
+                if let Some(reflect_component) = reflect_component {
+                    reflect_component.insert(
+                        &mut entity_mut,
+                        component_val.as_partial_reflect(),
+                        &registry,
+                    );
                 } else {
-                    // disable
-                    let component_val = if let Some(reflect_component) = reflect_component {
-                        reflect_component
-                            .reflect(entity_mut)
-                            .ok_or_else(|| anyhow!("Component does not exits. Probaly bug"))?
-                            .clone_value()
-                    } else {
-                        let component_val = entity_mut
-                            .get_by_id(component_id)
-                            .map_err(|_| anyhow!("Component does not exits. Probaly bug"))?;
+                    OwningPtr::make(component_val, |ptr| unsafe {
+                        entity_mut.insert_by_id(component_id, ptr);
+                    });
+                }
+            } else {
+                // disable
+                let component_val = if let Some(reflect_component) = reflect_component {
+                    reflect_component
+                        .reflect(entity_mut)
+                        .ok_or_else(|| anyhow!("Component does not exits. Probaly bug"))?
+                        .clone_value()
+                } else {
+                    let component_val = entity_mut
+                        .get_by_id(component_id)
+                        .map_err(|_| anyhow!("Component does not exits. Probaly bug"))?;
 
-                        unsafe { reflect_from_ptr.unwrap().as_reflect(component_val) }.clone_value()
-                    };
-
-                    entity_disabled_components.insert(component_id, component_val);
-                    let mut entity_mut = world.get_entity_mut(self.entity)?;
-                    entity_mut.remove_by_id(component_id);
+                    unsafe { reflect_from_ptr.unwrap().as_reflect(component_val) }.clone_value()
                 };
 
-                Ok(())
-            })
+                entity_disabled_components.insert(component_id, component_val);
+                let mut entity_mut = world.get_entity_mut(self.entity)?;
+                entity_mut.remove_by_id(component_id);
+            };
+
+            Ok(())
         })
     }
 }
@@ -204,7 +215,11 @@ pub struct RemoveComponent {
 impl Execute for RemoveComponent {
     type Output = ();
 
-    fn execute(self, world: &mut World) -> anyhow::Result<Self::Output> {
+    fn execute(
+        self,
+        _ctx: &mut InspectorContext,
+        world: &mut World,
+    ) -> anyhow::Result<Self::Output> {
         let component_id = ComponentId::new(self.component);
 
         let mut entity = world.get_entity_mut(self.entity)?;
@@ -230,7 +245,11 @@ pub struct InsertComponent {
 impl Execute for InsertComponent {
     type Output = ();
 
-    fn execute(self, world: &mut World) -> anyhow::Result<Self::Output> {
+    fn execute(
+        self,
+        _ctx: &mut InspectorContext,
+        world: &mut World,
+    ) -> anyhow::Result<Self::Output> {
         let component_id = ComponentId::new(self.component);
 
         world.resource_scope(|world, registry: Mut<AppTypeRegistry>| {
@@ -273,8 +292,66 @@ pub struct DespawnEntity {
 impl Execute for DespawnEntity {
     type Output = ();
 
-    fn execute(self, world: &mut World) -> anyhow::Result<Self::Output> {
+    fn execute(
+        self,
+        _ctx: &mut InspectorContext,
+        world: &mut World,
+    ) -> anyhow::Result<Self::Output> {
         world.get_entity_mut(self.entity)?.despawn_recursive();
+
+        Ok(())
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ToggleVisibity {
+    entity: Entity,
+}
+
+impl Execute for ToggleVisibity {
+    type Output = ();
+
+    fn execute(
+        self,
+        ctx: &mut InspectorContext,
+        world: &mut World,
+    ) -> anyhow::Result<Self::Output> {
+        let mut entity = world.get_entity_mut(self.entity)?;
+        if let Some(visibility) = ctx.entity_visibilities.remove(&self.entity) {
+            if let Some(mut component) = entity.get_mut::<Visibility>() {
+                *component = visibility
+            }
+
+            return Ok(());
+        }
+
+        let view_visibility = entity
+            .get::<ViewVisibility>()
+            .ok_or(anyhow!("Entity does not have ViewVisibility component"))?
+            .clone();
+
+        let mut visibility = entity
+            .get_mut::<Visibility>()
+            .ok_or(anyhow!("Entity does not have Visibility component"))?;
+
+        ctx.entity_visibilities
+            .insert(self.entity, visibility.clone());
+
+        match (view_visibility.get(), *visibility) {
+            (true, Visibility::Inherited) => {
+                *visibility = Visibility::Hidden;
+            }
+            (true, Visibility::Visible) => {
+                *visibility = Visibility::Hidden;
+            }
+            (false, Visibility::Inherited) => {
+                *visibility = Visibility::Visible;
+            }
+            (false, Visibility::Hidden) => {
+                *visibility = Visibility::Visible;
+            }
+            _ => {}
+        }
 
         Ok(())
     }

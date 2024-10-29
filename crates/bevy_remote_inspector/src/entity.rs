@@ -6,7 +6,7 @@ use serde::Serialize;
 use serde_json::Value;
 
 use crate::{
-    component::serialize_component, type_registry::ZeroSizedTypes, DisabledComponents,
+    component::serialize_component, type_registry::ZeroSizedTypes, InspectorContext,
     InspectorEvent, TrackedData,
 };
 
@@ -33,27 +33,35 @@ impl TrackedData {
     pub fn track_entities(
         &mut self,
         events: &mut Vec<InspectorEvent>,
-        world: &World,
+        world: &mut World,
         type_registry: &TypeRegistry,
+        ctx: &mut InspectorContext,
         zsts: &ZeroSizedTypes,
-        disabled_components: &mut DisabledComponents,
     ) {
-        let _ = disabled_components.extract_if(|k, _| world.get_entity(*k).is_err());
+        let _ = ctx
+            .disabled_components
+            .extract_if(|k, _| world.get_entity(*k).is_err());
 
         let removed_entities = self
             .entities
-            .extract_if(|k, _| world.get_entity(*k).is_err())
-            .map(|entry| InspectorEvent::Entity {
-                entity: entry.0,
+            .extract_if(|k, _| world.get_entity(*k).is_err());
+
+        if let Some(removed_entities_length) = removed_entities.size_hint().1 {
+            events.reserve(removed_entities_length);
+        }
+
+        for removed in removed_entities {
+            ctx.on_entity_removed(removed.0);
+            events.push(InspectorEvent::Entity {
+                entity: removed.0,
                 mutation: EntityMutation::Remove,
             });
-
-        events.extend(removed_entities);
+        }
 
         let this_run = world.read_change_tick();
         for entity_ref in world.iter_entities() {
             let id = entity_ref.id();
-            let entity_disbled_components = disabled_components.get_mut(&entity_ref.id());
+            let entity_disbled_components = ctx.disabled_components.get_mut(&entity_ref.id());
             if let Some(component_ids) = self.entities.get_mut(&id) {
                 let mut changes: Vec<EntityMutationChange> = vec![];
                 let archetype = entity_ref.archetype();
@@ -107,7 +115,7 @@ impl TrackedData {
                         let serialized = serialize_component(
                             component_id,
                             &entity_ref,
-                            type_registry,
+                            &type_registry,
                             component_info,
                         );
 
@@ -159,7 +167,7 @@ impl TrackedData {
                     let serialized = serialize_component(
                         component_id,
                         &entity_ref,
-                        type_registry,
+                        &type_registry,
                         component_info,
                     );
 

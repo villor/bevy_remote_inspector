@@ -19,8 +19,8 @@ impl TrackedData {
     pub fn track_type_registry(
         &mut self,
         events: &mut Vec<InspectorEvent>,
-        type_registry: &TypeRegistry,
         zsts: &mut ZeroSizedTypes,
+        type_registry: &TypeRegistry,
     ) {
         if self.type_registry {
             return;

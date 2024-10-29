@@ -32,11 +32,7 @@ import {
   ComboboxListBox,
   ComboboxItem,
 } from '@/shared/ui/combobox';
-import {
-  ComponentId,
-  ComponentInfo,
-  ComponentName,
-} from '@/component/useComponents';
+import { ComponentId, ComponentInfo } from '@/component/useComponents';
 import { Key } from 'react-aria-components';
 import { resolveTypeDefaultValue } from '@/type-registry/types';
 import { DynamicForm } from '@/inputs/DynamicForm';
@@ -44,6 +40,12 @@ import { EntityName } from './EntityName';
 import { useAddComponent } from './useAddComponent';
 import { toast } from '@/shared/hooks/use-toast';
 import { ComponentBadge } from '@/component/ComponentBadge';
+import { Badge } from '@/shared/ui/badge';
+
+const IGNORED_COMPONENT_PREFIXES = [
+  'bevy_ecs::system::system_registry::RegisteredSystem<',
+  'bevy_ecs::world::component_constants::On',
+];
 
 export function AddComponentDialog() {
   const registry = useTypeRegistry();
@@ -53,13 +55,16 @@ export function AddComponentDialog() {
   const components = useMemo(() => {
     return Array.from(stateComponents.entries())
       .filter(
-        ([id, { reflected }]) => reflected && !existedComponents.includes(id)
+        ([id, { name }]) =>
+          !existedComponents.includes(id) &&
+          !IGNORED_COMPONENT_PREFIXES.some((prefix) => name.startsWith(prefix))
       )
-      .map(([id, { name }]) => {
+      .map(([id, { name, reflected }]) => {
         const typeInfo = registry.get(name);
         return {
           id,
           name: typeInfo?.short_name || name,
+          reflected,
         };
       });
   }, [stateComponents, registry, existedComponents]);
@@ -84,7 +89,7 @@ function AddComponentDialogContent({
   components,
   existedComponents,
 }: {
-  components: { name: string; id: number }[];
+  components: { name: string; id: number; reflected: boolean }[];
   existedComponents: ComponentId[];
 }) {
   const [selectedComponent, setSelectedComponent] = useState<{
@@ -145,7 +150,7 @@ function AddComponentDialogContent({
     [selectedComponent]
   );
   return (
-    <DialogContent className="flex flex-col justify-between">
+    <DialogContent className="flex flex-col justify-between max-w-xl">
       <DialogHeader>
         <DialogTitle className="inline-flex items-center gap-x-1">
           {`Insert new component to `}
@@ -246,14 +251,17 @@ function ComponentForm({
   );
 }
 
-function renderItem(item: { name: string; id: number }) {
+function renderItem(item: { name: string; id: number; reflected: boolean }) {
+  console.log(item);
   return (
     <ComboboxItem
       id={item.id}
       textValue={item.name}
-      className="break-all hyphens-auto w-full"
+      isDisabled={!item.reflected}
+      className="break-all hyphens-auto w-full inline-flex gap-x-1"
     >
       {item.name}
+      {!item.reflected && <Badge className="px-1">Not reflected</Badge>}
     </ComboboxItem>
   );
 }

@@ -40,7 +40,8 @@ impl Plugin for RemoteInspectorPlugin {
             },
         );
         app.init_resource::<TrackedDatas>()
-            .init_resource::<DisabledComponents>();
+            .init_resource::<DisabledComponents>()
+            .init_resource::<EntityVisibilities>();
     }
 }
 
@@ -51,30 +52,26 @@ fn stream(
     mut zsts: Local<ZeroSizedTypes>,
 ) -> Option<BrpResult> {
     world.resource_scope(|world, mut tracked: Mut<TrackedDatas>| {
-        world.resource_scope(|world, mut disabled_components: Mut<DisabledComponents>| {
-            let tracked = tracked.entry(input.client_id).or_default();
-            let type_registry = world.resource::<AppTypeRegistry>().read();
-            tracked.track_type_registry(&mut events, &type_registry, &mut zsts);
-            // let new_tables = world
-            //     .archetypes()
-            //     .iter()
-            //     .filter(|archetype| !tracked.tables.contains(&archetype.table_id().as_usize()))
-            //     .map(|archetype| archetype.table_id().as_usize())
-            //     .collect::<Vec<_>>();
+        InspectorContext::run(world, |ctx, world| {
+            world.resource_scope(|world, type_registry: Mut<AppTypeRegistry>| {
+                let type_registry = type_registry.read();
+                let tracked = tracked.entry(input.client_id).or_default();
+                tracked.track_type_registry(&mut events, &mut zsts, &type_registry);
+                // let new_tables = world
+                //     .archetypes()
+                //     .iter()
+                //     .filter(|archetype| !tracked.tables.contains(&archetype.table_id().as_usize()))
+                //     .map(|archetype| archetype.table_id().as_usize())
+                //     .collect::<Vec<_>>();
 
-            // if !new_tables.is_empty() {
-            //     tracked.tables.extend_from_slice(new_tables.as_slice());
-            //     events.push(StreamEvent::NewTables { tables: new_tables });
-            // }
+                // if !new_tables.is_empty() {
+                //     tracked.tables.extend_from_slice(new_tables.as_slice());
+                //     events.push(StreamEvent::NewTables { tables: new_tables });
+                // }
 
-            tracked.track_components(&mut events, world, &type_registry);
-            tracked.track_entities(
-                &mut events,
-                world,
-                &type_registry,
-                &zsts,
-                &mut disabled_components,
-            );
+                tracked.track_components(&mut events, world, &type_registry);
+                tracked.track_entities(&mut events, world, &type_registry, ctx, &zsts);
+            });
         });
     });
 
@@ -103,18 +100,20 @@ fn on_data(In((_, req)): OnDataHandlerInput, world: &mut World) -> Option<BrpRes
 
     info!("New request: {:?}", command);
 
-    let result = command.execute(world);
+    InspectorContext::run(world, |ctx, world| {
+        let result = command.execute(ctx, world);
 
-    let result: Option<BrpResult> = match result {
-        Ok(val) => Some(BrpResult::Ok(val)),
-        Err(e) => Some(BrpResult::Err(BrpError {
-            code: error_codes::INTERNAL_ERROR,
-            message: e.to_string(),
-            data: None,
-        })),
-    };
+        let result: Option<BrpResult> = match result {
+            Ok(val) => Some(BrpResult::Ok(val)),
+            Err(e) => Some(BrpResult::Err(BrpError {
+                code: error_codes::INTERNAL_ERROR,
+                message: e.to_string(),
+                data: None,
+            })),
+        };
 
-    return result;
+        result
+    })
 }
 
 fn on_disconnect(InRef(input): StreamHandlerInputRef, mut tracked: ResMut<TrackedDatas>) {
@@ -160,3 +159,32 @@ enum InspectorEvent {
 
 #[derive(Resource, Default, DerefMut, Deref)]
 struct DisabledComponents(EntityHashMap<HashMap<ComponentId, Box<dyn PartialReflect>>>);
+#[derive(Resource, Default, Deref, DerefMut)]
+struct EntityVisibilities(EntityHashMap<Visibility>);
+
+struct InspectorContext<'a> {
+    disabled_components: &'a mut DisabledComponents,
+    entity_visibilities: &'a mut EntityVisibilities,
+}
+
+impl<'a> InspectorContext<'a> {
+    fn run<T>(world: &mut World, f: impl FnOnce(&mut InspectorContext, &mut World) -> T) -> T {
+        world.resource_scope(|world, mut disabled_components: Mut<DisabledComponents>| {
+            world.resource_scope(
+                |mut world, mut entity_visibilities: Mut<EntityVisibilities>| {
+                    let mut ctx = InspectorContext {
+                        disabled_components: &mut disabled_components,
+                        entity_visibilities: &mut entity_visibilities,
+                    };
+
+                    f(&mut ctx, &mut world)
+                },
+            )
+        })
+    }
+
+    fn on_entity_removed(&mut self, entity: Entity) {
+        self.disabled_components.remove(&entity);
+        self.entity_visibilities.remove(&entity);
+    }
+}

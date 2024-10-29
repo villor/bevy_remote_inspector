@@ -24,6 +24,7 @@ import { isHiddenEntity } from './createEntitiesSlice';
 import { IconButton } from '@/shared/ui/icon-button';
 import { Menu, MenuItem, MenuPopover, MenuTrigger } from '@/shared/ui/menu';
 import { useDespawnEntity } from './useDespawnEntity';
+import { useToggleVisibility } from './useToggleVisibility';
 export const EntitiesTreeView = memo(function EntitiesTreeView() {
   const entityTrees = useEntityTrees();
   const setInspectingEntity = useStore((state) => state.setInspectingEntity);
@@ -160,6 +161,8 @@ function EntityActionMenu({ id }: { id: EntityId }) {
     state.componentNameToIdMap.get(bevyTypes.VIEW_VISIBILITY)
   );
 
+  const toggleVisibility = useToggleVisibility(id);
+
   return (
     <MenuTrigger>
       <IconButton>
@@ -167,7 +170,10 @@ function EntityActionMenu({ id }: { id: EntityId }) {
       </IconButton>
       <MenuPopover>
         <Menu>
-          <MenuItem isDisabled={visibilityComponentId === undefined}>
+          <MenuItem
+            isDisabled={visibilityComponentId === undefined}
+            onAction={toggleVisibility}
+          >
             Toggle visibility
           </MenuItem>
           <MenuItem className="text-red-600" onAction={() => despawn(id)}>

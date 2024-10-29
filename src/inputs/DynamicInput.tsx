@@ -9,6 +9,7 @@ import { MapInput } from './MapInput';
 import { TupleInput } from './TupleInput';
 import { bevyTypes } from '@/type-registry/types';
 import { ColorInput } from './ColorInput/ColorInput';
+import { EntityInput } from './EntityInput';
 
 export type DynamicInputProps = {
   typeName: TypeName;
@@ -26,6 +27,10 @@ export function getInputComponent({
   const typeInfo = registry.get(typeName)!;
   if (typeName === bevyTypes.COLOR) {
     return <ColorInput path={path} typeInfo={typeInfo as TEnum} />;
+  }
+
+  if (typeName === bevyTypes.ENTITY) {
+    return <EntityInput path={path} mode="single" />;
   }
 
   if (typeInfo.kind === 'struct') {

@@ -49,7 +49,8 @@ fn main() {
         .register_type::<OptionComponent>()
         .register_type::<SimpleStruct>()
         .register_type::<MyColor>()
-        .register_type::<ShouldRotate>();
+        .register_type::<ShouldRotate>()
+        .register_type::<MyEntityWrapper>();
 
     app.run();
 }
@@ -178,7 +179,8 @@ fn setup(
     ));
     commands.spawn(Text::default());
 
-    commands.spawn(MyColor(Color::srgb(1., 0., 0.)));
+    let id = commands.spawn(MyColor(Color::srgb(1., 0., 0.))).id();
+    commands.spawn(MyEntityWrapper(id));
 }
 
 fn log_change<T: Component + Debug>(query: Query<&T, Changed<T>>) {
@@ -304,3 +306,6 @@ struct MyColor(Color);
 #[derive(Component, Reflect)]
 #[reflect(Component)]
 struct ShouldRotate;
+
+#[derive(Debug, Reflect, Component)]
+struct MyEntityWrapper(Entity);

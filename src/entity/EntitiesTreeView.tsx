@@ -20,6 +20,7 @@ import {
 import { cn } from '@/utils';
 import { bevyTypes } from '@/type-registry/types';
 import { EntityName } from './EntityName';
+import { isHiddenEntity } from './createEntitiesSlice';
 export const EntitiesTreeView = memo(function EntitiesTreeView() {
   const entityTrees = useEntityTrees();
   const setInspectingEntity = useStore((state) => state.setInspectingEntity);
@@ -65,8 +66,6 @@ export const EntitiesTreeView = memo(function EntitiesTreeView() {
   );
 });
 
-const ignoreEntityNames = [bevyTypes.OBSERVER, bevyTypes.SYSTEM_ID_MARKER];
-
 function renderItem(item: EntityTreeNode) {
   return (
     <TreeItem textValue={String(item.id)} className="w-full">
@@ -85,21 +84,12 @@ const EntityTreeItemContent = ({
   item: EntityTreeNode;
   itemProps: TreeItemContentRenderProps;
 }) => {
-  const isHidden = useStore(
-    useShallow((state) => {
-      const componentIds = Array.from(
-        state.entities.get(item.id)?.keys() || []
-      );
-
-      for (const id of componentIds) {
-        const name = state.components.get(id)?.name;
-        if (name && ignoreEntityNames.includes(name)) {
-          return true;
-        }
-      }
-      return false;
-    })
+  const componentIds = useStore(
+    useShallow((state) => Array.from(state.entities.get(item.id)?.keys() || []))
   );
+
+  const allComponents = useStore((state) => state.components);
+  const isHidden = isHiddenEntity(componentIds, allComponents);
 
   if (isHidden) {
     return null;

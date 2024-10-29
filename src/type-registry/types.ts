@@ -8,6 +8,7 @@ import {
 } from './useTypeRegistry';
 
 export const bevyTypes = {
+  ENTITY: 'bevy_ecs::entity::Entity',
   PARENT: 'bevy_hierarchy::components::parent::Parent',
   NAME: 'bevy_core::name::Name',
   CAMERA_3D: 'bevy_core_pipeline::core_3d::camera_3d::Camera3d',

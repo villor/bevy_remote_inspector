@@ -53,9 +53,7 @@ export function AddComponentDialog() {
   const components = useMemo(() => {
     return Array.from(stateComponents.entries())
       .filter(
-        ([id, { reflected }]) =>
-          reflected &&
-          (existedComponents === undefined || !existedComponents.includes(id))
+        ([id, { reflected }]) => reflected && !existedComponents.includes(id)
       )
       .map(([id, { name }]) => {
         const typeInfo = registry.get(name);
@@ -74,6 +72,7 @@ export function AddComponentDialog() {
         <DialogOverlay>
           <AddComponentDialogContent
             components={components}
+            existedComponents={existedComponents}
           ></AddComponentDialogContent>
         </DialogOverlay>
       </DialogTrigger>
@@ -83,8 +82,10 @@ export function AddComponentDialog() {
 
 function AddComponentDialogContent({
   components,
+  existedComponents,
 }: {
   components: { name: string; id: number }[];
+  existedComponents: ComponentId[];
 }) {
   const [selectedComponent, setSelectedComponent] = useState<{
     id: ComponentId;
@@ -119,6 +120,7 @@ function AddComponentDialogContent({
 
   const addComponent = useAddComponent(inspectingEntity);
   const getComponetName = useStore((state) => state.getComponentName);
+  const comboboxRef = useRef<HTMLInputElement>(null);
   const handleAddComponent = useCallback(
     (value: TValue) => {
       if (selectedComponent === null) {
@@ -134,6 +136,9 @@ function AddComponentDialogContent({
             description: `Added component ${short_name || name}`,
           });
           setSelectedComponent(null);
+          if (comboboxRef.current) {
+            comboboxRef.current.value = '';
+          }
         },
       });
     },
@@ -150,6 +155,7 @@ function AddComponentDialogContent({
       <Combobox
         selectedKey={selectedComponent?.id}
         onSelectionChange={handleSelect}
+        ref={comboboxRef}
       >
         <Label>Select Component</Label>
         <FieldGroup className="p-0 mt-2">
@@ -158,18 +164,12 @@ function AddComponentDialogContent({
             <ChevronDown aria-hidden="true" className="size-4 opacity-50" />
           </Button>
         </FieldGroup>
-        {selectedComponent !== null &&
-          selectedComponent.info.required_components.length > 0 && (
-            <FormDescription className="mt-2 flex flex-wrap gap-1">
-              <span>Insert this component will also insert</span>
-              {selectedComponent.info.required_components.map((id) => {
-                const { name, short_name } = getComponetName(id);
-                return (
-                  <ComponentBadge key={id}>{short_name || name}</ComponentBadge>
-                );
-              })}
-            </FormDescription>
-          )}
+        {selectedComponent !== null && (
+          <RequiredComponentsMessage
+            existedComponents={existedComponents}
+            selectedComponentInfo={selectedComponent.info}
+          />
+        )}
 
         <ComboboxPopover
           className="w-[calc(var(--trigger-width)+28px)]"
@@ -255,5 +255,31 @@ function renderItem(item: { name: string; id: number }) {
     >
       {item.name}
     </ComboboxItem>
+  );
+}
+
+function RequiredComponentsMessage({
+  existedComponents,
+  selectedComponentInfo,
+}: {
+  selectedComponentInfo: ComponentInfo;
+  existedComponents: ComponentId[];
+}) {
+  const displayComponents = selectedComponentInfo.required_components.filter(
+    (id) => !existedComponents.includes(id)
+  );
+  const getComponetName = useStore((state) => state.getComponentName);
+  if (displayComponents.length === 0) {
+    return null;
+  }
+
+  return (
+    <FormDescription className="mt-2 flex flex-wrap gap-1">
+      <span>Insert this component will also insert</span>
+      {displayComponents.map((id) => {
+        const { name, short_name } = getComponetName(id);
+        return <ComponentBadge key={id}>{short_name || name}</ComponentBadge>;
+      })}
+    </FormDescription>
   );
 }

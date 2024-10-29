@@ -1,7 +1,7 @@
 import { useStore } from '@/store';
 import { EntityId, EntityTreeNode } from './useEntity';
 import { useMemo } from 'react';
-import { getEntityIndex } from './useEntityName';
+import { getEntityIndex } from './createEntitiesSlice';
 
 export function useEntityTrees() {
   const childParentMap = useStore((state) => state.childParentMap);

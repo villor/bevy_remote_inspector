@@ -1,4 +1,4 @@
-import { ChevronsUpDown } from "lucide-react"
+import { ChevronsUpDown } from 'lucide-react';
 import {
   ComboBox as AriaComboBox,
   ComboBoxProps as AriaComboBoxProps,
@@ -10,52 +10,52 @@ import {
   ValidationResult as AriaValidationResult,
   composeRenderProps,
   Text,
-} from "react-aria-components"
+} from 'react-aria-components';
 
-import { cn } from "@/utils"
+import { cn } from '@/utils';
 
-import { Button } from "./button"
-import { FieldError, FieldGroup, Label } from "./field"
+import { Button } from './button';
+import { FieldError, FieldGroup, Label } from './field';
 import {
   ListBoxCollection,
   ListBoxHeader,
   ListBoxItem,
   ListBoxSection,
-} from "./list-box"
-import { Popover } from "./popover"
+} from './list-box';
+import { Popover } from './popover';
 
-const Combobox = AriaComboBox
+const Combobox = AriaComboBox;
 
-const ComboboxItem = ListBoxItem
+const ComboboxItem = ListBoxItem;
 
-const ComboboxHeader = ListBoxHeader
+const ComboboxHeader = ListBoxHeader;
 
-const ComboboxSection = ListBoxSection
+const ComboboxSection = ListBoxSection;
 
-const ComboboxCollection = ListBoxCollection
+const ComboboxCollection = ListBoxCollection;
 
 const ComboboxInput = ({ className, ...props }: AriaInputProps) => (
   <AriaInput
     className={composeRenderProps(className, (className) =>
       cn(
-        "flex h-10 w-full bg-background px-3 py-2 outline-none file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground",
+        'flex h-9 w-full bg-background px-3 py-2 outline-none file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground',
         /* Disabled */
-        "data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50",
+        'data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50',
         className
       )
     )}
     {...props}
   />
-)
+);
 
 const ComboboxPopover = ({ className, ...props }: AriaPopoverProps) => (
   <Popover
     className={composeRenderProps(className, (className) =>
-      cn("w-[calc(var(--trigger-width)+4px)]", className)
+      cn('w-[calc(var(--trigger-width)+4px)]', className)
     )}
     {...props}
   />
-)
+);
 
 const ComboboxListBox = <T extends object>({
   className,
@@ -64,20 +64,20 @@ const ComboboxListBox = <T extends object>({
   <AriaListBox
     className={composeRenderProps(className, (className) =>
       cn(
-        "max-h-[inherit] overflow-auto p-1 outline-none [clip-path:inset(0_0_0_0_round_calc(var(--radius)-2px))]",
+        'max-h-[inherit] overflow-auto p-1 outline-none [clip-path:inset(0_0_0_0_round_calc(var(--radius)-2px))]',
         className
       )
     )}
     {...props}
   />
-)
+);
 
 interface JollyComboBoxProps<T extends object>
-  extends Omit<AriaComboBoxProps<T>, "children"> {
-  label?: string
-  description?: string | null
-  errorMessage?: string | ((validation: AriaValidationResult) => string)
-  children: React.ReactNode | ((item: T) => React.ReactNode)
+  extends Omit<AriaComboBoxProps<T>, 'children'> {
+  label?: string;
+  description?: string | null;
+  errorMessage?: string | ((validation: AriaValidationResult) => string);
+  children: React.ReactNode | ((item: T) => React.ReactNode);
 }
 
 function JollyComboBox<T extends object>({
@@ -91,7 +91,7 @@ function JollyComboBox<T extends object>({
   return (
     <Combobox
       className={composeRenderProps(className, (className) =>
-        cn("group flex flex-col gap-2", className)
+        cn('group flex flex-col gap-2', className)
       )}
       {...props}
     >
@@ -112,7 +112,7 @@ function JollyComboBox<T extends object>({
         <ComboboxListBox>{children}</ComboboxListBox>
       </ComboboxPopover>
     </Combobox>
-  )
+  );
 }
 
 export {
@@ -125,5 +125,5 @@ export {
   ComboboxHeader,
   ComboboxPopover,
   JollyComboBox,
-}
-export type { JollyComboBoxProps }
+};
+export type { JollyComboBoxProps };

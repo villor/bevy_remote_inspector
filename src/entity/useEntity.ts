@@ -17,11 +17,11 @@ export function useEntity(id: EntityId) {
   return useStore(useShallow((state) => state.entities.get(id)));
 }
 
-export function useEntityComponentIds(id: EntityId): ComponentId[] | undefined {
+export function useEntityComponentIds(id: EntityId): ComponentId[] {
   return useStore(
     useShallow((state) => {
       const entity = state.entities.get(id);
-      return entity ? Array.from(entity.keys()) : undefined;
+      return entity ? Array.from(entity.keys()) : [];
     })
   );
 }
@@ -40,15 +40,4 @@ export function useEntityComponentValue(
   return useMemo(() => {
     return value ?? { disabled: false, value: undefined };
   }, [value]);
-}
-
-export function findParentChange(
-  changes: EntityMutationChange['changes'],
-  parentComponentId: number | undefined
-): EntityId | null | undefined {
-  const changedParent = changes.find(
-    ([componentId, _]) => componentId === parentComponentId
-  );
-
-  return changedParent?.[2] as EntityId | null | undefined;
 }

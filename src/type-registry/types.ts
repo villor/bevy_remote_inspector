@@ -10,6 +10,7 @@ import {
 export const bevyTypes = {
   ENTITY: 'bevy_ecs::entity::Entity',
   PARENT: 'bevy_hierarchy::components::parent::Parent',
+  CHILDREN: 'bevy_hierarchy::components::children::Children',
   NAME: 'bevy_core::name::Name',
   CAMERA_3D: 'bevy_core_pipeline::core_3d::camera_3d::Camera3d',
   POINT_LIGHT: 'bevy_pbr::light::point_light::PointLight',
@@ -27,6 +28,7 @@ export const bevyTypes = {
   GLOBAL_TRANSFORM:
     'bevy_transform::components::global_transform::GlobalTransform',
   VIEW_VISIBILITY: 'bevy_render::view::visibility::ViewVisibility',
+  VISIBILITY: 'bevy_render::view::visibility::Visibility',
   COLOR: 'bevy_color::color::Color',
 };
 

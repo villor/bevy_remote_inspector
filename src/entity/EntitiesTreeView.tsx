@@ -4,7 +4,7 @@ import { buttonVariants } from '@/shared/ui/button';
 import { ScrollArea } from '@/shared/ui/scroll-area';
 import { useStore } from '@/store';
 import clsx from 'clsx';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Ellipsis } from 'lucide-react';
 import { memo, useCallback } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import {
@@ -21,6 +21,9 @@ import { cn } from '@/utils';
 import { bevyTypes } from '@/type-registry/types';
 import { EntityName } from './EntityName';
 import { isHiddenEntity } from './createEntitiesSlice';
+import { IconButton } from '@/shared/ui/icon-button';
+import { Menu, MenuItem, MenuPopover, MenuTrigger } from '@/shared/ui/menu';
+import { useDespawnEntity } from './useDespawnEntity';
 export const EntitiesTreeView = memo(function EntitiesTreeView() {
   const entityTrees = useEntityTrees();
   const setInspectingEntity = useStore((state) => state.setInspectingEntity);
@@ -84,12 +87,12 @@ const EntityTreeItemContent = ({
   item: EntityTreeNode;
   itemProps: TreeItemContentRenderProps;
 }) => {
-  const componentIds = useStore(
+  const entityComponentIds = useStore(
     useShallow((state) => Array.from(state.entities.get(item.id)?.keys() || []))
   );
 
   const allComponents = useStore((state) => state.components);
-  const isHidden = isHiddenEntity(componentIds, allComponents);
+  const isHidden = isHiddenEntity(entityComponentIds, allComponents);
 
   if (isHidden) {
     return null;
@@ -113,18 +116,6 @@ const EntityTreeItemContent = ({
       <div className="w-6">
         {hasChildRows && (
           <>
-            {/* <IconButton
-            tooltip={{
-              content: {
-                side: 'top',
-                children: isExpanded ? 'Hide children' : 'Expand children',
-                },
-                tooltip: {
-                delayDuration: 150,
-                },
-                }}
-                
-          > */}
             <AriaButton
               className={cn(
                 buttonVariants({
@@ -145,22 +136,48 @@ const EntityTreeItemContent = ({
           </>
         )}
       </div>
-      <div className="flex flex-1">
+      <div className="flex w-full justify-between">
         <div
           className={cn(
             buttonVariants({
               size: 'sm',
               variant: isSelected ? 'default' : 'ghost',
             }),
-            'w-full justify-start py-1 px-1'
+            'justify-start flex-grow py-1 px-1'
           )}
         >
           <EntityName id={item.id}></EntityName>
         </div>
+        <EntityActionMenu id={item.id} />
       </div>
     </div>
   );
 };
+
+function EntityActionMenu({ id }: { id: EntityId }) {
+  const despawn = useDespawnEntity();
+  const visibilityComponentId = useStore((state) =>
+    state.componentNameToIdMap.get(bevyTypes.VIEW_VISIBILITY)
+  );
+
+  return (
+    <MenuTrigger>
+      <IconButton>
+        <Ellipsis className="size-4"></Ellipsis>
+      </IconButton>
+      <MenuPopover>
+        <Menu>
+          <MenuItem isDisabled={visibilityComponentId === undefined}>
+            Toggle visibility
+          </MenuItem>
+          <MenuItem className="text-red-600" onAction={() => despawn(id)}>
+            Despawn recursive
+          </MenuItem>
+        </Menu>
+      </MenuPopover>
+    </MenuTrigger>
+  );
+}
 
 // function countChildren(item: EntityTreeNode): number {
 //   const q = [...item.children]; // clone to avoid mutate by `.pop()`

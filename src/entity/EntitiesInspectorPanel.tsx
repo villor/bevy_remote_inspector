@@ -67,6 +67,9 @@ const READ_ONLY_COMPONENTS = [
   bevyTypes.TEXT_LAYOUT_INFO,
   bevyTypes.COMPUTED_NODE,
   bevyTypes.GLOBAL_TRANSFORM,
+  bevyTypes.PARENT,
+  bevyTypes.CHILDREN,
+  bevyTypes.VIEW_VISIBILITY,
 ];
 
 function InspectorComponent({

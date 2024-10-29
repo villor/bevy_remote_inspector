@@ -37,6 +37,7 @@ pub enum Command {
     ToggleComponent(ToggleComponent),
     RemoveComponent(RemoveComponent),
     InsertComponent(InsertComponent),
+    DespawnEntity(DespawnEntity),
 }
 
 impl Command {
@@ -46,6 +47,7 @@ impl Command {
             "toggle_component", ToggleComponent
             "remove_component", RemoveComponent
             "insert_component", InsertComponent
+            "despawn_entity", DespawnEntity
         )
     }
 
@@ -59,6 +61,7 @@ impl Command {
             Command::ToggleComponent(command) => command.execute(world).and_then(map_result),
             Command::RemoveComponent(command) => command.execute(world).and_then(map_result),
             Command::InsertComponent(command) => command.execute(world).and_then(map_result),
+            Command::DespawnEntity(command) => command.execute(world).and_then(map_result),
         };
         result
     }
@@ -259,5 +262,20 @@ impl Execute for InsertComponent {
 
             Ok(())
         })
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct DespawnEntity {
+    entity: Entity,
+}
+
+impl Execute for DespawnEntity {
+    type Output = ();
+
+    fn execute(self, world: &mut World) -> anyhow::Result<Self::Output> {
+        world.get_entity_mut(self.entity)?.despawn_recursive();
+
+        Ok(())
     }
 }

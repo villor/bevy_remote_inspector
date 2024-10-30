@@ -7,16 +7,13 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "ignore": [
-      "./examples/**/*",
-      "./crates/**/*",
-      "./target/**/*"
-    ]
+    "ignore": ["./examples/**/*", "./crates/**/*", "./target/**/*"]
   },
   "formatter": {
     "enabled": true,
     "indentStyle": "space",
-    "indentWidth": 2
+    "indentWidth": 2,
+    "lineWidth": 100
   },
   "organizeImports": {
     "enabled": false

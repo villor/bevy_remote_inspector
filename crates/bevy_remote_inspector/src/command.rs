@@ -291,8 +291,16 @@ impl Execute for InsertComponent {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "snake_case")]
+enum DespawnEntityKind {
+    Recursive,
+    Descendant,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct DespawnEntity {
     entity: Entity,
+    kind: DespawnEntityKind,
 }
 
 impl Execute for DespawnEntity {
@@ -303,7 +311,16 @@ impl Execute for DespawnEntity {
         _ctx: &mut InspectorContext,
         world: &mut World,
     ) -> anyhow::Result<Self::Output> {
-        world.get_entity_mut(self.entity)?.despawn_recursive();
+        let mut entity = world.get_entity_mut(self.entity)?;
+
+        match self.kind {
+            DespawnEntityKind::Recursive => {
+                entity.despawn_recursive();
+            }
+            DespawnEntityKind::Descendant => {
+                entity.despawn_descendants();
+            }
+        }
 
         Ok(())
     }

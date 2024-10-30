@@ -152,7 +152,7 @@ const TreeNode = memo(function RenderItem({
         >
           <EntityName id={nodeId}></EntityName>
         </div>
-        <EntityActionMenu id={nodeId} />
+        <EntityActionMenu id={nodeId} hasChildren={hasChildren} />
       </div>
     </div>
   );
@@ -160,10 +160,13 @@ const TreeNode = memo(function RenderItem({
 
 const EntityActionMenu = memo(function EntityActionMenu({
   id,
+  hasChildren,
 }: {
   id: EntityId;
+  hasChildren: boolean;
 }) {
-  const despawn = useDespawnEntity(id);
+  const despawnRecursive = useDespawnEntity(id, 'recursive');
+  const despawnDescendant = useDespawnEntity(id, 'descendant');
   const visibilityComponentId = useStore((state) =>
     state.componentNameToIdMap.get(bevyTypes.VIEW_VISIBILITY)
   );
@@ -185,11 +188,15 @@ const EntityActionMenu = memo(function EntityActionMenu({
             Toggle visibility
           </MenuItem>
           <MenuItem onAction={spawnEntity}>Spawn new child</MenuItem>
-          <MenuItem
-            className="text-red-600 hover:text-red-700"
-            onAction={despawn}
-          >
+          <MenuItem variant="danger" onAction={despawnRecursive}>
             Despawn recursive
+          </MenuItem>
+          <MenuItem
+            isDisabled={!hasChildren}
+            variant="danger"
+            onAction={despawnDescendant}
+          >
+            Despawn descendants
           </MenuItem>
         </Menu>
       </MenuPopover>
@@ -199,14 +206,15 @@ const EntityActionMenu = memo(function EntityActionMenu({
 
 const Cursor = memo(function Cursor({ top, left, indent }: CursorProps) {
   const style: CSSProperties = {
-    position: 'absolute',
-    pointerEvents: 'none',
     top: top - 2 + 'px',
     left: left + 'px',
     right: indent + 'px',
   };
   return (
-    <div className="flex items-center z-10" style={style}>
+    <div
+      className="flex items-center z-10 absolute pointer-events-none"
+      style={style}
+    >
       <div className="w-2 h-2 rounded-full bg-primary"></div>
       <div className="flex-1 h-0.5 bg-primary rounded"></div>
     </div>

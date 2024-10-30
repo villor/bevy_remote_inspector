@@ -9,7 +9,7 @@ A remote inspector for Bevy game engine, allowing you to inspect and modify enti
 - Allow to toggle components on/off (work by temporarily removing the component from the entity).
 - Automatically reconnect when your Bevy app restarts.
 
-[![Demo]](https://raw.githubusercontent.com/notmd/bevy_remote_inspector/main/assets/demo.mp4)
+[![Demo](./assets/demo.png)](https://raw.githubusercontent.com/notmd/bevy_remote_inspector/main/assets/demo.mp4)
 
 ## Installation
 

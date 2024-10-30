@@ -308,6 +308,6 @@ export function convertThrough<T extends AnyColor = AnyColor>(
 ) {
   console.log(`converting from ${from} through ${through} to ${to}`);
   const intermediate = convertColor(color, from, through);
-  console.log(`intermediate`, intermediate);
+  console.log('intermediate', intermediate);
   return convertColor(intermediate, through, to) as T;
 }

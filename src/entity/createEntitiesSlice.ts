@@ -156,13 +156,13 @@ function getEntityName(state: SharedSlice, id: EntityId) {
 
   if (!components) {
     console.warn(`Entity ${prettyEntityId(id)} does not exist`);
-    return `Non existent entity (BUG)`;
+    return 'Non existent entity (BUG)';
   }
 
   const nameComponentId = componentNameToIdMap.get(bevyTypes.NAME);
   if (nameComponentId !== undefined) {
     const nameComponent = components.get(nameComponentId);
-    if (nameComponent && nameComponent.value) {
+    if (nameComponent?.value) {
       return nameComponent.value as string;
     }
   }
@@ -210,7 +210,7 @@ function getEntityName(state: SharedSlice, id: EntityId) {
     }
   }
 
-  return `Entity`;
+  return 'Entity';
 }
 
 // Copied from https://github.com/bevyengine/bevy/blob/main/tools/publish.sh

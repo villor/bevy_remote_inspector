@@ -22,9 +22,9 @@ export function fromLaba(color: LabaOrOklaba, to: ColorSpace): AnyColor {
     const fx = a / 500.0 + fy;
     const fz = fy - b / 200.0;
 
-    const xr = Math.pow(fx, 3.0) > 0.008856 ? Math.pow(fx, 3.0) : (116.0 * fx - 16.0) / 903.3;
-    const yr = l > 0.008856 * 903.3 ? Math.pow((l + 16.0) / 116.0, 3.0) : l / 903.3;
-    const zr = Math.pow(fz, 3.0) > 0.008856 ? Math.pow(fz, 3.0) : (116.0 * fz - 16.0) / 903.3;
+    const xr = fx ** 3.0 > 0.008856 ? fx ** 3.0 : (116.0 * fx - 16.0) / 903.3;
+    const yr = l > 0.008856 * 903.3 ? ((l + 16.0) / 116.0) ** 3.0 : l / 903.3;
+    const zr = fz ** 3.0 > 0.008856 ? fz ** 3.0 : (116.0 * fz - 16.0) / 903.3;
 
     const x = xr * 0.95047;
     const y = yr * 1.0;

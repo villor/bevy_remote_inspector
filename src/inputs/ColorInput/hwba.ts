@@ -25,7 +25,9 @@ export function fromHwba(hwba: Hwba, to: ColorSpace): AnyColor {
 
     const n = w + adjustedF * (v - w);
 
-    let red, green, blue;
+    let red;
+    let green;
+    let blue;
     switch (i) {
       case 0:
         red = v;

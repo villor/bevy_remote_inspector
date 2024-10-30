@@ -13,9 +13,8 @@ function replacer(_key: any, value: any) {
       ret[k] = v;
     }
     return ret;
-  } else {
-    return value;
   }
+  return value;
 }
 
 export function deepStringify(obj: any, otps?: any) {

@@ -61,30 +61,29 @@ const OpaqueInputInner = memo(
           onCheckedChange={onChange}
         ></Checkbox>
       );
-    } else {
-      const type = isNumberType(typeName) ? 'number' : 'text';
-      const onChange = (e: React.SyntheticEvent) => {
-        const target = e.target as HTMLInputElement;
-        if (type === 'number') {
-          setValue(path, Number(target.value));
-        } else {
-          setValue(path, target.value);
-        }
-      };
-
-      return (
-        <Input
-          value={value as string | number}
-          onChange={onChange}
-          className="bg-background"
-          readOnly={isReadOnly}
-          disabled={isReadOnly}
-          step={typeName === 'f32' || typeName === 'f64' ? 0.1 : undefined}
-          min={isUnsignedIntegerType(typeName) ? 0 : undefined}
-          type={type}
-          ref={ref}
-        />
-      );
     }
+    const type = isNumberType(typeName) ? 'number' : 'text';
+    const onChange = (e: React.SyntheticEvent) => {
+      const target = e.target as HTMLInputElement;
+      if (type === 'number') {
+        setValue(path, Number(target.value));
+      } else {
+        setValue(path, target.value);
+      }
+    };
+
+    return (
+      <Input
+        value={value as string | number}
+        onChange={onChange}
+        className="bg-background"
+        readOnly={isReadOnly}
+        disabled={isReadOnly}
+        step={typeName === 'f32' || typeName === 'f64' ? 0.1 : undefined}
+        min={isUnsignedIntegerType(typeName) ? 0 : undefined}
+        type={type}
+        ref={ref}
+      />
+    );
   }),
 );

@@ -142,7 +142,7 @@ function AddComponentDialogContent({
     <DialogContent className="flex flex-col justify-between max-w-xl">
       <DialogHeader>
         <DialogTitle className="inline-flex items-center gap-x-1">
-          {`Insert new component to `}
+          {'Insert new component to '}
           <EntityName id={inspectingEntity}></EntityName>
         </DialogTitle>
       </DialogHeader>

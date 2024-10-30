@@ -90,7 +90,7 @@ function PendingMapInput({
     if (value === undefined) {
       toast({
         variant: 'destructive',
-        description: `Invalid value`,
+        description: 'Invalid value',
       });
       return;
     }

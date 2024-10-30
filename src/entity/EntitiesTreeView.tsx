@@ -245,9 +245,9 @@ const EntityActionMenu = memo(function EntityActionMenu({
 
 const Cursor = memo(function Cursor({ top, left, indent }: CursorProps) {
   const style: CSSProperties = {
-    top: top - 2 + 'px',
-    left: left + 'px',
-    right: indent + 'px',
+    top: `${top - 2}px`,
+    left: `${left}px`,
+    right: `${indent}px`,
   };
   return (
     <div className="flex items-center z-10 absolute pointer-events-none" style={style}>

@@ -70,9 +70,9 @@ const MenuItem = ({
         'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
         {
           /* Focused */
-          'data-[focused]:bg-accent data-[focused]:text-accent-foreground': variant == 'default',
+          'data-[focused]:bg-accent data-[focused]:text-accent-foreground': variant === 'default',
           'data-[focused]:bg-accent text-red-600 data-[focused]:hover:text-red-500':
-            variant == 'danger',
+            variant === 'danger',
         },
         /* Selection Mode */
         'data-[selection-mode]:pl-8',
@@ -86,8 +86,8 @@ const MenuItem = ({
         <span className="absolute left-2 flex size-4 items-center justify-center">
           {renderProps.isSelected && (
             <>
-              {renderProps.selectionMode == 'single' && <Circle className="size-2 fill-current" />}
-              {renderProps.selectionMode == 'multiple' && <Check className="size-4" />}
+              {renderProps.selectionMode === 'single' && <Circle className="size-2 fill-current" />}
+              {renderProps.selectionMode === 'multiple' && <Check className="size-4" />}
             </>
           )}
         </span>

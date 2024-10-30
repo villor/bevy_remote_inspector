@@ -146,7 +146,7 @@ function InspectorComponent({
                     onAction={() => {
                       navigator.clipboard.writeText(name || '');
                       toast({
-                        description: `Copied component name to clipboard`,
+                        description: 'Copied component name to clipboard',
                       });
                     }}
                   >

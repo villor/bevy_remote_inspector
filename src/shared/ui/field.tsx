@@ -28,7 +28,7 @@ const Label = ({ className, ...props }: AriaLabelProps) => (
 function FormDescription({ className, ...props }: AriaTextProps) {
   return (
     <AriaText
-      className={cn('text-sm text-muted-foreground', className)}
+      className={cn('text-muted-foreground text-sm', className)}
       {...props}
       slot="description"
     />
@@ -37,7 +37,7 @@ function FormDescription({ className, ...props }: AriaTextProps) {
 
 function FieldError({ className, ...props }: AriaFieldErrorProps) {
   return (
-    <AriaFieldError className={cn('text-sm font-medium text-destructive', className)} {...props} />
+    <AriaFieldError className={cn('font-medium text-destructive text-sm', className)} {...props} />
   );
 }
 

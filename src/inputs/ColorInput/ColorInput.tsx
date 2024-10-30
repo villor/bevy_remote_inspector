@@ -89,7 +89,7 @@ export function ColorInput({ typeInfo, path }: ColorInputProps) {
             </option>
           ))}
         </NativeSelect>
-        <div className="w-full h-9 flex items-center">
+        <div className="flex h-9 w-full items-center">
           <ColorPicker
             value={ariaColor}
             onChange={(c) => {
@@ -108,7 +108,7 @@ export function ColorInput({ typeInfo, path }: ColorInputProps) {
               setValue(newPath, newColor);
             }}
           >
-            <div className="grid grid-cols-4 gap-x-2 capitalize text-muted-foreground text-sm">
+            <div className="grid grid-cols-4 gap-x-2 text-muted-foreground text-sm capitalize">
               {Object.keys(currentColor).map((k) => {
                 return (
                   <Fragment key={k}>
@@ -117,7 +117,7 @@ export function ColorInput({ typeInfo, path }: ColorInputProps) {
                 );
               })}
             </div>
-            <div className="grid grid-cols-4 text-sm gap-x-2">
+            <div className="grid grid-cols-4 gap-x-2 text-sm">
               {Object.values(currentColor).map((v, i) => {
                 return (
                   <Fragment key={i}>
@@ -144,10 +144,10 @@ function ColorPicker({ children, ...props }: ColorPickerProps) {
           <ColorSwatch className="size-8 rounded-md" />
         </Button>
         <Popover placement="bottom start">
-          <Dialog className="flex flex-col gap-2 bg-card/90 rounded-lg p-6 shadow">
+          <Dialog className="flex flex-col gap-2 rounded-lg bg-card/90 p-6 shadow">
             <>
               <ColorArea
-                className="w-full min-w-56 h-56 rounded-lg bg-gray-300 dark:bg-zinc-800"
+                className="h-56 w-full min-w-56 rounded-lg bg-gray-300 dark:bg-zinc-800"
                 colorSpace="hsb"
                 xChannel="saturation"
                 yChannel="brightness"
@@ -169,7 +169,7 @@ function ColorSlider(props: ColorSliderProps) {
   return (
     <AriaColorSlider
       {...props}
-      className={cn('w-full h-6 rounded', props.className)}
+      className={cn('h-6 w-full rounded', props.className)}
       style={{
         background:
           props.channel === 'alpha'
@@ -189,7 +189,7 @@ function ColorThumb(props: ColorThumbProps) {
     <AriaColorThumb
       {...props}
       className={cn(
-        'w-6 h-6 top-[50%] left-[50%] rounded-full border-2 border-white',
+        'top-[50%] left-[50%] h-6 w-6 rounded-full border-2 border-white',
         props.className,
       )}
     />

@@ -5,7 +5,7 @@ export function InputLabel(props: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       {...props}
-      className={cn('pt-[8px] flex capitalize text-sm text-wrap font-medium', props.className)}
+      className={cn('flex text-wrap pt-[8px] font-medium text-sm capitalize', props.className)}
     ></div>
   );
 }

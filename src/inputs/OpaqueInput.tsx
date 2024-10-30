@@ -24,7 +24,7 @@ export const OpaqueInput = memo(function OpaqueInput({
   typeName,
 }: OpaqueInputProps) {
   return (
-    <div className={clsx(className, 'w-full flex items-center h-9')}>
+    <div className={clsx(className, 'flex h-9 w-full items-center')}>
       <OpaqueInputInner typeInfo={typeInfo} path={path} typeName={typeName}></OpaqueInputInner>
     </div>
   );

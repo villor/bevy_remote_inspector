@@ -17,7 +17,7 @@ export const TupleInput = memo(function TupleInput({ path, typeInfo }: TupleInpu
       {typeInfo.fields.map((field, i) => {
         return (
           <Fragment key={i}>
-            <div className={clsx('grid gap-x-4', 'grid-cols-[8rem_1fr] col-span-2')}>
+            <div className={clsx('grid gap-x-4', 'col-span-2 grid-cols-[8rem_1fr]')}>
               <InputLabel>{registry.get(field)?.short_name}</InputLabel>
               {getInputComponent({
                 typeName: field,

@@ -51,7 +51,7 @@ export const MapInput = memo(function MapInput({ path, typeInfo }: MapInputProps
   const registry = useTypeRegistry();
 
   return (
-    <StructInputLayout className="gap-x-4 grid-cols-[8rem_1fr]">
+    <StructInputLayout className="grid-cols-[8rem_1fr] gap-x-4">
       <div>Key</div>
       <div>Value</div>
       {Object.entries(value).map(([k], i) => {

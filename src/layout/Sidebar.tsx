@@ -7,7 +7,7 @@ import { Button } from 'react-aria-components';
 
 export function SideBar() {
   return (
-    <div className="flex flex-col items-center gap-y-1   bg-background w-14 border-r border-muted">
+    <div className="flex w-14 flex-col items-center gap-y-1 border-muted border-r bg-background">
       <SideBarItem icon={TableProperties} label="Inspector" name="inspector" />
       <SideBarItem icon={ComponentIcon} label="Components" name="component" />
       {/* <SideBarItem icon={Inspect} label="UI" name="ui" /> */}
@@ -34,9 +34,9 @@ function SideBarItem({
       <Button
         onPress={handleClick}
         className={clsx(
-          'flex w-full py-3 items-center justify-center transition-colors hover:text-foreground',
+          'flex w-full items-center justify-center py-3 transition-colors hover:text-foreground',
           {
-            'text-accent-foreground bg-muted': isActive,
+            'bg-muted text-accent-foreground': isActive,
             'text-muted-foreground hover:bg-muted': !isActive,
           },
         )}

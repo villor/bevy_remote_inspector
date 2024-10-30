@@ -81,7 +81,7 @@ export const StructFieldInput = memo(function StructFieldInput({
 });
 
 export function StructInputLayout(props: HTMLAttributes<HTMLDivElement>) {
-  return <div {...props} className={cn('grid gap-2 grid-cols-[6rem,1fr]', props.className)}></div>;
+  return <div {...props} className={cn('grid grid-cols-[6rem,1fr] gap-2', props.className)}></div>;
 }
 
 function StructInputInline({

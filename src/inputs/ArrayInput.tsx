@@ -48,9 +48,9 @@ export const ArrayInput = memo(function ArrayInput({ path, typeInfo }: ArrayInpu
   const canAddItem = typeInfo.kind === 'array' && typeInfo.capacity === null;
 
   return (
-    <div className="flex flex-col gap-4 w-full">
+    <div className="flex w-full flex-col gap-4">
       <div
-        className={clsx('grid items-center gap-4 w-full', {
+        className={clsx('grid w-full items-center gap-4', {
           'grid-cols-[auto_1fr]': typeInfo.kind === 'array',
         })}
       >

@@ -71,7 +71,7 @@ const MenuItem = ({
         {
           /* Focused */
           'data-[focused]:bg-accent data-[focused]:text-accent-foreground': variant === 'default',
-          'data-[focused]:bg-accent text-red-600 data-[focused]:hover:text-red-500':
+          'text-red-600 data-[focused]:bg-accent data-[focused]:hover:text-red-500':
             variant === 'danger',
         },
         /* Selection Mode */
@@ -109,7 +109,7 @@ interface MenuHeaderProps extends React.ComponentProps<typeof AriaHeader> {
 const MenuHeader = ({ className, inset, separator = true, ...props }: MenuHeaderProps) => (
   <AriaHeader
     className={cn(
-      'px-3 py-1.5 text-sm font-semibold',
+      'px-3 py-1.5 font-semibold text-sm',
       inset && 'pl-8',
       separator && '-mx-1 mb-1 border-b border-b-border pb-2.5',
       className,

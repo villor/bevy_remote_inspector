@@ -49,9 +49,9 @@ const DialogOverlay = ({ className, isDismissable = true, ...props }: AriaModalO
       cn(
         'fixed inset-0 z-50 bg-black/80',
         /* Exiting */
-        'data-[exiting]:duration-300 data-[exiting]:animate-out data-[exiting]:fade-out-0',
+        'data-[exiting]:fade-out-0 data-[exiting]:animate-out data-[exiting]:duration-300',
         /* Entering */
-        'data-[entering]:animate-in data-[entering]:fade-in-0',
+        'data-[entering]:fade-in-0 data-[entering]:animate-in',
         className,
       ),
     )}
@@ -80,7 +80,7 @@ const DialogContent = ({
       cn(
         side
           ? sheetVariants({ side, className: 'h-full p-6' })
-          : 'fixed left-[50vw] top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 border bg-background p-6 shadow-lg duration-200 data-[exiting]:duration-300 data-[entering]:animate-in data-[exiting]:animate-out data-[entering]:fade-in-0 data-[exiting]:fade-out-0 data-[entering]:zoom-in-95 data-[exiting]:zoom-out-95 data-[entering]:slide-in-from-left-1/2 data-[entering]:slide-in-from-top-[48%] data-[exiting]:slide-out-to-left-1/2 data-[exiting]:slide-out-to-top-[48%] sm:rounded-lg md:w-full',
+          : '-translate-x-1/2 -translate-y-1/2 data-[entering]:fade-in-0 data-[exiting]:fade-out-0 data-[entering]:zoom-in-95 data-[exiting]:zoom-out-95 data-[entering]:slide-in-from-left-1/2 data-[entering]:slide-in-from-top-[48%] data-[exiting]:slide-out-to-left-1/2 data-[exiting]:slide-out-to-top-[48%] fixed top-1/2 left-[50vw] z-50 w-full max-w-lg border bg-background p-6 shadow-lg duration-200 data-[entering]:animate-in data-[exiting]:animate-out data-[exiting]:duration-300 sm:rounded-lg md:w-full',
         className,
       ),
     )}
@@ -93,7 +93,7 @@ const DialogContent = ({
           {closeButton && (
             <AriaButton
               onPress={renderProps.close}
-              className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity data-[disabled]:pointer-events-none data-[entering]:bg-accent data-[entering]:text-muted-foreground data-[hovered]:opacity-100 data-[focused]:outline-none data-[focused]:ring-2 data-[focused]:ring-ring data-[focused]:ring-offset-2"
+              className="absolute top-4 right-4 rounded-sm opacity-70 ring-offset-background transition-opacity data-[disabled]:pointer-events-none data-[entering]:bg-accent data-[entering]:text-muted-foreground data-[hovered]:opacity-100 data-[focused]:outline-none data-[focused]:ring-2 data-[focused]:ring-ring data-[focused]:ring-offset-2"
             >
               <X className="size-4" />
               <span className="sr-only">Close</span>
@@ -119,7 +119,7 @@ const DialogFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivEleme
 const DialogTitle = ({ className, ...props }: AriaHeadingProps) => (
   <AriaHeading
     slot="title"
-    className={cn('text-lg font-semibold leading-none tracking-tight', className)}
+    className={cn('font-semibold text-lg leading-none tracking-tight', className)}
     {...props}
   />
 );

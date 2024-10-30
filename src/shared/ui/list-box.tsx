@@ -72,7 +72,7 @@ const ListBoxItem = <T extends object>({
 
 function ListBoxHeader({ className, ...props }: React.ComponentProps<typeof AriaHeader>) {
   return (
-    <AriaHeader className={cn('py-1.5 pl-8 pr-2 text-sm font-semibold', className)} {...props} />
+    <AriaHeader className={cn('py-1.5 pr-2 pl-8 font-semibold text-sm', className)} {...props} />
   );
 }
 

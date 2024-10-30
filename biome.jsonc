@@ -22,6 +22,16 @@
     "enabled": true,
     "rules": {
       "recommended": true,
+      "complexity": {
+        "noForEach": "off"
+      },
+      "correctness": {
+        "useExhaustiveDependencies": "off" // We _might_ want to turn this rule on at some point
+      },
+      "suspicious": {
+        "noExplicitAny": "off",
+        "noArrayIndexKey": "off" // We _might_ want to turn this rule on at some point
+      },
       "style": {
         "noNonNullAssertion": "off",
         "useSelfClosingElements": "off"

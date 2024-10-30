@@ -62,7 +62,9 @@ export const createWsSlice: StateCreator<SharedSlice, [], [], WsSlice> = (set, g
     import.meta.env.DEV &&
       console.log(`send message ${data.method} ${JSON.stringify(data.params)}`);
   },
-  initSendMessage: (fn) => (sendMessageInteral = fn),
+  initSendMessage: (fn) => {
+    sendMessageInteral = fn;
+  },
   setReadyState: (readyState) => {
     set({ readyState });
 

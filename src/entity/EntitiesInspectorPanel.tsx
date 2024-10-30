@@ -12,7 +12,14 @@ import {
 } from '@/shared/ui/collapsible';
 import { ScrollArea } from '@/shared/ui/scroll-area';
 import { useStore } from '@/store';
-import { ChevronRight, Ellipsis, Eye, EyeOff } from 'lucide-react';
+import {
+  ChevronRight,
+  Copy,
+  Ellipsis,
+  Eye,
+  EyeOff,
+  Trash2,
+} from 'lucide-react';
 import { ReactNode } from 'react';
 import { useUpdateComponent } from './useUpdateComponent';
 import { memo } from 'react';
@@ -156,16 +163,25 @@ function InspectorComponent({
             </IconButton>
             <MenuPopover placement="bottom left" crossOffset={-60}>
               <Menu>
-                <MenuItem onAction={removeComponent}>Remove</MenuItem>
+                {import.meta.env.DEV && (
+                  <MenuItem
+                    icon={Copy}
+                    onAction={() => {
+                      navigator.clipboard.writeText(name || '');
+                      toast({
+                        description: `Copied component name to clipboard`,
+                      });
+                    }}
+                  >
+                    Copy name
+                  </MenuItem>
+                )}
                 <MenuItem
-                  onAction={() => {
-                    navigator.clipboard.writeText(name || '');
-                    toast({
-                      description: `Copied component name to clipboard`,
-                    });
-                  }}
+                  onAction={removeComponent}
+                  variant="danger"
+                  icon={Trash2}
                 >
-                  Copy name
+                  Remove
                 </MenuItem>
               </Menu>
             </MenuPopover>

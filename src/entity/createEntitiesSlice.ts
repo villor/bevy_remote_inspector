@@ -6,11 +6,7 @@ import {
   ComponentInfo,
   ComponentValue,
 } from '@/component/useComponents';
-import {
-  EntityMutaion,
-  EntityMutationChange,
-  WsEvent,
-} from '@/websocket/createWsSlice';
+import { EntityMutaion, EntityMutationChange } from '@/websocket/createWsSlice';
 import { TValue } from '@/type-registry/useTypeRegistry';
 
 export type EntitiesSlice = {

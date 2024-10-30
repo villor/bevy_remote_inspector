@@ -14,7 +14,7 @@ export function EntitiesInspectorPage() {
       </ResizablePanel>
       <ResizableHandle />
       <ResizablePanel
-        defaultSize={35}
+        defaultSize={50}
         persistentKey="entities_inspector_panel_size"
       >
         <EntitiesInspectorPanel />

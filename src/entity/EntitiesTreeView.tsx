@@ -1,10 +1,10 @@
 import { EntityTreeNode, useEntityTrees } from '@/entity/useEntitiesTrees';
 import useResizeObserver from 'use-resize-observer';
 import { EntityId } from '@/entity/useEntity';
-import { buttonVariants } from '@/shared/ui/button';
+import { Button, buttonVariants } from '@/shared/ui/button';
 import { useStore } from '@/store';
 import clsx from 'clsx';
-import { ChevronRight, Ellipsis } from 'lucide-react';
+import { ChevronRight, Ellipsis, Plus } from 'lucide-react';
 import { CSSProperties, memo, ReactElement, useCallback } from 'react';
 import { cn } from '@/utils';
 import { bevyTypes } from '@/type-registry/types';
@@ -22,6 +22,7 @@ import {
   Tree,
 } from 'react-arborist';
 import { useReparent } from './useReparent';
+import { useSpawnEntity } from './useSpawnEntity';
 
 export const EntitiesTreeView = memo(function EntitiesTreeView() {
   const entityTrees = useEntityTrees();
@@ -58,27 +59,28 @@ export const EntitiesTreeView = memo(function EntitiesTreeView() {
   }
 
   return (
-    <FillFlexParent>
-      {(dimens) => (
-        <Tree
-          {...dimens}
-          selection={inspectingEntity ? String(inspectingEntity) : undefined}
-          disableMultiSelection
-          openByDefault
-          overscanCount={1}
-          rowClassName="mt-2"
-          data={entityTrees}
-          onMove={handleOnMove}
-          renderCursor={Cursor}
-          idAccessor="stringId"
-          rowHeight={32}
-          renderDragPreview={DragPreview}
-          onActivate={handleOnActive}
-        >
-          {TreeNode}
-        </Tree>
-      )}
-    </FillFlexParent>
+    <div className="flex flex-col w-full h-full">
+      <FillFlexParent>
+        {(dimens) => (
+          <Tree
+            {...dimens}
+            selection={inspectingEntity ? String(inspectingEntity) : undefined}
+            disableMultiSelection
+            openByDefault
+            data={entityTrees}
+            onMove={handleOnMove}
+            renderCursor={Cursor}
+            idAccessor="stringId"
+            rowHeight={32}
+            renderDragPreview={DragPreview}
+            onActivate={handleOnActive}
+          >
+            {TreeNode}
+          </Tree>
+        )}
+      </FillFlexParent>
+      <SpawnNewEntityButton />
+    </div>
   );
 });
 
@@ -161,12 +163,13 @@ const EntityActionMenu = memo(function EntityActionMenu({
 }: {
   id: EntityId;
 }) {
-  const despawn = useDespawnEntity();
+  const despawn = useDespawnEntity(id);
   const visibilityComponentId = useStore((state) =>
     state.componentNameToIdMap.get(bevyTypes.VIEW_VISIBILITY)
   );
 
   const toggleVisibility = useToggleVisibility(id);
+  const spawnEntity = useSpawnEntity(id);
 
   return (
     <MenuTrigger>
@@ -181,7 +184,11 @@ const EntityActionMenu = memo(function EntityActionMenu({
           >
             Toggle visibility
           </MenuItem>
-          <MenuItem className="text-red-600" onAction={() => despawn(id)}>
+          <MenuItem onAction={spawnEntity}>Spawn new child</MenuItem>
+          <MenuItem
+            className="text-red-600 hover:text-red-700"
+            onAction={despawn}
+          >
             Despawn recursive
           </MenuItem>
         </Menu>
@@ -224,9 +231,20 @@ function FillFlexParent(props: {
   children: (dimens: { width: number; height: number }) => ReactElement;
 }) {
   const { ref, width, height } = useResizeObserver();
+
   return (
     <div className="flex-1 w-full h-full min-h-0 min-w-0" ref={ref}>
       {width && height ? props.children({ width, height }) : null}
     </div>
+  );
+}
+
+function SpawnNewEntityButton() {
+  const spawnEntity = useSpawnEntity(null);
+  return (
+    <Button className="gap-x-1" onPress={spawnEntity}>
+      <Plus className="size-4"></Plus>
+      <span className="leading-3">Spawn New Entity</span>
+    </Button>
   );
 }

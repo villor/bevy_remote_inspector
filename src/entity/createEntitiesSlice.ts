@@ -197,7 +197,7 @@ function getEntityName(state: SharedSlice, id: EntityId) {
   const firstComponent = Array.from(components.keys()).sort()[0];
 
   if (firstComponent === undefined) {
-    return `Entity ${prettyEntityId(id)}`;
+    return `Empty Entity`;
   }
 
   const { short_name } = getComponentName(firstComponent);

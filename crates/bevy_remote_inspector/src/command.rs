@@ -1,4 +1,4 @@
-use anyhow::{anyhow, bail, Ok};
+use anyhow::{anyhow, bail};
 use bevy::{
     ecs::component::ComponentId,
     prelude::*,
@@ -41,6 +41,7 @@ pub enum Command {
     DespawnEntity(DespawnEntity),
     ToggleVisibity(ToggleVisibity),
     ReparentEntity(ReparentEntity),
+    SpawnEntity(SpawnEntity),
 }
 
 impl Command {
@@ -53,6 +54,7 @@ impl Command {
             "despawn_entity", DespawnEntity
             "toggle_visibility", ToggleVisibity
             "reparent_entity", ReparentEntity
+            "spawn_entity", SpawnEntity
         )
     }
 
@@ -69,6 +71,7 @@ impl Command {
             Command::DespawnEntity(command) => command.execute(ctx, world).and_then(map_result),
             Command::ToggleVisibity(command) => command.execute(ctx, world).and_then(map_result),
             Command::ReparentEntity(command) => command.execute(ctx, world).and_then(map_result),
+            Command::SpawnEntity(command) => command.execute(ctx, world).and_then(map_result),
         };
         result
     }
@@ -340,20 +343,10 @@ impl Execute for ToggleVisibity {
         ctx.entity_visibilities
             .insert(self.entity, visibility.clone());
 
-        match (view_visibility.get(), *visibility) {
-            (true, Visibility::Inherited) => {
-                *visibility = Visibility::Hidden;
-            }
-            (true, Visibility::Visible) => {
-                *visibility = Visibility::Hidden;
-            }
-            (false, Visibility::Inherited) => {
-                *visibility = Visibility::Visible;
-            }
-            (false, Visibility::Hidden) => {
-                *visibility = Visibility::Visible;
-            }
-            _ => {}
+        if view_visibility.get() {
+            *visibility = Visibility::Hidden;
+        } else {
+            *visibility = Visibility::Visible;
         }
 
         Ok(())
@@ -389,6 +382,33 @@ impl Execute for ReparentEntity {
         } else {
             let mut entity = world.get_entity_mut(self.entity)?;
             entity.remove_parent();
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SpawnEntity {
+    pub parent: Option<Entity>,
+}
+
+impl Execute for SpawnEntity {
+    type Output = ();
+
+    fn execute(
+        self,
+        _ctx: &mut InspectorContext,
+        world: &mut World,
+    ) -> anyhow::Result<Self::Output> {
+        if let Some(parent) = self.parent {
+            let Ok(mut parent) = world.get_entity_mut(parent) else {
+                bail!("Parent entity does not exist");
+            };
+
+            parent.with_child(());
+        } else {
+            world.spawn_empty();
         }
 
         Ok(())

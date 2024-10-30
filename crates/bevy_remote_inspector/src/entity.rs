@@ -180,15 +180,13 @@ impl TrackedData {
                     changes.collect()
                 };
 
-                if changes.len() > 0 {
-                    events.push(InspectorEvent::Entity {
-                        entity: id,
-                        mutation: EntityMutation::Change {
-                            changes,
-                            removes: vec![],
-                        },
-                    });
-                }
+                events.push(InspectorEvent::Entity {
+                    entity: id,
+                    mutation: EntityMutation::Change {
+                        changes,
+                        removes: vec![],
+                    },
+                });
             }
         }
     }

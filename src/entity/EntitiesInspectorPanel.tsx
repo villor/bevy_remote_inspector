@@ -114,10 +114,22 @@ function InspectorComponent({
 
   const toggleComponent = useToggleComponent(entityId, componentId);
   const removeComponent = useRemoveComponent(entityId, componentId);
+  const isOpen = useStore(
+    (state) =>
+      state.entityComponentCollapseState.get(entityId)?.get(componentId) ??
+      false
+  );
+  const setEntityComponentCollapseState = useStore(
+    (state) => state.setEntityComponentCollapseState
+  );
+
+  const handleOpenChange = (collapsed: boolean) => {
+    setEntityComponentCollapseState(entityId, componentId, collapsed);
+  };
 
   return (
     <div className="bg-muted rounded p-3">
-      <Collapsible>
+      <Collapsible open={isOpen} onOpenChange={handleOpenChange}>
         <div className="flex items-center">
           <CollapsibleTrigger asChild>
             <IconButton className="hover:bg-primary-foreground/75 group transform data-[state=open]:rotate-90">

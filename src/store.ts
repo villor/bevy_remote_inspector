@@ -1,5 +1,8 @@
 import { create, StateCreator } from 'zustand';
-import { createInspectorSlice, InspectorSlice } from '@/entity/useInspector';
+import {
+  createInspectorSlice,
+  InspectorSlice,
+} from '@/entity/createInspectorSlice';
 import {
   createTypeRegistrySlice,
   TypeRegistrySlice,

@@ -40,6 +40,7 @@ pub enum Command {
     InsertComponent(InsertComponent),
     DespawnEntity(DespawnEntity),
     ToggleVisibity(ToggleVisibity),
+    ReparentEntity(ReparentEntity),
 }
 
 impl Command {
@@ -51,6 +52,7 @@ impl Command {
             "insert_component", InsertComponent
             "despawn_entity", DespawnEntity
             "toggle_visibility", ToggleVisibity
+            "reparent_entity", ReparentEntity
         )
     }
 
@@ -66,6 +68,7 @@ impl Command {
             Command::InsertComponent(command) => command.execute(ctx, world).and_then(map_result),
             Command::DespawnEntity(command) => command.execute(ctx, world).and_then(map_result),
             Command::ToggleVisibity(command) => command.execute(ctx, world).and_then(map_result),
+            Command::ReparentEntity(command) => command.execute(ctx, world).and_then(map_result),
         };
         result
     }
@@ -351,6 +354,41 @@ impl Execute for ToggleVisibity {
                 *visibility = Visibility::Visible;
             }
             _ => {}
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ReparentEntity {
+    pub entity: Entity,
+    pub parent: Option<Entity>,
+}
+
+impl Execute for ReparentEntity {
+    type Output = ();
+
+    fn execute(
+        self,
+        _ctx: &mut InspectorContext,
+        world: &mut World,
+    ) -> anyhow::Result<Self::Output> {
+        if let Some(parent) = self.parent {
+            let parent_exists = world.get_entity(parent).is_ok();
+            if !parent_exists {
+                bail!("Parent entity {parent} does not exist");
+            }
+
+            let mut entity = world.get_entity_mut(self.entity)?;
+            if self.entity == parent {
+                bail!("Can not set entity as parent of itself");
+            }
+
+            entity.set_parent(parent);
+        } else {
+            let mut entity = world.get_entity_mut(self.entity)?;
+            entity.remove_parent();
         }
 
         Ok(())

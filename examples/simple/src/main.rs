@@ -89,6 +89,7 @@ fn setup(
         ))
         .with_children(|parent| {
             parent.spawn(CubeChild(0));
+            parent.spawn((CubeChild(1), Name::new("CubeChild2")));
         });
 
     // light

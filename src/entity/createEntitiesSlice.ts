@@ -6,7 +6,11 @@ import {
   ComponentInfo,
   ComponentValue,
 } from '@/component/useComponents';
-import { EntityMutaion, EntityMutationChange } from '@/websocket/createWsSlice';
+import {
+  EntityMutaion,
+  EntityMutationChange,
+  WsEvent,
+} from '@/websocket/createWsSlice';
 import { TValue } from '@/type-registry/useTypeRegistry';
 
 export type EntitiesSlice = {
@@ -36,12 +40,7 @@ export const createEntitiesSlice: CreateSlice<EntitiesSlice> = (set, get) => ({
     const parentComponentId = componentNameToIdMap.get(bevyTypes.PARENT);
     const entities = get().entities;
     if (mutation.kind === 'remove') {
-      set(() => {
-        entities.delete(entity);
-
-        return { entities: new Map(entities) };
-      });
-
+      entities.delete(entity);
       childParentMap.delete(entity);
       const entityNames = get().entityNames;
       entityNames.delete(entity);
@@ -49,6 +48,7 @@ export const createEntitiesSlice: CreateSlice<EntitiesSlice> = (set, get) => ({
       set({
         childParentMap: new Map(childParentMap),
         entityNames: new Map(entityNames),
+        entities: new Map(entities),
       });
 
       return;
@@ -60,8 +60,8 @@ export const createEntitiesSlice: CreateSlice<EntitiesSlice> = (set, get) => ({
       if (entityComponents) {
         for (const [removedCommponentId, isDisabled] of mutation.removes) {
           if (removedCommponentId === parentComponentId) {
-            childParentMap.delete(entity);
-            set({ childParentMap: childParentMap });
+            childParentMap.set(entity, null);
+            set({ childParentMap: new Map(childParentMap) });
           }
 
           const component = entityComponents.get(removedCommponentId);
@@ -83,14 +83,17 @@ export const createEntitiesSlice: CreateSlice<EntitiesSlice> = (set, get) => ({
 
         for (const [componentId, isDisabled, value] of mutation.changes) {
           shouldUpdateName = !entityComponents.has(componentId);
-
           entityComponents.set(componentId, {
             value: value,
             disabled: isDisabled,
           });
-          if (componentId === parentComponentId) {
+
+          if (
+            componentId === parentComponentId &&
+            !containsHiddenComponent(mutation, componentNameToIdMap)
+          ) {
             childParentMap.set(entity, value as EntityId);
-            set({ childParentMap: childParentMap });
+            set({ childParentMap: new Map(childParentMap) });
           }
         }
         entities.set(entity, new Map(entityComponents));
@@ -103,8 +106,6 @@ export const createEntitiesSlice: CreateSlice<EntitiesSlice> = (set, get) => ({
             )}`
           );
         }
-        const parent = findParentChange(mutation.changes, parentComponentId);
-        childParentMap.set(entity, parent || null);
         entities.set(
           entity,
           new Map(
@@ -114,8 +115,24 @@ export const createEntitiesSlice: CreateSlice<EntitiesSlice> = (set, get) => ({
             ])
           )
         );
+        if (!containsHiddenComponent(mutation, componentNameToIdMap)) {
+          const parent = mutation.changes.find(
+            ([componentId]) => componentId === parentComponentId
+          );
+
+          if (parent) {
+            childParentMap.set(
+              entity,
+              parent[1] ? null : (parent[2] as EntityId)
+            );
+          } else {
+            childParentMap.set(entity, null);
+          }
+
+          set({ childParentMap: new Map(childParentMap) });
+        }
+
         shouldUpdateName = true;
-        set({ childParentMap: new Map(childParentMap) });
       }
 
       set({ entities: entities });
@@ -214,24 +231,27 @@ export function getEntityIndex(id: EntityId) {
   return Number(bid & 0xffffffffn);
 }
 
-function findParentChange(
-  changes: EntityMutationChange['changes'],
-  parentComponentId: number | undefined
-): EntityId | null | undefined {
-  const changedParent = changes.find(
-    ([componentId, _]) => componentId === parentComponentId
-  );
-
-  return changedParent?.[2] as EntityId | null | undefined;
-}
-
 const hiddenEntityNames = [bevyTypes.OBSERVER, bevyTypes.SYSTEM_ID_MARKER];
 
+function containsHiddenComponent(
+  mutation: EntityMutationChange,
+  nameToIdMap: Map<string, ComponentId>
+) {
+  for (const [id] of mutation.changes) {
+    for (const name of hiddenEntityNames) {
+      if (nameToIdMap.get(name) === id) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 export function isHiddenEntity(
-  componentIds: ComponentId[],
+  entityComponentIds: ComponentId[],
   allComponents: Map<ComponentId, ComponentInfo>
 ) {
-  for (const id of componentIds) {
+  for (const id of entityComponentIds) {
     const name = allComponents.get(id)?.name;
     if (name && hiddenEntityNames.includes(name)) {
       return true;

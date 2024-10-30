@@ -106,7 +106,7 @@ function InspectorComponent({
       <DynamicForm
         typeName={info.name}
         value={value}
-        readOnly={READ_ONLY_COMPONENTS.includes(name || '')}
+        readOnly={READ_ONLY_COMPONENTS.includes(info.name || '')}
         onChange={updateEntityComponent}
       ></DynamicForm>
     );

@@ -25,7 +25,7 @@ export const EntityInput = memo(function EntityInput({
   path,
   mode,
 }: EntityInputProps) {
-  const { setValue, control } = useDynamicForm();
+  const { setValue, control, readOnly } = useDynamicForm();
   const value = useWatch({ control, name: path });
   const allEntities = useStore((state) => state.entities);
   const allComponents = useStore((state) => state.components);
@@ -46,9 +46,11 @@ export const EntityInput = memo(function EntityInput({
       aria-label="Entity"
       selectedKey={value as number}
       onSelectionChange={(k) => setValue(path, k as number)}
+      isReadOnly={readOnly}
+      isDisabled={readOnly}
     >
       <FieldGroup className="p-0">
-        <ComboboxInput />
+        <ComboboxInput className="h-9" />
         <Button variant="ghost" size="icon" className="mr-1 size-6 p-1">
           <ChevronDown aria-hidden="true" className="size-4 opacity-50" />
         </Button>

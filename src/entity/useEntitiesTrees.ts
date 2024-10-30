@@ -1,11 +1,14 @@
 import { useStore } from '@/store';
-import { EntityId, EntityTreeNode } from './useEntity';
+import { EntityId } from './useEntity';
 import { useMemo } from 'react';
 import { getEntityIndex } from './createEntitiesSlice';
-
+export type EntityTreeNode = {
+  id: EntityId;
+  stringId: string;
+  children: EntityTreeNode[];
+};
 export function useEntityTrees() {
   const childParentMap = useStore((state) => state.childParentMap);
-
   return useMemo(() => {
     const trees: EntityTreeNode[] = [];
     const parentChildrenMap = new Map<EntityId, EntityId[]>();
@@ -13,7 +16,7 @@ export function useEntityTrees() {
       if (parent === null) {
         trees.push({
           id: child,
-          parent: null,
+          stringId: child.toString(),
           children: [],
         });
         continue;
@@ -30,7 +33,9 @@ export function useEntityTrees() {
       }
 
       curr.children = children
-        .map((child) => recur({ id: child, parent: curr.id, children: [] }))
+        .map((child) =>
+          recur({ id: child, stringId: child.toString(), children: [] })
+        )
         .sort((a, b) => getEntityIndex(a.id) - getEntityIndex(b.id));
 
       return curr;

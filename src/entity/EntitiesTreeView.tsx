@@ -1,144 +1,144 @@
-import { useEntityTrees } from '@/entity/useEntitiesTrees';
-import { EntityId, EntityTreeNode } from '@/entity/useEntity';
+import { EntityTreeNode, useEntityTrees } from '@/entity/useEntitiesTrees';
+import useResizeObserver from 'use-resize-observer';
+import { EntityId } from '@/entity/useEntity';
 import { buttonVariants } from '@/shared/ui/button';
-import { ScrollArea } from '@/shared/ui/scroll-area';
 import { useStore } from '@/store';
 import clsx from 'clsx';
 import { ChevronRight, Ellipsis } from 'lucide-react';
-import { memo, useCallback } from 'react';
-import { useShallow } from 'zustand/react/shallow';
-import {
-  UNSTABLE_Tree as Tree,
-  UNSTABLE_TreeItem as TreeItem,
-  UNSTABLE_TreeItemContent as TreeItemContent,
-  Collection,
-  Key,
-  TreeItemContentRenderProps,
-  Button as AriaButton,
-  Checkbox as AriaCheckbox,
-} from 'react-aria-components';
+import { CSSProperties, memo, ReactElement, useCallback } from 'react';
 import { cn } from '@/utils';
 import { bevyTypes } from '@/type-registry/types';
 import { EntityName } from './EntityName';
-import { isHiddenEntity } from './createEntitiesSlice';
 import { IconButton } from '@/shared/ui/icon-button';
 import { Menu, MenuItem, MenuPopover, MenuTrigger } from '@/shared/ui/menu';
 import { useDespawnEntity } from './useDespawnEntity';
 import { useToggleVisibility } from './useToggleVisibility';
+import {
+  CursorProps,
+  DragPreviewProps,
+  MoveHandler,
+  NodeApi,
+  NodeRendererProps,
+  Tree,
+} from 'react-arborist';
+import { useReparent } from './useReparent';
+
 export const EntitiesTreeView = memo(function EntitiesTreeView() {
   const entityTrees = useEntityTrees();
   const setInspectingEntity = useStore((state) => state.setInspectingEntity);
-  const hanndleOnAction = useCallback((entityId: Key) => {
-    setInspectingEntity(entityId as EntityId);
+
+  const inspectingEntity = useStore((state) => state.inspectingEntity);
+
+  const handleOnActive = useCallback((node: NodeApi<EntityTreeNode>) => {
+    setInspectingEntity(node.data.id);
   }, []);
 
-  const defaultExpandedKeys = useStore(
-    useShallow((state) => Array.from(state.entities.keys()))
-  );
+  const childParentMap = useStore((state) => state.childParentMap);
+  const reparent = useReparent();
+  const handleOnMove: MoveHandler<EntityTreeNode> = useCallback(
+    ({ dragNodes, parentNode: newParentNode }) => {
+      const node = dragNodes[0];
 
-  const inspectingEntity = useStore(
-    useShallow((state) => {
-      const inspectingEntity = state.inspectingEntity;
-      return new Set(inspectingEntity ? [inspectingEntity] : []);
-    })
-  );
+      if (!node) {
+        return;
+      }
 
-  const handleOnSelectionChange = useCallback((keys: any) => {
-    setInspectingEntity(Array.from(keys)[0] as EntityId);
-  }, []);
+      const oldParentId = childParentMap.get(node.data.id) ?? null;
+      const newParentId = newParentNode?.data.id ?? null;
+      if (oldParentId === newParentId || newParentId === node.data.id) {
+        return;
+      }
+      reparent(node.data.id, newParentId);
+    },
+    [childParentMap, reparent]
+  );
 
   if (entityTrees.length === 0) {
     return <div className="px-4 py-2">No entities</div>;
   }
 
   return (
-    <ScrollArea style={{ height: '100%', width: '100%' }} className="w-full">
-      <Tree
-        selectionMode="single"
-        items={entityTrees}
-        aria-label="Entities"
-        onAction={hanndleOnAction}
-        selectedKeys={inspectingEntity}
-        selectionBehavior="replace"
-        disallowEmptySelection
-        defaultExpandedKeys={defaultExpandedKeys}
-        onSelectionChange={handleOnSelectionChange}
-      >
-        {renderItem}
-      </Tree>
-    </ScrollArea>
+    <FillFlexParent>
+      {(dimens) => (
+        <Tree
+          {...dimens}
+          selection={inspectingEntity ? String(inspectingEntity) : undefined}
+          disableMultiSelection
+          openByDefault
+          overscanCount={1}
+          rowClassName="mt-2"
+          data={entityTrees}
+          onMove={handleOnMove}
+          renderCursor={Cursor}
+          idAccessor="stringId"
+          rowHeight={32}
+          renderDragPreview={DragPreview}
+          onActivate={handleOnActive}
+        >
+          {TreeNode}
+        </Tree>
+      )}
+    </FillFlexParent>
   );
 });
 
-function renderItem(item: EntityTreeNode) {
+function DragPreview({ mouse, id }: DragPreviewProps) {
+  if (!id || !mouse) {
+    return null;
+  }
   return (
-    <TreeItem textValue={String(item.id)} className="w-full">
-      <TreeItemContent>
-        {(props) => <EntityTreeItemContent item={item} itemProps={props} />}
-      </TreeItemContent>
-      <Collection items={item.children}>{renderItem}</Collection>
-    </TreeItem>
+    <div className="fixed pointer-events-none z-100 left-0 top-0 w-full h-full">
+      <div
+        className={cn(
+          buttonVariants({
+            size: 'sm',
+            variant: 'default',
+          }),
+          'justify-start flex-grow py-1 px-1 translate-x-4 -translate-y-1/2 absolute'
+        )}
+        style={{
+          left: mouse.x,
+          top: mouse.y,
+        }}
+      >
+        <EntityName id={Number(id)}></EntityName>
+      </div>
+    </div>
   );
 }
 
-const EntityTreeItemContent = ({
-  item,
-  itemProps,
-}: {
-  item: EntityTreeNode;
-  itemProps: TreeItemContentRenderProps;
-}) => {
-  const entityComponentIds = useStore(
-    useShallow((state) => Array.from(state.entities.get(item.id)?.keys() || []))
-  );
-
-  const allComponents = useStore((state) => state.components);
-  const isHidden = isHiddenEntity(entityComponentIds, allComponents);
-
-  if (isHidden) {
-    return null;
-  }
-
-  const { level, hasChildRows, isExpanded, isSelected } = itemProps;
-  const isRoot = level === 1;
-  // const childrenCount = countChildren(item);
-
+const TreeNode = memo(function RenderItem({
+  node,
+  dragHandle,
+}: NodeRendererProps<EntityTreeNode>) {
+  const nodeId = node.data.id;
+  const { level, isSelected, isRoot } = node;
+  const hasChildren = !!node.children && node.children.length > 0;
+  const isExpanded = node.isOpen;
   return (
     <div
-      className={clsx('gap-y-2 flex')}
+      className={clsx('flex')}
       style={
         !isRoot
           ? {
-              paddingLeft: `${(level - 1) * (hasChildRows ? 0.75 : 0.75)}rem`,
+              paddingLeft: `${level * 0.75}rem`,
             }
           : {}
       }
     >
-      <div className="w-6">
-        {hasChildRows && (
-          <>
-            <AriaButton
-              className={cn(
-                buttonVariants({
-                  variant: 'ghost',
-                  size: 'sm',
-                  className: 'p-1',
-                })
-              )}
-              slot="chevron"
-            >
-              <ChevronRight
-                className={clsx('size-4', {
-                  'transform rotate-90': isExpanded,
-                })}
-              />
-            </AriaButton>
-            <AriaCheckbox slot="selection" />
-          </>
+      <div className="w-6 flex items-center">
+        {hasChildren && (
+          <ChevronRight
+            onClick={() => node.isInternal && node.toggle()}
+            className={clsx('size-4', {
+              'transform rotate-90': isExpanded,
+            })}
+          />
         )}
       </div>
       <div className="flex w-full justify-between">
         <div
+          ref={dragHandle}
           className={cn(
             buttonVariants({
               size: 'sm',
@@ -146,16 +146,21 @@ const EntityTreeItemContent = ({
             }),
             'justify-start flex-grow py-1 px-1'
           )}
+          style={{ width: true ? 'fit-content' : '100%' }}
         >
-          <EntityName id={item.id}></EntityName>
+          <EntityName id={nodeId}></EntityName>
         </div>
-        <EntityActionMenu id={item.id} />
+        <EntityActionMenu id={nodeId} />
       </div>
     </div>
   );
-};
+});
 
-function EntityActionMenu({ id }: { id: EntityId }) {
+const EntityActionMenu = memo(function EntityActionMenu({
+  id,
+}: {
+  id: EntityId;
+}) {
   const despawn = useDespawnEntity();
   const visibilityComponentId = useStore((state) =>
     state.componentNameToIdMap.get(bevyTypes.VIEW_VISIBILITY)
@@ -183,7 +188,23 @@ function EntityActionMenu({ id }: { id: EntityId }) {
       </MenuPopover>
     </MenuTrigger>
   );
-}
+});
+
+const Cursor = memo(function Cursor({ top, left, indent }: CursorProps) {
+  const style: CSSProperties = {
+    position: 'absolute',
+    pointerEvents: 'none',
+    top: top - 2 + 'px',
+    left: left + 'px',
+    right: indent + 'px',
+  };
+  return (
+    <div className="flex items-center z-10" style={style}>
+      <div className="w-2 h-2 rounded-full bg-primary"></div>
+      <div className="flex-1 h-0.5 bg-primary rounded"></div>
+    </div>
+  );
+});
 
 // function countChildren(item: EntityTreeNode): number {
 //   const q = [...item.children]; // clone to avoid mutate by `.pop()`
@@ -199,3 +220,13 @@ function EntityActionMenu({ id }: { id: EntityId }) {
 
 //   return count;
 // }
+function FillFlexParent(props: {
+  children: (dimens: { width: number; height: number }) => ReactElement;
+}) {
+  const { ref, width, height } = useResizeObserver();
+  return (
+    <div className="flex-1 w-full h-full min-h-0 min-w-0" ref={ref}>
+      {width && height ? props.children({ width, height }) : null}
+    </div>
+  );
+}

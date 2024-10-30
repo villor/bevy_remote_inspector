@@ -411,23 +411,27 @@ pub struct SpawnEntity {
 }
 
 impl Execute for SpawnEntity {
-    type Output = ();
+    type Output = Entity;
 
     fn execute(
         self,
         _ctx: &mut InspectorContext,
         world: &mut World,
     ) -> anyhow::Result<Self::Output> {
-        if let Some(parent) = self.parent {
-            let Ok(mut parent) = world.get_entity_mut(parent) else {
+        let child = if let Some(parent) = self.parent {
+            if world.get_entity(parent).is_err() {
                 bail!("Parent entity does not exist");
             };
 
-            parent.with_child(());
-        } else {
-            world.spawn_empty();
-        }
+            let child = world.spawn_empty().id();
+            let mut parent = world.entity_mut(parent);
+            parent.add_child(child);
 
-        Ok(())
+            child
+        } else {
+            world.spawn_empty().id()
+        };
+
+        Ok(child)
     }
 }

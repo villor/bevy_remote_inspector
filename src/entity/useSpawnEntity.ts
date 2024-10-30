@@ -1,15 +1,23 @@
-import { useStore } from '@/store';
 import { useCallback } from 'react';
 import { EntityId } from './useEntity';
+import { useCommand } from '@/websocket/useCommand';
 
-export function useSpawnEntity(parent: EntityId | null) {
-  const sendMessage = useStore((state) => state.sendMessage);
+export function useSpawnEntity(
+  parent: EntityId | null,
+  onSpawn?: (id: EntityId) => void
+) {
+  const exec = useCommand();
   return useCallback(() => {
-    sendMessage({
+    exec({
       method: 'spawn_entity',
       params: {
         parent,
       },
+      onSuccess(result) {
+        if (typeof result === 'number') {
+          onSpawn?.(result);
+        }
+      },
     });
-  }, [sendMessage, parent]);
+  }, [parent, onSpawn]);
 }

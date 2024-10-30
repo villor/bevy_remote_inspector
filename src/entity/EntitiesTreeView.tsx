@@ -5,7 +5,18 @@ import { Button, buttonVariants } from '@/shared/ui/button';
 import { useStore } from '@/store';
 import clsx from 'clsx';
 import { ChevronRight, Ellipsis, Plus } from 'lucide-react';
-import { CSSProperties, memo, ReactElement, useCallback } from 'react';
+import {
+  createContext,
+  CSSProperties,
+  memo,
+  ReactElement,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { cn } from '@/utils';
 import { bevyTypes } from '@/type-registry/types';
 import { EntityName } from './EntityName';
@@ -20,9 +31,14 @@ import {
   NodeApi,
   NodeRendererProps,
   Tree,
+  TreeApi,
 } from 'react-arborist';
 import { useReparent } from './useReparent';
 import { useSpawnEntity } from './useSpawnEntity';
+
+const entityTreeCtx = createContext<{
+  setNewlySpawnedEntity: (id: EntityId) => void;
+}>({} as any);
 
 export const EntitiesTreeView = memo(function EntitiesTreeView() {
   const entityTrees = useEntityTrees();
@@ -54,33 +70,54 @@ export const EntitiesTreeView = memo(function EntitiesTreeView() {
     [childParentMap, reparent]
   );
 
+  const tree = useRef<TreeApi<EntityTreeNode> | null>(null);
+  const [newlySpawnedEntity, setNewlySpawnedEntity] = useState<EntityId | null>(
+    null
+  );
+  const ctxValue = useMemo(() => {
+    return {
+      setNewlySpawnedEntity,
+    };
+  }, [setNewlySpawnedEntity]);
+
+  useEffect(() => {
+    if (newlySpawnedEntity && childParentMap.has(newlySpawnedEntity)) {
+      setInspectingEntity(newlySpawnedEntity);
+    }
+  }, [newlySpawnedEntity, childParentMap]);
+
   if (entityTrees.length === 0) {
     return <div className="px-4 py-2">No entities</div>;
   }
 
   return (
     <div className="flex flex-col w-full h-full">
-      <FillFlexParent>
-        {(dimens) => (
-          <Tree
-            {...dimens}
-            selection={inspectingEntity ? String(inspectingEntity) : undefined}
-            disableMultiSelection
-            openByDefault
-            data={entityTrees}
-            onMove={handleOnMove}
-            renderCursor={Cursor}
-            idAccessor="stringId"
-            rowHeight={32}
-            paddingBottom={20}
-            renderDragPreview={DragPreview}
-            onActivate={handleOnActive}
-          >
-            {TreeNode}
-          </Tree>
-        )}
-      </FillFlexParent>
-      <SpawnNewEntityButton />
+      <entityTreeCtx.Provider value={ctxValue}>
+        <FillFlexParent>
+          {(dimens) => (
+            <Tree
+              {...dimens}
+              ref={tree}
+              selection={
+                inspectingEntity ? String(inspectingEntity) : undefined
+              }
+              disableMultiSelection
+              openByDefault
+              data={entityTrees}
+              onMove={handleOnMove}
+              renderCursor={Cursor}
+              idAccessor="stringId"
+              rowHeight={32}
+              paddingBottom={20}
+              renderDragPreview={DragPreview}
+              onActivate={handleOnActive}
+            >
+              {TreeNode}
+            </Tree>
+          )}
+        </FillFlexParent>
+        <SpawnNewEntityButton />
+      </entityTreeCtx.Provider>
     </div>
   );
 });
@@ -171,9 +208,10 @@ const EntityActionMenu = memo(function EntityActionMenu({
   const visibilityComponentId = useStore((state) =>
     state.componentNameToIdMap.get(bevyTypes.VIEW_VISIBILITY)
   );
+  const ctx = useContext(entityTreeCtx);
 
   const toggleVisibility = useToggleVisibility(id);
-  const spawnEntity = useSpawnEntity(id);
+  const spawnEntity = useSpawnEntity(id, (id) => ctx.setNewlySpawnedEntity(id));
 
   return (
     <MenuTrigger>
@@ -249,7 +287,12 @@ function FillFlexParent(props: {
 }
 
 function SpawnNewEntityButton() {
-  const spawnEntity = useSpawnEntity(null);
+  const ctx = useContext(entityTreeCtx);
+
+  const spawnEntity = useSpawnEntity(null, (id) => {
+    ctx.setNewlySpawnedEntity(id);
+  });
+
   return (
     <Button className="gap-x-1" onPress={spawnEntity}>
       <Plus className="size-4"></Plus>

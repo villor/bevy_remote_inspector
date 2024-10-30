@@ -12,7 +12,7 @@ export function useCommand() {
     }: {
       method: string;
       params: Record<string, any>;
-      onSuccess?: () => void;
+      onSuccess?: (result: any) => void;
       onError?: (message: string) => void;
     }) => {
       sendMessage({
@@ -22,7 +22,7 @@ export function useCommand() {
           if (data.error) {
             onError?.(data.error.message);
           } else {
-            onSuccess?.();
+            onSuccess?.(data.result);
           }
         },
       });

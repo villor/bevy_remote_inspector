@@ -46,19 +46,19 @@ export const EntitiesInspectorPanel = memo(function EntitiesInspectorPanel() {
 function InspectorComponentList({ entity }: { entity: EntityId }) {
   const componentIds = useEntityComponentIds(entity);
 
-  if (!componentIds) {
-    return `No components`;
-  }
-
   return (
     <div className="h-full w-full flex flex-col overflow-hidden items-center bg-background">
-      <ScrollArea style={{ height: 'auto', width: '100%' }}>
-        <div className="flex flex-col gap-y-4 px-2">
-          {componentIds.map((id) => (
-            <InspectorComponent entityId={entity} key={id} componentId={id} />
-          ))}
-        </div>
-      </ScrollArea>
+      {componentIds.length === 0 ? (
+        <div className="px-2 flex w-full">No components</div>
+      ) : (
+        <ScrollArea style={{ height: 'auto', width: '100%' }}>
+          <div className="flex flex-col gap-y-4 px-2">
+            {componentIds.map((id) => (
+              <InspectorComponent entityId={entity} key={id} componentId={id} />
+            ))}
+          </div>
+        </ScrollArea>
+      )}
     </div>
   );
 }

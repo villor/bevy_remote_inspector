@@ -1,5 +1,5 @@
-import { ComponentId } from '@/component/useComponents';
-import { EntityId } from './useEntity';
+import type { ComponentId } from '@/component/useComponents';
+import type { EntityId } from './useEntity';
 import { useStore } from '@/store';
 import { useCallback } from 'react';
 
@@ -16,6 +16,6 @@ export function useUpdateComponent(entity: EntityId, component: ComponentId) {
         },
       });
     },
-    [sendMessage, entity, component]
+    [sendMessage, entity, component],
   );
 }

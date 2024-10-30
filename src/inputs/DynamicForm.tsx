@@ -1,17 +1,7 @@
-import {
-  TValue,
-  TypeName,
-  useTypeRegistry,
-} from '@/type-registry/useTypeRegistry';
-import { Control, useForm, UseFormReturn } from 'react-hook-form';
+import { type TValue, type TypeName, useTypeRegistry } from '@/type-registry/useTypeRegistry';
+import { type Control, useForm, type UseFormReturn } from 'react-hook-form';
 import { getInputComponent } from './DynamicInput';
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useState,
-} from 'react';
+import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 
 export type DynamicFormProps = {
@@ -81,14 +71,14 @@ function DynamicFormInner({
       rhfSetValue(name, value);
       onChange(getValues()[ROOT_KEY]);
     },
-    [onChange, getValues]
+    [onChange, getValues],
   );
 
   const getValue: DynamicFormContext['getValue'] = useCallback(
     (name: string) => {
       return getValues(name);
     },
-    [getValues]
+    [getValues],
   );
 
   const ctx: DynamicFormContext = useMemo(() => {

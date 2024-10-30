@@ -1,8 +1,8 @@
 import {
-  TArray,
-  TSet,
-  TValue,
-  TypeName,
+  type TArray,
+  type TSet,
+  type TValue,
+  type TypeName,
   useTypeRegistry,
 } from '@/type-registry/useTypeRegistry';
 import { DynamicForm, useDynamicForm } from './DynamicForm';
@@ -18,10 +18,7 @@ export type ArrayInputProps = { typeInfo: TArray | TSet; path: string };
 import { memo } from 'react';
 import { useWatch } from 'react-hook-form';
 
-export const ArrayInput = memo(function ArrayInput({
-  path,
-  typeInfo,
-}: ArrayInputProps) {
+export const ArrayInput = memo(function ArrayInput({ path, typeInfo }: ArrayInputProps) {
   const { getValue, setValue, control } = useDynamicForm();
   useWatch({ control, name: path }); // force rerender to update newest value
   const value = getValue(path);
@@ -57,18 +54,14 @@ export const ArrayInput = memo(function ArrayInput({
           'grid-cols-[auto_1fr]': typeInfo.kind === 'array',
         })}
       >
-        {value.length === 0 && (
-          <div className="text-muted-foreground">Empty list</div>
-        )}
+        {value.length === 0 && <div className="text-muted-foreground">Empty list</div>}
         {value.map((item, i) => {
           const newPath = `${path}.${i}`;
           const key = typeInfo.kind === 'array' ? i : JSON.stringify(item);
           return (
             <Fragment key={key}>
               {typeInfo.kind === 'array' && <span>{i}</span>}
-              <DynamicInputContext.Provider
-                value={{ readOnly: typeInfo.kind === 'set' }}
-              >
+              <DynamicInputContext.Provider value={{ readOnly: typeInfo.kind === 'set' }}>
                 {getInputComponent({
                   typeName: typeInfo.item,
                   path: newPath,
@@ -99,10 +92,7 @@ export const ArrayInput = memo(function ArrayInput({
                 })}
               >
                 <InputLabel>Enter new item</InputLabel>
-                <PendingArrayInput
-                  itemType={typeInfo.item}
-                  onAdd={onAddItem}
-                ></PendingArrayInput>
+                <PendingArrayInput itemType={typeInfo.item} onAdd={onAddItem}></PendingArrayInput>
               </div>
             )}
           </>
@@ -120,9 +110,7 @@ function PendingArrayInput({
   onAdd: (value: TValue) => void;
 }) {
   const registry = useTypeRegistry();
-  const [value, setValue] = useState(() =>
-    resolveTypeDefaultValue(itemType, registry)
-  );
+  const [value, setValue] = useState(() => resolveTypeDefaultValue(itemType, registry));
   const handleOnAdd = () => {
     if (value === undefined) {
       toast({
@@ -142,12 +130,7 @@ function PendingArrayInput({
         typeName={itemType}
         allowUndefined
       ></DynamicForm>
-      <Button
-        type="button"
-        onPress={handleOnAdd}
-        size="sm"
-        className="col-span-2 w-full"
-      >
+      <Button type="button" onPress={handleOnAdd} size="sm" className="col-span-2 w-full">
         Add
       </Button>
     </>

@@ -8,11 +8,7 @@ export function EntitiesPanel() {
   return (
     <>
       <div className="flex w-full h-full pr-2">
-        <Tabs
-          value={tab}
-          onValueChange={setTab}
-          className="flex flex-col w-full h-full"
-        >
+        <Tabs value={tab} onValueChange={setTab} className="flex flex-col w-full h-full">
           <div className="flex justify-between items-center px-4 py-2">
             <div className="text-lg font-bold">Entities</div>
             <TabsList>

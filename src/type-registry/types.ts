@@ -1,4 +1,4 @@
-import {
+import type {
   TEnumVariantStruct,
   TEnumVariantTuple,
   TValue,
@@ -25,8 +25,7 @@ export const bevyTypes = {
   NODE: 'bevy_ui::ui_node::Node',
   TEXT: 'bevy_ui::widget::text::Text',
   TEXT_LAYOUT_INFO: 'bevy_text::pipeline::TextLayoutInfo',
-  GLOBAL_TRANSFORM:
-    'bevy_transform::components::global_transform::GlobalTransform',
+  GLOBAL_TRANSFORM: 'bevy_transform::components::global_transform::GlobalTransform',
   VIEW_VISIBILITY: 'bevy_render::view::visibility::ViewVisibility',
   VISIBILITY: 'bevy_render::view::visibility::Visibility',
   COLOR: 'bevy_color::color::Color',
@@ -34,7 +33,7 @@ export const bevyTypes = {
 
 export function resolveTypeDefaultValue(
   typeName: TypeName,
-  registry: TypeRegistry
+  registry: TypeRegistry,
 ): TValue | undefined {
   const typeInfo = registry.get(typeName);
   if (!typeInfo) {
@@ -115,7 +114,7 @@ export function resolveTypeDefaultValue(
 
 export function resolveEnumVariantDefaultValue(
   variant: TEnumVariantTuple | TEnumVariantStruct,
-  registry: TypeRegistry
+  registry: TypeRegistry,
 ) {
   if (variant.kind === 'tuple') {
     if (variant.fields.length === 1) {

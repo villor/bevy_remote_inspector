@@ -1,5 +1,5 @@
-import { AnyColor, ColorSpace, convertThrough } from './ColorInput';
-import { LabaOrOklaba } from './laba';
+import { type AnyColor, type ColorSpace, convertThrough } from './ColorInput';
+import type { LabaOrOklaba } from './laba';
 
 export type LchaOrOklcha = {
   lightness: number;

@@ -1,6 +1,6 @@
-import { ReactNode } from 'react'
-import { Header } from './Header'
-import { SideBar } from './Sidebar'
+import type { ReactNode } from 'react';
+import { Header } from './Header';
+import { SideBar } from './Sidebar';
 
 export function Layout({ children }: { children: ReactNode }) {
   return (
@@ -19,5 +19,5 @@ export function Layout({ children }: { children: ReactNode }) {
         </div>
       </div>
     </div>
-  )
+  );
 }

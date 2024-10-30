@@ -1,6 +1,6 @@
-import { AnyColor, ColorSpace, convertThrough } from './ColorInput';
-import { LabaOrOklaba } from './laba';
-import { Rgba } from './linearRgba';
+import { type AnyColor, type ColorSpace, convertThrough } from './ColorInput';
+import type { LabaOrOklaba } from './laba';
+import type { Rgba } from './linearRgba';
 
 export function fromOklaba(oklaba: LabaOrOklaba, to: ColorSpace): AnyColor {
   if (to === 'Oklaba') {

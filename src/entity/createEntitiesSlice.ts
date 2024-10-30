@@ -1,13 +1,9 @@
-import { CreateSlice, SharedSlice } from '@/store';
+import type { CreateSlice, SharedSlice } from '@/store';
 import { bevyTypes } from '@/type-registry/types';
-import { EntityId } from './useEntity';
-import {
-  ComponentId,
-  ComponentInfo,
-  ComponentValue,
-} from '@/component/useComponents';
-import { EntityMutaion, EntityMutationChange } from '@/websocket/createWsSlice';
-import { TValue } from '@/type-registry/useTypeRegistry';
+import type { EntityId } from './useEntity';
+import type { ComponentId, ComponentInfo, ComponentValue } from '@/component/useComponents';
+import type { EntityMutaion, EntityMutationChange } from '@/websocket/createWsSlice';
+import type { TValue } from '@/type-registry/useTypeRegistry';
 
 export type EntitiesSlice = {
   entities: Map<
@@ -98,8 +94,8 @@ export const createEntitiesSlice: CreateSlice<EntitiesSlice> = (set, get) => ({
         if (mutation.removes.length > 0) {
           console.error(
             `Receive removed component for untracked entity ${entity}: ${mutation.removes.join(
-              ', '
-            )}`
+              ', ',
+            )}`,
           );
         }
         entities.set(
@@ -108,19 +104,16 @@ export const createEntitiesSlice: CreateSlice<EntitiesSlice> = (set, get) => ({
             mutation.changes.map(([componentId, disabled, value]) => [
               componentId,
               { value, disabled },
-            ])
-          )
+            ]),
+          ),
         );
         if (!containsHiddenComponent(mutation, componentNameToIdMap)) {
           const parent = mutation.changes.find(
-            ([componentId]) => componentId === parentComponentId
+            ([componentId]) => componentId === parentComponentId,
           );
 
           if (parent) {
-            childParentMap.set(
-              entity,
-              parent[1] ? null : (parent[2] as EntityId)
-            );
+            childParentMap.set(entity, parent[1] ? null : (parent[2] as EntityId));
           } else {
             childParentMap.set(entity, null);
           }
@@ -212,11 +205,7 @@ function getEntityName(state: SharedSlice, id: EntityId) {
     const { short_name, name } = getComponentName(componentId);
 
     // Skip `Parent` and `Children` as they are not confusing
-    if (
-      short_name &&
-      name !== bevyTypes.PARENT &&
-      name !== bevyTypes.CHILDREN
-    ) {
+    if (short_name && name !== bevyTypes.PARENT && name !== bevyTypes.CHILDREN) {
       return short_name;
     }
   }
@@ -300,7 +289,7 @@ const hiddenEntityNames = [bevyTypes.OBSERVER, bevyTypes.SYSTEM_ID_MARKER];
 
 function containsHiddenComponent(
   mutation: EntityMutationChange,
-  nameToIdMap: Map<string, ComponentId>
+  nameToIdMap: Map<string, ComponentId>,
 ) {
   for (const [id] of mutation.changes) {
     for (const name of hiddenEntityNames) {
@@ -314,7 +303,7 @@ function containsHiddenComponent(
 
 export function isHiddenEntity(
   entityComponentIds: ComponentId[],
-  allComponents: Map<ComponentId, ComponentInfo>
+  allComponents: Map<ComponentId, ComponentInfo>,
 ) {
   for (const id of entityComponentIds) {
     const name = allComponents.get(id)?.name;

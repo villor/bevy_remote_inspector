@@ -1,5 +1,5 @@
 import { Badge } from '@/shared/ui/badge';
-import { EntityId } from './useEntity';
+import type { EntityId } from './useEntity';
 import { useEntityName } from './useEntityName';
 import { prettyEntityId } from './createEntitiesSlice';
 

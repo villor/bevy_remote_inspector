@@ -1,5 +1,5 @@
-import { AnyColor, ColorSpace, convertThrough } from './ColorInput';
-import { Hwba } from './hwba';
+import { type AnyColor, type ColorSpace, convertThrough } from './ColorInput';
+import type { Hwba } from './hwba';
 
 export type Hsva = {
   hue: number;

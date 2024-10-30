@@ -1,4 +1,4 @@
-import { TOpaque } from '@/type-registry/useTypeRegistry';
+import type { TOpaque } from '@/type-registry/useTypeRegistry';
 import { DynamicInputContext } from './DynamicInput';
 import { Input } from '@/shared/ui/input';
 import clsx from 'clsx';
@@ -25,11 +25,7 @@ export const OpaqueInput = memo(function OpaqueInput({
 }: OpaqueInputProps) {
   return (
     <div className={clsx(className, 'w-full flex items-center h-9')}>
-      <OpaqueInputInner
-        typeInfo={typeInfo}
-        path={path}
-        typeName={typeName}
-      ></OpaqueInputInner>
+      <OpaqueInputInner typeInfo={typeInfo} path={path} typeName={typeName}></OpaqueInputInner>
     </div>
   );
 });
@@ -43,8 +39,7 @@ const OpaqueInputInner = memo(
       typeName: string;
     }
   >(({ path, typeName }, ref) => {
-    const { getValue, setValue, readOnly, allowUndefined, control } =
-      useDynamicForm();
+    const { getValue, setValue, readOnly, allowUndefined, control } = useDynamicForm();
     useWatch({ control, name: path }); // force rerender to update newest value
     const value = getValue(path);
     const inputReadOnly = useContext(DynamicInputContext)?.readOnly;
@@ -91,5 +86,5 @@ const OpaqueInputInner = memo(
         />
       );
     }
-  })
+  }),
 );

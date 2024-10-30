@@ -1,4 +1,4 @@
-import { TEnum, TValueObject } from '@/type-registry/useTypeRegistry';
+import type { TEnum, TValueObject } from '@/type-registry/useTypeRegistry';
 import { useDynamicForm } from '../DynamicForm';
 import { Fragment, useMemo, useState } from 'react';
 import { NativeSelect } from '../../shared/ui/native-select';
@@ -8,26 +8,26 @@ import {
   Dialog,
   DialogTrigger,
   Popover,
-  ColorPickerProps,
+  type ColorPickerProps,
   ColorSwatch,
   ColorArea,
   parseColor,
   ColorThumb as AriaColorThumb,
   ColorSlider as AriaColorSlider,
   SliderTrack,
-  ColorSliderProps,
-  ColorThumbProps,
+  type ColorSliderProps,
+  type ColorThumbProps,
 } from 'react-aria-components';
 import { cn } from '@/utils';
-import { fromHsla, Hsla, toHsla } from './hsla';
-import { fromHsva, Hsva, toHsva } from './hsva';
-import { fromHwba, Hwba, toHwba } from './hwba';
-import { fromLaba, LabaOrOklaba, toLaba } from './laba';
-import { fromLcha, LchaOrOklcha, toLcha } from './lcha';
-import { Rgba } from './linearRgba';
+import { fromHsla, type Hsla, toHsla } from './hsla';
+import { fromHsva, type Hsva, toHsva } from './hsva';
+import { fromHwba, type Hwba, toHwba } from './hwba';
+import { fromLaba, type LabaOrOklaba, toLaba } from './laba';
+import { fromLcha, type LchaOrOklcha, toLcha } from './lcha';
+import type { Rgba } from './linearRgba';
 import { fromOklaba, toOklaba } from './oklaba';
 import { fromOkLcha, toOkLcha } from './oklcha';
-import { fromXyza, toXyza, Xyza } from './xyza';
+import { fromXyza, toXyza, type Xyza } from './xyza';
 import { fromSrgba, toSrgba } from './srgba';
 import { useWatch } from 'react-hook-form';
 
@@ -52,24 +52,20 @@ export function ColorInput({ typeInfo, path }: ColorInputProps) {
   const { unregister, setValue, control } = useDynamicForm();
   const value = useWatch({ control, name: path }) as TValueObject;
   const currentColor = Object.values(value)[0] as AnyColor;
-  const [selectedColorSpace, setSelectedColorSpace] = useState<ColorSpace>(
-    () => {
-      return typeInfo.variants.find((v) => {
-        return v.name === Object.keys(value)[0];
-      })!.name as ColorSpace;
-    }
-  );
+  const [selectedColorSpace, setSelectedColorSpace] = useState<ColorSpace>(() => {
+    return typeInfo.variants.find((v) => {
+      return v.name === Object.keys(value)[0];
+    })!.name as ColorSpace;
+  });
 
   const { red, green, blue, alpha } = convertColor(
     currentColor,
     selectedColorSpace,
-    'Srgba'
+    'Srgba',
   ) as Rgba;
 
   const ariaColor = useMemo(() => {
-    return parseColor(
-      `rgba(${red * 255}, ${green * 255}, ${blue * 255}, ${alpha})`
-    );
+    return parseColor(`rgba(${red * 255}, ${green * 255}, ${blue * 255}, ${alpha})`);
   }, [red, green, blue, alpha]);
 
   return (
@@ -82,11 +78,7 @@ export function ColorInput({ typeInfo, path }: ColorInputProps) {
             const newColorSpace = e.target.value as ColorSpace;
             const newPath = `${path}.${newColorSpace}`;
             unregister(path);
-            const newColor = convertColor(
-              currentColor,
-              selectedColorSpace,
-              newColorSpace
-            );
+            const newColor = convertColor(currentColor, selectedColorSpace, newColorSpace);
             setValue(newPath, newColor);
             setSelectedColorSpace(newColorSpace);
           }}
@@ -111,7 +103,7 @@ export function ColorInput({ typeInfo, path }: ColorInputProps) {
                   alpha: rgba.alpha,
                 },
                 'Srgba',
-                selectedColorSpace
+                selectedColorSpace,
               );
               setValue(newPath, newColor);
             }}
@@ -198,55 +190,32 @@ function ColorThumb(props: ColorThumbProps) {
       {...props}
       className={cn(
         'w-6 h-6 top-[50%] left-[50%] rounded-full border-2 border-white',
-        props.className
+        props.className,
       )}
     />
   );
 }
 
-export type AnyColor =
-  | Rgba
-  | Hsla
-  | Hsva
-  | Hwba
-  | LabaOrOklaba
-  | LchaOrOklcha
-  | Xyza;
+export type AnyColor = Rgba | Hsla | Hsva | Hwba | LabaOrOklaba | LchaOrOklcha | Xyza;
 
-function convertColor(
-  color: AnyColor,
-  from: ColorSpace,
-  to: ColorSpace
-): AnyColor {
+function convertColor(color: AnyColor, from: ColorSpace, to: ColorSpace): AnyColor {
   if (from === to) {
     return color;
   }
 
-  if (
-    from === 'Hsla' &&
-    match(to, 'Hsva', 'Hwba', 'Srgba', 'LinearRgba', 'Lcha', 'Xyza')
-  ) {
+  if (from === 'Hsla' && match(to, 'Hsva', 'Hwba', 'Srgba', 'LinearRgba', 'Lcha', 'Xyza')) {
     return fromHsla(color as Hsla, to);
   }
 
-  if (
-    to === 'Hsla' &&
-    match(from, 'Hsva', 'Hwba', 'Srgba', 'LinearRgba', 'Lcha', 'Xyza')
-  ) {
+  if (to === 'Hsla' && match(from, 'Hsva', 'Hwba', 'Srgba', 'LinearRgba', 'Lcha', 'Xyza')) {
     return toHsla(color, from);
   }
 
-  if (
-    from === 'Hsva' &&
-    match(to, 'Hwba', 'Srgba', 'LinearRgba', 'Lcha', 'Xyza')
-  ) {
+  if (from === 'Hsva' && match(to, 'Hwba', 'Srgba', 'LinearRgba', 'Lcha', 'Xyza')) {
     return fromHsva(color as Hsva, to);
   }
 
-  if (
-    to === 'Hsva' &&
-    match(from, 'Hwba', 'Srgba', 'LinearRgba', 'Lcha', 'Hsva', 'Xyza')
-  ) {
+  if (to === 'Hsva' && match(from, 'Hwba', 'Srgba', 'LinearRgba', 'Lcha', 'Hsva', 'Xyza')) {
     return toHsva(color, from);
   }
 
@@ -296,36 +265,14 @@ function convertColor(
 
   if (
     from === 'Oklcha' &&
-    match(
-      to,
-      'Oklaba',
-      'Hsla',
-      'Hsva',
-      'Hwba',
-      'Laba',
-      'Lcha',
-      'LinearRgba',
-      'Srgba',
-      'Xyza'
-    )
+    match(to, 'Oklaba', 'Hsla', 'Hsva', 'Hwba', 'Laba', 'Lcha', 'LinearRgba', 'Srgba', 'Xyza')
   ) {
     return fromOkLcha(color as LchaOrOklcha, to);
   }
 
   if (
     to === 'Oklcha' &&
-    match(
-      from,
-      'Oklaba',
-      'Hsla',
-      'Hsva',
-      'Hwba',
-      'Laba',
-      'Lcha',
-      'LinearRgba',
-      'Srgba',
-      'Xyza'
-    )
+    match(from, 'Oklaba', 'Hsla', 'Hsva', 'Hwba', 'Laba', 'Lcha', 'LinearRgba', 'Srgba', 'Xyza')
   ) {
     return toOkLcha(color, from);
   }
@@ -357,7 +304,7 @@ export function convertThrough<T extends AnyColor = AnyColor>(
   color: AnyColor,
   from: ColorSpace,
   through: ColorSpace,
-  to: ColorSpace
+  to: ColorSpace,
 ) {
   console.log(`converting from ${from} through ${through} to ${to}`);
   const intermediate = convertColor(color, from, through);

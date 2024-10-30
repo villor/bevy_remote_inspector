@@ -1,16 +1,16 @@
-import * as React from 'react';
+import type * as React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { X } from 'lucide-react';
 import {
   Button as AriaButton,
   Dialog as AriaDialog,
-  DialogProps as AriaDialogProps,
+  type DialogProps as AriaDialogProps,
   DialogTrigger as AriaDialogTrigger,
   Heading as AriaHeading,
-  HeadingProps as AriaHeadingProps,
+  type HeadingProps as AriaHeadingProps,
   Modal as AriaModal,
   ModalOverlay as AriaModalOverlay,
-  ModalOverlayProps as AriaModalOverlayProps,
+  type ModalOverlayProps as AriaModalOverlayProps,
   composeRenderProps,
 } from 'react-aria-components';
 
@@ -37,16 +37,12 @@ const sheetVariants = cva(
           'inset-y-0 right-0 h-full w-3/4  border-l data-[entering]:slide-in-from-right data-[exiting]:slide-out-to-right sm:max-w-sm',
       },
     },
-  }
+  },
 );
 
 const DialogTrigger = AriaDialogTrigger;
 
-const DialogOverlay = ({
-  className,
-  isDismissable = true,
-  ...props
-}: AriaModalOverlayProps) => (
+const DialogOverlay = ({ className, isDismissable = true, ...props }: AriaModalOverlayProps) => (
   <AriaModalOverlay
     isDismissable={isDismissable}
     className={composeRenderProps(className, (className) =>
@@ -56,8 +52,8 @@ const DialogOverlay = ({
         'data-[exiting]:duration-300 data-[exiting]:animate-out data-[exiting]:fade-out-0',
         /* Entering */
         'data-[entering]:animate-in data-[entering]:fade-in-0',
-        className
-      )
+        className,
+      ),
     )}
     {...props}
   />
@@ -85,15 +81,12 @@ const DialogContent = ({
         side
           ? sheetVariants({ side, className: 'h-full p-6' })
           : 'fixed left-[50vw] top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 border bg-background p-6 shadow-lg duration-200 data-[exiting]:duration-300 data-[entering]:animate-in data-[exiting]:animate-out data-[entering]:fade-in-0 data-[exiting]:fade-out-0 data-[entering]:zoom-in-95 data-[exiting]:zoom-out-95 data-[entering]:slide-in-from-left-1/2 data-[entering]:slide-in-from-top-[48%] data-[exiting]:slide-out-to-left-1/2 data-[exiting]:slide-out-to-top-[48%] sm:rounded-lg md:w-full',
-        className
-      )
+        className,
+      ),
     )}
     {...props}
   >
-    <AriaDialog
-      role={role}
-      className={cn(!side && 'grid h-full gap-4', 'h-full outline-none')}
-    >
+    <AriaDialog role={role} className={cn(!side && 'grid h-full gap-4', 'h-full outline-none')}>
       {composeRenderProps(children, (children, renderProps) => (
         <>
           {children}
@@ -112,28 +105,13 @@ const DialogContent = ({
   </AriaModal>
 );
 
-const DialogHeader = ({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>) => (
-  <div
-    className={cn(
-      'flex flex-col space-y-1.5 text-center sm:text-left',
-      className
-    )}
-    {...props}
-  />
+const DialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
+  <div className={cn('flex flex-col space-y-1.5 text-center sm:text-left', className)} {...props} />
 );
 
-const DialogFooter = ({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>) => (
+const DialogFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
-    className={cn(
-      'flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2',
-      className
-    )}
+    className={cn('flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2', className)}
     {...props}
   />
 );
@@ -141,25 +119,13 @@ const DialogFooter = ({
 const DialogTitle = ({ className, ...props }: AriaHeadingProps) => (
   <AriaHeading
     slot="title"
-    className={cn(
-      'text-lg font-semibold leading-none tracking-tight',
-      className
-    )}
+    className={cn('text-lg font-semibold leading-none tracking-tight', className)}
     {...props}
   />
 );
 
-const DialogDescription = ({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLParagraphElement>) => (
-  <p
-    className={cn(
-      'flex flex-col space-y-1.5 text-center sm:text-left',
-      className
-    )}
-    {...props}
-  />
+const DialogDescription = ({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) => (
+  <p className={cn('flex flex-col space-y-1.5 text-center sm:text-left', className)} {...props} />
 );
 
 export {

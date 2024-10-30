@@ -1,26 +1,11 @@
-import { ComponentId, useComponentInfo } from '@/component/useComponents';
-import {
-  EntityId,
-  useEntityComponentIds,
-  useEntityComponentValue,
-} from '@/entity/useEntity';
+import { type ComponentId, useComponentInfo } from '@/component/useComponents';
+import { type EntityId, useEntityComponentIds, useEntityComponentValue } from '@/entity/useEntity';
 import { DynamicForm } from '@/inputs/DynamicForm';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/shared/ui/collapsible';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/shared/ui/collapsible';
 import { ScrollArea } from '@/shared/ui/scroll-area';
 import { useStore } from '@/store';
-import {
-  ChevronRight,
-  Copy,
-  Ellipsis,
-  Eye,
-  EyeOff,
-  Trash2,
-} from 'lucide-react';
-import { ReactNode } from 'react';
+import { ChevronRight, Copy, Ellipsis, Eye, EyeOff, Trash2 } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useUpdateComponent } from './useUpdateComponent';
 import { memo } from 'react';
 import { useTypeRegistry } from '@/type-registry/useTypeRegistry';
@@ -87,9 +72,7 @@ function InspectorComponent({
   entityId: EntityId;
 }) {
   const { value, disabled } = useEntityComponentValue(entityId, componentId);
-  const { name, short_name } = useStore((state) => state.getComponentName)(
-    componentId
-  );
+  const { name, short_name } = useStore((state) => state.getComponentName)(componentId);
 
   const info = useComponentInfo(componentId)!;
   const updateEntityComponent = useUpdateComponent(entityId, componentId);
@@ -122,12 +105,10 @@ function InspectorComponent({
   const toggleComponent = useToggleComponent(entityId, componentId);
   const removeComponent = useRemoveComponent(entityId, componentId);
   const isOpen = useStore(
-    (state) =>
-      state.entityComponentCollapseState.get(entityId)?.get(componentId) ??
-      false
+    (state) => state.entityComponentCollapseState.get(entityId)?.get(componentId) ?? false,
   );
   const setEntityComponentCollapseState = useStore(
-    (state) => state.setEntityComponentCollapseState
+    (state) => state.setEntityComponentCollapseState,
   );
 
   const handleOpenChange = (collapsed: boolean) => {
@@ -151,11 +132,7 @@ function InspectorComponent({
             className="hover:bg-primary-foreground/75"
             tooltip={disabled ? 'Enable component' : 'Disable component'}
           >
-            {disabled ? (
-              <EyeOff className="size-4" />
-            ) : (
-              <Eye className="size-4" />
-            )}
+            {disabled ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
           </IconButton>
           <MenuTrigger>
             <IconButton className="hover:bg-primary-foreground/75">
@@ -176,20 +153,14 @@ function InspectorComponent({
                     Copy name
                   </MenuItem>
                 )}
-                <MenuItem
-                  onAction={removeComponent}
-                  variant="danger"
-                  icon={Trash2}
-                >
+                <MenuItem onAction={removeComponent} variant="danger" icon={Trash2}>
                   Remove
                 </MenuItem>
               </Menu>
             </MenuPopover>
           </MenuTrigger>
         </div>
-        <CollapsibleContent className="overflow-hidden w-full">
-          {children}
-        </CollapsibleContent>
+        <CollapsibleContent className="overflow-hidden w-full">{children}</CollapsibleContent>
       </Collapsible>
     </div>
   );

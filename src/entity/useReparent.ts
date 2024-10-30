@@ -1,6 +1,6 @@
 import { useStore } from '@/store';
 import { useCallback } from 'react';
-import { EntityId } from './useEntity';
+import type { EntityId } from './useEntity';
 
 export function useReparent() {
   const sendMessage = useStore((state) => state.sendMessage);
@@ -14,6 +14,6 @@ export function useReparent() {
         },
       });
     },
-    [sendMessage]
+    [sendMessage],
   );
 }

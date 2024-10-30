@@ -1,7 +1,7 @@
-import { ElementType } from 'react';
+import type { ElementType } from 'react';
 import { Tooltip, TooltipTrigger } from '../shared/ui/tooltip';
 import { ComponentIcon, TableProperties } from 'lucide-react';
-import { Page, usePage } from '@/usePage';
+import { type Page, usePage } from '@/usePage';
 import clsx from 'clsx';
 import { Button } from 'react-aria-components';
 
@@ -38,7 +38,7 @@ function SideBarItem({
           {
             'text-accent-foreground bg-muted': isActive,
             'text-muted-foreground hover:bg-muted': !isActive,
-          }
+          },
         )}
       >
         <Icon className="h-5 w-5" />

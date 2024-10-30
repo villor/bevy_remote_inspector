@@ -1,6 +1,6 @@
-import { CreateSlice } from '@/store';
-import { ComponentId, ComponentInfo, ComponentName } from './useComponents';
-import { ComponentsEvent } from '@/websocket/createWsSlice';
+import type { CreateSlice } from '@/store';
+import type { ComponentId, ComponentInfo, ComponentName } from './useComponents';
+import type { ComponentsEvent } from '@/websocket/createWsSlice';
 
 export type ComponentsSlice = {
   components: Map<ComponentId, ComponentInfo>;
@@ -12,10 +12,7 @@ export type ComponentsSlice = {
   };
 };
 
-export const createComponentsSlice: CreateSlice<ComponentsSlice> = (
-  set,
-  get
-) => ({
+export const createComponentsSlice: CreateSlice<ComponentsSlice> = (set, get) => ({
   components: new Map(),
   componentNameToIdMap: new Map(),
   updateComponents: (newComponents) => {

@@ -1,6 +1,6 @@
-import { AnyColor, ColorSpace, convertThrough } from './ColorInput';
-import { LabaOrOklaba } from './laba';
-import { LchaOrOklcha } from './lcha';
+import { type AnyColor, type ColorSpace, convertThrough } from './ColorInput';
+import type { LabaOrOklaba } from './laba';
+import type { LchaOrOklcha } from './lcha';
 
 export function fromOkLcha(oklcha: LchaOrOklcha, to: ColorSpace): AnyColor {
   if (to === 'Oklcha') {

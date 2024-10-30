@@ -21,10 +21,7 @@ import { isHiddenEntity } from '@/entity/createEntitiesSlice';
 import { ScrollArea } from '@/shared/ui/scroll-area';
 import { useWatch } from 'react-hook-form';
 
-export const EntityInput = memo(function EntityInput({
-  path,
-  mode,
-}: EntityInputProps) {
+export const EntityInput = memo(function EntityInput({ path, mode }: EntityInputProps) {
   const { setValue, control, readOnly } = useDynamicForm();
   const value = useWatch({ control, name: path });
   const allEntities = useStore((state) => state.entities);

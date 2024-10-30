@@ -1,5 +1,5 @@
-import { AnyColor, ColorSpace, convertThrough } from './ColorInput';
-import { Rgba } from './linearRgba';
+import { type AnyColor, type ColorSpace, convertThrough } from './ColorInput';
+import type { Rgba } from './linearRgba';
 export type Hwba = {
   hue: number;
   whiteness: number;

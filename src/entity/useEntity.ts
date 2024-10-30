@@ -6,12 +6,6 @@ import { useMemo } from 'react';
 
 export type EntityId = number;
 
-export type EntityTreeNode = {
-  id: EntityId;
-  parent: EntityId | null;
-  children: EntityTreeNode[];
-};
-
 export function useEntity(id: EntityId) {
   return useStore(useShallow((state) => state.entities.get(id)));
 }

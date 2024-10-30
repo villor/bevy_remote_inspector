@@ -1,6 +1,5 @@
 import { Github } from 'lucide-react';
 import { Button } from '../shared/ui/button';
-import { ThemeToggle } from '@/theme/ThemeToggle';
 
 export function Header() {
   return (
@@ -12,10 +11,10 @@ export function Header() {
           target="_blank"
         >
           <Button variant="outline" size="icon">
-            <Github className="h-[1.2rem] w-[1.2rem]" />
+            <Github className="size-4" />
           </Button>
         </a>
-        <ThemeToggle />
+        {/* <ThemeToggle /> */}
       </nav>
     </div>
   );

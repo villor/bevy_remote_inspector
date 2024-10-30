@@ -15,7 +15,7 @@ function App() {
   return (
     <>
       <WebsocketConnector />
-      <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+      <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
         <WebSocketReconnectOverlay />
         <Layout>
           <RenderedPage />

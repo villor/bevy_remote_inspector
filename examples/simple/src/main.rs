@@ -3,26 +3,19 @@
 use std::fmt::Debug;
 
 use bevy::{
+    color::palettes::tailwind,
     input::common_conditions::input_just_pressed,
     prelude::*,
-    remote::RemotePlugin,
     utils::{HashMap, HashSet},
 };
-use bevy_remote_inspector::{
-    remote_stream::{websocket::RemoteStreamWebSocketPlugin, RemoteStreamPlugin},
-    RemoteInspectorPlugin,
-};
+use bevy_remote_inspector::RemoteInspectorPlugins;
 use serde::{Deserialize, Serialize};
 
 fn main() {
     let mut app = App::new();
+
     app.add_plugins(DefaultPlugins)
-        .add_plugins((
-            RemotePlugin::default(),
-            RemoteStreamPlugin::default(),
-            RemoteStreamWebSocketPlugin::default(),
-            RemoteInspectorPlugin,
-        ))
+        .add_plugins(RemoteInspectorPlugins)
         .add_systems(Startup, setup)
         .add_systems(
             Update,
@@ -31,7 +24,6 @@ fn main() {
                 add_cube_children.run_if(input_just_pressed(KeyCode::KeyA)),
                 remove_cube_children.run_if(input_just_pressed(KeyCode::KeyS)),
                 update_text,
-                log_change::<MyColor>,
             ),
         )
         .register_type::<Cube>()
@@ -52,8 +44,23 @@ fn main() {
         .register_type::<ShouldRotate>()
         .register_type::<MyEntityWrapper>();
 
+    app.world_mut().register_component::<ShouldRotate>();
+
+    app.add_systems(Startup, |world: &mut World| {
+        let id = world.spawn_empty().id();
+        world.insert_resource(MyRes(id));
+    })
+    .add_systems(PostStartup, |world: &mut World| {
+        let id = world.resource::<MyRes>().0;
+
+        world.entity_mut(id).insert(Text::new("Hello, Bevy!"));
+    });
+
     app.run();
 }
+
+#[derive(Resource)]
+struct MyRes(Entity);
 
 #[derive(Component, Reflect, Debug)]
 struct MyComponent {
@@ -85,7 +92,6 @@ fn setup(
             MeshMaterial3d(materials.add(Color::srgb_u8(124, 144, 255))),
             Transform::from_xyz(0.0, 0.5, 0.0),
             Cube(1.0),
-            ShouldRotate,
         ))
         .with_children(|parent| {
             parent.spawn(CubeChild(0));
@@ -178,20 +184,68 @@ fn setup(
             b: "Example String".to_string(),
         },
     ));
-    commands.spawn(Text::default());
+    commands.spawn((
+        Text::default(),
+        MyText,
+        Node {
+            position_type: PositionType::Absolute,
+            bottom: Val::Px(0.),
+            left: Val::Px(0.),
+            ..default()
+        },
+    ));
 
     let id = commands.spawn(MyColor(Color::srgb(1., 0., 0.))).id();
     commands.spawn(MyEntityWrapper(id));
-}
 
-fn log_change<T: Component + Debug>(query: Query<&T, Changed<T>>) {
-    for my_component in query.iter() {
-        println!("changed to {:?}", my_component);
-    }
+    commands
+        .spawn(Node {
+            width: Val::Percent(100.),
+            ..default()
+        })
+        .with_children(|parent| {
+            parent
+                .spawn((
+                    Node {
+                        display: Display::Grid,
+
+                        // tailwind equivalent: grid-cols-3
+                        grid_template_columns: RepeatedGridTrack::minmax(
+                            3,
+                            MinTrackSizingFunction::Px(0.),
+                            MaxTrackSizingFunction::Fraction(1.),
+                        ),
+                        width: Val::Percent(100.),
+                        row_gap: Val::Px(10.),
+                        column_gap: Val::Px(10.),
+                        padding: UiRect::all(Val::Px(10.)),
+                        ..default()
+                    },
+                    BackgroundColor(tailwind::BLUE_500.into()),
+                ))
+                .with_children(|parent| {
+                    for i in 0..4 {
+                        let mut parent_command = parent.spawn((
+                            Node {
+                                height: Val::Px(50.),
+                                width: Val::Percent(100.),
+                                ..default()
+                            },
+                            BackgroundColor(tailwind::GREEN_500.into()),
+                        ));
+
+                        if i == 3 {
+                            parent_command.with_children(|parent| {
+                                parent.spawn(Text::new("Some text here!"));
+                            });
+                        }
+                    }
+                });
+        });
 }
 
 fn update_text(
-    mut query: Query<&mut Text>,
+    mut query: Query<&mut Text, With<MyText>>,
     my_enum2_query: Query<&MyEnum2, (Without<Text>, Changed<MyEnum2>)>,
 ) {
     let mut text = query.single_mut();
@@ -310,3 +364,6 @@ struct ShouldRotate;
 
 #[derive(Debug, Reflect, Component)]
 struct MyEntityWrapper(Entity);
+
+#[derive(Component)]
+struct MyText;

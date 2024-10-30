@@ -4,7 +4,7 @@ import { Button } from '../shared/ui/button';
 export function Header() {
   return (
     <div className="flex w-full justify-between px-6 items-center bg-background h-14 border-b border-muted">
-      Header here
+      Bevy Remote Inspector
       <nav className="flex items-center space-x-2">
         <a
           href="https://github.com/notmd/bevy_remote_inspector"

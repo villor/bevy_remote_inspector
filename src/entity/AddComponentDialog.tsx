@@ -252,7 +252,6 @@ function ComponentForm({
 }
 
 function renderItem(item: { name: string; id: number; reflected: boolean }) {
-  console.log(item);
   return (
     <ComboboxItem
       id={item.id}

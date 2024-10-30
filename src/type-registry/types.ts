@@ -51,7 +51,7 @@ export function resolveTypeDefaultValue(
 
   if (typeInfo.kind === 'struct') {
     if (typeInfo.fields.length === 0) {
-      return null;
+      return {};
     }
 
     const value: TValueObject = {};

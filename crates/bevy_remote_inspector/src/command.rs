@@ -268,18 +268,28 @@ impl Execute for InsertComponent {
             let registration = registry
                 .get(type_id)
                 .ok_or(anyhow!("Component is not registered"))?;
+            let reflect_component = registration.data::<ReflectComponent>();
 
             let deserializer = TypedReflectDeserializer::new(registration, &registry);
-            let deserialized = deserializer.deserialize(self.value)?;
-            let reflect = deserialized
-                .try_as_reflect()
-                .ok_or(anyhow!("Can not convert to Reflect"))?;
+            let partial_reflect = deserializer.deserialize(&self.value)?;
 
             let mut entity = world.get_entity_mut(self.entity)?;
-
             if entity.get_by_id(component_id).is_ok() {
                 bail!("Component already exists")
             }
+
+            if let Some(reflect_component) = reflect_component {
+                reflect_component.insert(&mut entity, partial_reflect.as_ref(), &registry);
+                return Ok(());
+            }
+
+            let reflect = partial_reflect.try_into_reflect().map_err(|_| {
+                anyhow!(
+                    "Can not convert {:?} to Reflect for type {}",
+                    self.value,
+                    registration.type_info().type_path()
+                )
+            })?;
 
             OwningPtr::make(reflect, |ptr| unsafe {
                 entity.insert_by_id(component_id, ptr);

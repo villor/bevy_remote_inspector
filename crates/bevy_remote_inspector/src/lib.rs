@@ -4,13 +4,15 @@ mod entity;
 mod type_registry;
 
 use bevy::{
+    app::PluginGroupBuilder,
     ecs::{component::ComponentId, entity::EntityHashMap},
     prelude::*,
     remote::{error_codes, BrpError, BrpResult},
     utils::{HashMap, HashSet},
 };
 use bevy_remote_stream::{
-    OnDataHandlerInput, RemoteStreamHandlers, StreamClientId, StreamHandlerInputRef, StreamMethods,
+    websocket::RemoteStreamWebSocketPlugin, OnDataHandlerInput, RemoteStreamHandlers,
+    RemoteStreamPlugin, StreamClientId, StreamHandlerInputRef, StreamMethods,
 };
 use command::Command;
 use component::InspectorComponentInfo;
@@ -18,7 +20,7 @@ use entity::EntityMutation;
 use serde::Serialize;
 use serde_json::Value;
 use type_registry::ZeroSizedTypes;
-pub mod remote_stream {
+pub mod stream {
     pub use bevy_remote_stream::*;
 }
 
@@ -42,6 +44,17 @@ impl Plugin for RemoteInspectorPlugin {
         app.init_resource::<TrackedDatas>()
             .init_resource::<DisabledComponents>()
             .init_resource::<EntityVisibilities>();
+    }
+}
+
+pub struct RemoteInspectorPlugins;
+
+impl PluginGroup for RemoteInspectorPlugins {
+    fn build(self) -> PluginGroupBuilder {
+        PluginGroupBuilder::start::<Self>()
+            .add(RemoteStreamPlugin::default())
+            .add(RemoteStreamWebSocketPlugin::default())
+            .add(RemoteInspectorPlugin)
     }
 }
 
@@ -98,7 +111,7 @@ fn on_data(In((_, req)): OnDataHandlerInput, world: &mut World) -> Option<BrpRes
         }
     };
 
-    info!("New request: {:?}", command);
+    trace!("New request: {:?}", command);
 
     InspectorContext::run(world, |ctx, world| {
         let result = command.execute(ctx, world);
@@ -118,11 +131,11 @@ fn on_data(In((_, req)): OnDataHandlerInput, world: &mut World) -> Option<BrpRes
 
 fn on_disconnect(InRef(input): StreamHandlerInputRef, mut tracked: ResMut<TrackedDatas>) {
     tracked.remove(&input.client_id);
-    info!("Client {:?} disconnected", input.client_id);
+    debug!("Client {:?} disconnected", input.client_id);
 }
 
 fn on_connect(InRef(input): StreamHandlerInputRef) -> Option<BrpResult> {
-    info!("Client {:?} connected", input.client_id);
+    debug!("Client {:?} connected", input.client_id);
     None
 }
 

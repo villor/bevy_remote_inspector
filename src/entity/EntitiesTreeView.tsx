@@ -1,10 +1,17 @@
 import { EntityTreeNode, useEntityTrees } from '@/entity/useEntitiesTrees';
 import useResizeObserver from 'use-resize-observer';
-import { EntityId } from '@/entity/useEntity';
+import { EntityId, useEntity } from '@/entity/useEntity';
 import { Button, buttonVariants } from '@/shared/ui/button';
 import { useStore } from '@/store';
 import clsx from 'clsx';
-import { ChevronRight, Ellipsis, Plus } from 'lucide-react';
+import {
+  ChevronRight,
+  Ellipsis,
+  Eye,
+  EyeOff,
+  Plus,
+  Trash2,
+} from 'lucide-react';
 import {
   createContext,
   CSSProperties,
@@ -147,7 +154,7 @@ function DragPreview({ mouse, id }: DragPreviewProps) {
   );
 }
 
-const TreeNode = memo(function RenderItem({
+const TreeNode = memo(function TreeNode({
   node,
   dragHandle,
 }: NodeRendererProps<EntityTreeNode>) {
@@ -155,6 +162,7 @@ const TreeNode = memo(function RenderItem({
   const { level, isSelected, isRoot } = node;
   const hasChildren = !!node.children && node.children.length > 0;
   const isExpanded = node.isOpen;
+
   return (
     <div
       className={clsx('flex')}
@@ -205,9 +213,11 @@ const EntityActionMenu = memo(function EntityActionMenu({
 }) {
   const despawnRecursive = useDespawnEntity(id, 'recursive');
   const despawnDescendant = useDespawnEntity(id, 'descendant');
+  const components = useEntity(id);
   const visibilityComponentId = useStore((state) =>
     state.componentNameToIdMap.get(bevyTypes.VIEW_VISIBILITY)
   );
+  const viewVisibility = components?.get(visibilityComponentId ?? -1);
   const ctx = useContext(entityTreeCtx);
 
   const toggleVisibility = useToggleVisibility(id);
@@ -221,19 +231,23 @@ const EntityActionMenu = memo(function EntityActionMenu({
       <MenuPopover>
         <Menu>
           <MenuItem
-            isDisabled={visibilityComponentId === undefined}
+            icon={viewVisibility?.value ? EyeOff : Eye}
+            isDisabled={viewVisibility === undefined}
             onAction={toggleVisibility}
           >
             Toggle visibility
           </MenuItem>
-          <MenuItem onAction={spawnEntity}>Spawn new child</MenuItem>
-          <MenuItem variant="danger" onAction={despawnRecursive}>
+          <MenuItem onAction={spawnEntity} icon={Plus}>
+            Spawn new child
+          </MenuItem>
+          <MenuItem variant="danger" onAction={despawnRecursive} icon={Trash2}>
             Despawn recursive
           </MenuItem>
           <MenuItem
             isDisabled={!hasChildren}
             variant="danger"
             onAction={despawnDescendant}
+            icon={Trash2}
           >
             Despawn descendants
           </MenuItem>

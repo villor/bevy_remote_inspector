@@ -22,6 +22,7 @@ import { cn } from '@/utils';
 import { Button, buttonVariants } from './button';
 import { ListBoxCollection, ListBoxSection } from './list-box';
 import { SelectPopover } from './select';
+import { ElementType } from 'react';
 
 const MenuTrigger = AriaMenuTrigger;
 
@@ -56,9 +57,11 @@ const MenuItem = ({
   children,
   className,
   variant = 'default',
+  icon: Icon,
   ...props
 }: AriaMenuItemProps & {
   variant?: 'default' | 'danger';
+  icon?: ElementType<any>;
 }) => (
   <AriaMenuItem
     textValue={
@@ -98,6 +101,7 @@ const MenuItem = ({
           )}
         </span>
 
+        {Icon && <Icon className="size-4" />}
         {children}
 
         {renderProps.hasSubmenu && <ChevronRight className="ml-auto size-4" />}

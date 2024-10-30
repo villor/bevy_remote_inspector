@@ -72,6 +72,7 @@ export const EntitiesTreeView = memo(function EntitiesTreeView() {
             renderCursor={Cursor}
             idAccessor="stringId"
             rowHeight={32}
+            paddingBottom={20}
             renderDragPreview={DragPreview}
             onActivate={handleOnActive}
           >

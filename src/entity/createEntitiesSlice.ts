@@ -166,46 +166,115 @@ function getEntityName(state: SharedSlice, id: EntityId) {
   const components = state.entities.get(id);
 
   if (!components) {
-    return;
+    console.warn(`Entity ${prettyEntityId(id)} does not exist`);
+    return `Non existent entity (BUG)`;
   }
 
   const nameComponentId = componentNameToIdMap.get(bevyTypes.NAME);
   if (nameComponentId !== undefined) {
     const nameComponent = components.get(nameComponentId);
-    if (nameComponent) {
+    if (nameComponent && nameComponent.value) {
       return nameComponent.value as string;
     }
   }
 
-  for (const fallbackName in FALLBACK_NAMES) {
-    const componentId = componentNameToIdMap.get(fallbackName);
+  // Search for common component
+  for (const commonName in COMMON_NAMES) {
+    const componentId = componentNameToIdMap.get(commonName);
     if (componentId === undefined) {
       continue;
     }
 
     if (components.has(componentId)) {
       try {
-        return typeof FALLBACK_NAMES[fallbackName] === 'function'
-          ? FALLBACK_NAMES[fallbackName](components.get(componentId)!.value)
-          : FALLBACK_NAMES[fallbackName];
+        return typeof COMMON_NAMES[commonName] === 'function'
+          ? COMMON_NAMES[commonName](components.get(componentId)!.value)
+          : COMMON_NAMES[commonName];
       } catch {
         break;
       }
     }
   }
 
-  const firstComponent = Array.from(components.keys()).sort()[0];
-
-  if (firstComponent === undefined) {
-    return `Empty Entity`;
+  // Search for non bevy types first
+  for (const componentId of components.keys()) {
+    const { short_name, name } = getComponentName(componentId);
+    let isBevyType = false;
+    for (const bevyCrate of bevyCrates) {
+      if (name?.startsWith(`${bevyCrate}::`)) {
+        isBevyType = true;
+        break;
+      }
+    }
+    if (short_name && !isBevyType) {
+      return short_name;
+    }
   }
 
-  const { short_name } = getComponentName(firstComponent);
+  // search for first suitable component
+  for (const componentId of Array.from(components.keys()).sort()) {
+    const { short_name, name } = getComponentName(componentId);
 
-  return short_name;
+    // Skip `Parent` and `Children` as they are not confusing
+    if (
+      short_name &&
+      name !== bevyTypes.PARENT &&
+      name !== bevyTypes.CHILDREN
+    ) {
+      return short_name;
+    }
+  }
+
+  return `Entity`;
 }
 
-const FALLBACK_NAMES: Record<string, string | ((value: TValue) => string)> = {
+// Copied from https://github.com/bevyengine/bevy/blob/main/tools/publish.sh
+const bevyCrates = [
+  'bevy_utils',
+  'bevy_ptr',
+  'bevy_macro_utils',
+  'bevy_derive',
+  'bevy_math',
+  'bevy_color',
+  'bevy_tasks',
+  'bevy_reflect',
+  'bevy_ecs',
+  'bevy_state',
+  'bevy_app',
+  'bevy_time',
+  'bevy_log',
+  'bevy_asset',
+  'bevy_audio',
+  'bevy_core',
+  'bevy_diagnostic',
+  'bevy_hierarchy',
+  'bevy_transform',
+  'bevy_window',
+  'bevy_render',
+  'bevy_mikktspace',
+  'bevy_image',
+  'bevy_mesh',
+  'bevy_core_pipeline',
+  'bevy_input',
+  'bevy_gilrs',
+  'bevy_animation',
+  'bevy_pbr',
+  'bevy_gltf',
+  'bevy_remote',
+  'bevy_scene',
+  'bevy_picking',
+  'bevy_sprite',
+  'bevy_gizmos',
+  'bevy_text',
+  'bevy_a11y',
+  'bevy_ui',
+  'bevy_winit',
+  'bevy_dev_tools',
+  'bevy_internal',
+  'bevy_dylib',
+];
+
+const COMMON_NAMES: Record<string, string | ((value: TValue) => string)> = {
   [bevyTypes.CAMERA_3D]: 'Camera3d',
   [bevyTypes.POINT_LIGHT]: 'PointLight',
   [bevyTypes.MESH_3D]: 'Mesh3d',

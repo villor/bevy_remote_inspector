@@ -180,7 +180,7 @@ const TreeNode = memo(function TreeNode({ node, dragHandle }: NodeRendererProps<
             }),
             'justify-start flex-grow py-1 px-1',
           )}
-          style={{ width: true ? 'fit-content' : '100%' }}
+          style={{ width: 'fit-content' }}
         >
           <EntityName id={nodeId}></EntityName>
         </div>

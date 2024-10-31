@@ -81,6 +81,7 @@ export const EntitiesTreeView = memo(function EntitiesTreeView() {
   useEffect(() => {
     if (newlySpawnedEntity && childParentMap.has(newlySpawnedEntity)) {
       setInspectingEntity(newlySpawnedEntity);
+      setNewlySpawnedEntity(null);
     }
   }, [newlySpawnedEntity, childParentMap]);
 

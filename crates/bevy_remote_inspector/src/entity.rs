@@ -125,12 +125,16 @@ impl TrackedData {
 
                         // Only if the component is untracked or serializable
                         if !is_tracked || serialized.is_some() {
-                            match ctx.deep_compare_components.is_eq(
-                                entity_ref.id(),
-                                component_id,
-                                serialized.as_ref().unwrap(),
-                            ) {
-                                Some(true) => continue,
+                            match serialized.as_ref() {
+                                Some(serialized) => {
+                                    if let Some(true) = ctx.deep_compare_components.is_eq(
+                                        entity_ref.id(),
+                                        component_id,
+                                        serialized,
+                                    ) {
+                                        continue;
+                                    }
+                                }
                                 _ => {}
                             }
 

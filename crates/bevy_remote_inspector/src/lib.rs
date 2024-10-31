@@ -41,9 +41,20 @@ impl Plugin for RemoteInspectorPlugin {
                 on_data: Some(on_data),
             },
         );
+        let mut deep_compare_components = DeepCompareComponents::default();
+
+        #[cfg(feature = "bevy_render")]
+        {
+            let id = app
+                .world_mut()
+                .register_component::<bevy::render::view::ViewVisibility>(); // this component changed every frame and very cheep to compare
+            deep_compare_components.ids.insert(id);
+        }
+
         app.init_resource::<TrackedDatas>()
             .init_resource::<DisabledComponents>()
-            .init_resource::<EntityVisibilities>();
+            .init_resource::<EntityVisibilities>()
+            .insert_resource(deep_compare_components);
     }
 }
 
@@ -175,29 +186,66 @@ struct DisabledComponents(EntityHashMap<HashMap<ComponentId, Box<dyn PartialRefl
 #[derive(Resource, Default, Deref, DerefMut)]
 struct EntityVisibilities(EntityHashMap<Visibility>);
 
+#[derive(Resource, Default)]
+struct DeepCompareComponents {
+    ids: HashSet<ComponentId>,
+    values: HashMap<Entity, HashMap<ComponentId, Value>>,
+}
+
+impl DeepCompareComponents {
+    /// Compare the component with the previous value and return None if the component should not be deep compared
+    fn is_eq(
+        &mut self,
+        entity: Entity,
+        component_id: ComponentId,
+        new_value: &Value,
+    ) -> Option<bool> {
+        if !self.ids.contains(&component_id) {
+            return None;
+        }
+        let entry = self.values.entry(entity).or_default();
+
+        let old_value = entry.get(&component_id);
+        if let Some(old_value) = old_value {
+            if old_value == new_value {
+                return Some(true);
+            }
+        }
+
+        entry.insert(component_id, new_value.clone());
+
+        return Some(false);
+    }
+}
+
 struct InspectorContext<'a> {
     disabled_components: &'a mut DisabledComponents,
     entity_visibilities: &'a mut EntityVisibilities,
+    deep_compare_components: &'a mut DeepCompareComponents,
 }
 
 impl<'a> InspectorContext<'a> {
     fn run<T>(world: &mut World, f: impl FnOnce(&mut InspectorContext, &mut World) -> T) -> T {
         world.resource_scope(|world, mut disabled_components: Mut<DisabledComponents>| {
-            world.resource_scope(
-                |mut world, mut entity_visibilities: Mut<EntityVisibilities>| {
-                    let mut ctx = InspectorContext {
-                        disabled_components: &mut disabled_components,
-                        entity_visibilities: &mut entity_visibilities,
-                    };
+            world.resource_scope(|world, mut entity_visibilities: Mut<EntityVisibilities>| {
+                world.resource_scope(
+                    |mut world, mut deep_compare_components: Mut<DeepCompareComponents>| {
+                        let mut ctx = InspectorContext {
+                            disabled_components: &mut disabled_components,
+                            entity_visibilities: &mut entity_visibilities,
+                            deep_compare_components: &mut deep_compare_components,
+                        };
 
-                    f(&mut ctx, &mut world)
-                },
-            )
+                        f(&mut ctx, &mut world)
+                    },
+                )
+            })
         })
     }
 
     fn on_entity_removed(&mut self, entity: Entity) {
         self.disabled_components.remove(&entity);
         self.entity_visibilities.remove(&entity);
+        self.deep_compare_components.values.remove(&entity);
     }
 }

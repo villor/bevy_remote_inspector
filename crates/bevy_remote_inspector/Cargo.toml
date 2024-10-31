@@ -9,3 +9,7 @@ serde.workspace = true
 serde_json.workspace = true
 anyhow.workspace = true
 bevy_remote_stream = { path = "../bevy_remote_stream" }
+
+[features]
+default = ["bevy_render"]
+bevy_render = ["bevy/bevy_render"]

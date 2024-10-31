@@ -123,8 +123,17 @@ impl TrackedData {
                             component_ids.insert(component_id);
                         }
 
+                        // Only if the component is untracked or serializable
                         if !is_tracked || serialized.is_some() {
-                            // Only if the component is untracked or serializable
+                            match ctx.deep_compare_components.is_eq(
+                                entity_ref.id(),
+                                component_id,
+                                serialized.as_ref().unwrap(),
+                            ) {
+                                Some(true) => continue,
+                                _ => {}
+                            }
+
                             changes.push(EntityMutationChange(
                                 component_id.index(),
                                 is_disabled,
@@ -133,7 +142,7 @@ impl TrackedData {
                         }
                     }
                 }
-                if changes.len() > 0 || removed_component_ids.len() > 0 {
+                if !changes.is_empty() || !removed_component_ids.is_empty() {
                     events.push(InspectorEvent::Entity {
                         entity: id,
                         mutation: EntityMutation::Change {
@@ -170,6 +179,14 @@ impl TrackedData {
                         &type_registry,
                         component_info,
                     );
+
+                    if let Some(serialized) = serialized.as_ref() {
+                        ctx.deep_compare_components
+                            .values
+                            .entry(entity_ref.id())
+                            .or_default()
+                            .insert(component_id, serialized.clone());
+                    }
 
                     EntityMutationChange(component_id.index(), false, serialized)
                 });

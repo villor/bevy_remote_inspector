@@ -58,7 +58,7 @@ impl TrackedData {
             });
         }
 
-        let this_run = world.read_change_tick();
+        let this_run = world.change_tick();
         for entity_ref in world.iter_entities() {
             let id = entity_ref.id();
             let entity_disbled_components = ctx.disabled_components.get_mut(&entity_ref.id());

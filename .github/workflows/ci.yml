@@ -19,6 +19,9 @@ jobs:
       - name: Format
         run: |
           cargo fmt --all --check
+      - name: check
+        run: |
+          cargo check --all --all-features
 
   js:
     runs-on: ubuntu-latest

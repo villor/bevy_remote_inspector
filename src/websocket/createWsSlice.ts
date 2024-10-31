@@ -1,16 +1,12 @@
-import { SharedSlice } from '@/store';
-import { StateCreator } from 'zustand';
+import type { SharedSlice } from '@/store';
+import type { StateCreator } from 'zustand';
 import { WEB_SOCKET_MESSAGE_ID } from './useWs';
 import { ReadyState } from 'react-use-websocket';
-import { SendJsonMessage } from 'react-use-websocket/dist/lib/types';
+import type { SendJsonMessage } from 'react-use-websocket/dist/lib/types';
 import { toast } from '@/shared/hooks/use-toast';
-import { TType, TypeName } from '@/type-registry/useTypeRegistry';
-import {
-  ComponentId,
-  ComponentInfo,
-  ComponentValue,
-} from '@/component/useComponents';
-import { EntityId } from '@/entity/useEntity';
+import type { TType, TypeName } from '@/type-registry/useTypeRegistry';
+import type { ComponentId, ComponentInfo, ComponentValue } from '@/component/useComponents';
+import type { EntityId } from '@/entity/useEntity';
 export type WsSlice = {
   url?: string;
   readyState: ReadyState;
@@ -33,10 +29,7 @@ let sendMessageInteral: SendJsonMessage = () => {
 };
 
 let id = 10;
-export const createWsSlice: StateCreator<SharedSlice, [], [], WsSlice> = (
-  set,
-  get
-) => ({
+export const createWsSlice: StateCreator<SharedSlice, [], [], WsSlice> = (set, get) => ({
   url: parseWsURL(localStorage.getItem('ws_url') || 'ws://localhost:3000'),
   commandCallbacks: new Map(),
   readyState: ReadyState.UNINSTANTIATED,
@@ -51,7 +44,7 @@ export const createWsSlice: StateCreator<SharedSlice, [], [], WsSlice> = (
     params: any;
     callback?: (data: WsEvent) => void;
   }) => {
-    let newId = String(id++);
+    const newId = String(id++);
     if (callback !== undefined) {
       const commandCallbacks = get().commandCallbacks;
 
@@ -69,7 +62,9 @@ export const createWsSlice: StateCreator<SharedSlice, [], [], WsSlice> = (
     import.meta.env.DEV &&
       console.log(`send message ${data.method} ${JSON.stringify(data.params)}`);
   },
-  initSendMessage: (fn) => (sendMessageInteral = fn),
+  initSendMessage: (fn) => {
+    sendMessageInteral = fn;
+  },
   setReadyState: (readyState) => {
     set({ readyState });
 

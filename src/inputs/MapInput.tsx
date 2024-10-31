@@ -1,19 +1,15 @@
 import {
-  TMap,
-  TValue,
-  TValueObject,
-  TypeName,
+  type TMap,
+  type TValue,
+  type TValueObject,
+  type TypeName,
   useTypeRegistry,
 } from '@/type-registry/useTypeRegistry';
 import { StructInputLayout } from './StructInput';
 import { DynamicForm, useDynamicForm } from './DynamicForm';
 import { Fragment, useState } from 'react';
 import { getInputComponent, DynamicInputContext } from './DynamicInput';
-import {
-  isNumberType,
-  isStringType,
-  resolveTypeDefaultValue,
-} from '@/type-registry/types';
+import { isNumberType, isStringType, resolveTypeDefaultValue } from '@/type-registry/types';
 import { toast } from '@/shared/hooks/use-toast';
 import { Button } from '@/shared/ui/button';
 export type MapInputProps = {
@@ -22,10 +18,7 @@ export type MapInputProps = {
 };
 import { memo } from 'react';
 
-export const MapInput = memo(function MapInput({
-  path,
-  typeInfo,
-}: MapInputProps) {
+export const MapInput = memo(function MapInput({ path, typeInfo }: MapInputProps) {
   const { getValue, setValue } = useDynamicForm();
   const value = getValue<TValueObject>(path);
 
@@ -51,19 +44,14 @@ export const MapInput = memo(function MapInput({
       }}
     />
   ) : (
-    <Button
-      type="button"
-      onPress={() => setIsEditting(true)}
-      size="sm"
-      className="col-span-2 mt-2"
-    >
+    <Button type="button" onPress={() => setIsEditting(true)} size="sm" className="col-span-2 mt-2">
       Add new item
     </Button>
   );
   const registry = useTypeRegistry();
 
   return (
-    <StructInputLayout className="gap-x-4 grid-cols-[8rem_1fr]">
+    <StructInputLayout className="grid-cols-[8rem_1fr] gap-x-4">
       <div>Key</div>
       <div>Value</div>
       {Object.entries(value).map(([k], i) => {
@@ -71,9 +59,7 @@ export const MapInput = memo(function MapInput({
         return (
           <Fragment key={i}>
             <span className="pt-1.5">{key}</span>
-            <DynamicInputContext.Provider
-              value={{ readOnly: !isString && !isNumber }}
-            >
+            <DynamicInputContext.Provider value={{ readOnly: !isString && !isNumber }}>
               {getInputComponent({
                 typeName: typeInfo.value,
                 path: `${path}.${k}`,
@@ -89,7 +75,7 @@ export const MapInput = memo(function MapInput({
 });
 
 function PendingMapInput({
-  valueType: valueType,
+  valueType,
   keyType,
   onAdd,
 }: {
@@ -98,17 +84,13 @@ function PendingMapInput({
   onAdd: (key: string | number, value: TValue) => void;
 }) {
   const registry = useTypeRegistry();
-  const [key, setKey] = useState(() =>
-    resolveTypeDefaultValue(keyType, registry)
-  );
-  const [value, setValue] = useState(() =>
-    resolveTypeDefaultValue(valueType, registry)
-  );
+  const [key, setKey] = useState(() => resolveTypeDefaultValue(keyType, registry));
+  const [value, setValue] = useState(() => resolveTypeDefaultValue(valueType, registry));
   const handleOnAdd = () => {
     if (value === undefined) {
       toast({
         variant: 'destructive',
-        description: `Invalid value`,
+        description: 'Invalid value',
       });
       return;
     }
@@ -118,12 +100,7 @@ function PendingMapInput({
   return (
     <>
       <div>
-        <DynamicForm
-          value={key}
-          onChange={setKey}
-          typeName={keyType}
-          allowUndefined
-        ></DynamicForm>
+        <DynamicForm value={key} onChange={setKey} typeName={keyType} allowUndefined></DynamicForm>
       </div>
       <div>
         <DynamicForm

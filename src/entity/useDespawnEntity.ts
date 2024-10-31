@@ -1,11 +1,8 @@
 import { useCommand } from '@/websocket/useCommand';
 import { useCallback } from 'react';
-import { EntityId } from './useEntity';
+import type { EntityId } from './useEntity';
 
-export function useDespawnEntity(
-  entity: EntityId,
-  kind: 'recursive' | 'descendant'
-) {
+export function useDespawnEntity(entity: EntityId, kind: 'recursive' | 'descendant') {
   const exec = useCommand();
 
   return useCallback(() => {

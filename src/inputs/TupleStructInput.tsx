@@ -1,5 +1,5 @@
-import { TTupleStruct, useTypeRegistry } from '@/type-registry/useTypeRegistry';
-import { Fragment, ReactNode } from 'react';
+import { type TTupleStruct, useTypeRegistry } from '@/type-registry/useTypeRegistry';
+import { Fragment, type ReactNode } from 'react';
 import { getInputComponent } from './DynamicInput';
 import clsx from 'clsx';
 import { InputLabel } from './InputLabel';

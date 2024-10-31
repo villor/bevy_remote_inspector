@@ -27,6 +27,6 @@ export function useCommand() {
         },
       });
     },
-    [sendMessage]
+    [sendMessage],
   );
 }

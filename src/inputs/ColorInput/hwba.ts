@@ -1,5 +1,5 @@
-import { AnyColor, ColorSpace, convertThrough } from './ColorInput';
-import { Rgba } from './linearRgba';
+import { type AnyColor, type ColorSpace, convertThrough } from './ColorInput';
+import type { Rgba } from './linearRgba';
 export type Hwba = {
   hue: number;
   whiteness: number;
@@ -25,7 +25,9 @@ export function fromHwba(hwba: Hwba, to: ColorSpace): AnyColor {
 
     const n = w + adjustedF * (v - w);
 
-    let red, green, blue;
+    let red: number;
+    let green: number;
+    let blue: number;
     switch (i) {
       case 0:
         red = v;
@@ -79,7 +81,7 @@ export function toHwba(color: AnyColor, from: ColorSpace): Hwba {
 
     const chroma = xMax - xMin;
 
-    let hue;
+    let hue: number;
     if (chroma === 0) {
       hue = 0;
     } else if (red === xMax) {

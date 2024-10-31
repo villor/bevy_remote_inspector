@@ -1,18 +1,7 @@
 import { useStore } from '@/store';
-import {
-  TValue,
-  TypeName,
-  useTypeRegistry,
-} from '@/type-registry/useTypeRegistry';
+import { type TValue, type TypeName, useTypeRegistry } from '@/type-registry/useTypeRegistry';
 import { useEntityComponentIds } from './useEntity';
-import {
-  RefObject,
-  useCallback,
-  useImperativeHandle,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { type RefObject, useCallback, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import {
   DialogContent,
   DialogHeader,
@@ -32,8 +21,8 @@ import {
   ComboboxListBox,
   ComboboxItem,
 } from '@/shared/ui/combobox';
-import { ComponentId, ComponentInfo } from '@/component/useComponents';
-import { Key } from 'react-aria-components';
+import type { ComponentId, ComponentInfo } from '@/component/useComponents';
+import type { Key } from 'react-aria-components';
 import { resolveTypeDefaultValue } from '@/type-registry/types';
 import { DynamicForm } from '@/inputs/DynamicForm';
 import { EntityName } from './EntityName';
@@ -57,7 +46,7 @@ export function AddComponentDialog() {
       .filter(
         ([id, { name }]) =>
           !existedComponents.includes(id) &&
-          !IGNORED_COMPONENT_PREFIXES.some((prefix) => name.startsWith(prefix))
+          !IGNORED_COMPONENT_PREFIXES.some((prefix) => name.startsWith(prefix)),
       )
       .map(([id, { name, reflected }]) => {
         const typeInfo = registry.get(name);
@@ -118,7 +107,7 @@ function AddComponentDialogContent({
       const value = resolveTypeDefaultValue(info.name, registry);
       formRef.current?.setValue(value!);
     },
-    [formRef]
+    [formRef],
   );
 
   const inspectingEntity = useStore((state) => state.inspectingEntity)!;
@@ -147,13 +136,13 @@ function AddComponentDialogContent({
         },
       });
     },
-    [selectedComponent]
+    [selectedComponent],
   );
   return (
-    <DialogContent className="flex flex-col justify-between max-w-xl">
+    <DialogContent className="flex max-w-xl flex-col justify-between">
       <DialogHeader>
         <DialogTitle className="inline-flex items-center gap-x-1">
-          {`Insert new component to `}
+          {'Insert new component to '}
           <EntityName id={inspectingEntity}></EntityName>
         </DialogTitle>
       </DialogHeader>
@@ -163,7 +152,7 @@ function AddComponentDialogContent({
         ref={comboboxRef}
       >
         <Label>Select Component</Label>
-        <FieldGroup className="p-0 mt-2">
+        <FieldGroup className="mt-2 p-0">
           <ComboboxInput placeholder="Search" autoFocus />
           <Button variant="ghost" size="icon" className="mr-1 size-6 p-1">
             <ChevronDown aria-hidden="true" className="size-4 opacity-50" />
@@ -176,10 +165,7 @@ function AddComponentDialogContent({
           />
         )}
 
-        <ComboboxPopover
-          className="w-[calc(var(--trigger-width)+28px)]"
-          placement="bottom"
-        >
+        <ComboboxPopover className="w-[calc(var(--trigger-width)+28px)]" placement="bottom">
           <ScrollArea style={{ height: '300px' }}>
             <ComboboxListBox items={components}>{renderItem}</ComboboxListBox>
           </ScrollArea>
@@ -224,7 +210,7 @@ function ComponentForm({
         },
       };
     },
-    [setValue]
+    [setValue],
   );
 
   const handleAdd = () => {
@@ -257,7 +243,7 @@ function renderItem(item: { name: string; id: number; reflected: boolean }) {
       id={item.id}
       textValue={item.name}
       isDisabled={!item.reflected}
-      className="break-all hyphens-auto w-full inline-flex gap-x-1"
+      className="inline-flex w-full gap-x-1 hyphens-auto break-all"
     >
       {item.name}
       {!item.reflected && <Badge className="px-1">Not reflected</Badge>}
@@ -273,7 +259,7 @@ function RequiredComponentsMessage({
   existedComponents: ComponentId[];
 }) {
   const displayComponents = selectedComponentInfo.required_components.filter(
-    (id) => !existedComponents.includes(id)
+    (id) => !existedComponents.includes(id),
   );
   const getComponetName = useStore((state) => state.getComponentName);
   if (displayComponents.length === 0) {

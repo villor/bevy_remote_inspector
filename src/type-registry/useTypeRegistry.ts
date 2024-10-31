@@ -6,15 +6,7 @@ export function useTypeRegistry(): TypeRegistry {
 
 export type TypeRegistry = Map<TypeName, TType>;
 
-export type TType =
-  | TStruct
-  | TTupleStruct
-  | TTuple
-  | TArray
-  | TMap
-  | TSet
-  | TEnum
-  | TOpaque;
+export type TType = TStruct | TTupleStruct | TTuple | TArray | TMap | TSet | TEnum | TOpaque;
 
 export type TValuePrimitive = number | string | boolean | null;
 export type TValueArray = Array<TValue>;
@@ -77,10 +69,7 @@ export type TEnum = {
   short_name: ShortTypeName;
 };
 
-export type TEnumVariant =
-  | TEnumVariantStruct
-  | TEnumVariantTuple
-  | TEnumVariantUnit;
+export type TEnumVariant = TEnumVariantStruct | TEnumVariantTuple | TEnumVariantUnit;
 
 export type TEnumVariantStruct = {
   name: string;

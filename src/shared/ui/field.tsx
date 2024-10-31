@@ -1,13 +1,13 @@
 import { cva, type VariantProps } from 'class-variance-authority';
 import {
   FieldError as AriaFieldError,
-  FieldErrorProps as AriaFieldErrorProps,
+  type FieldErrorProps as AriaFieldErrorProps,
   Group as AriaGroup,
-  GroupProps as AriaGroupProps,
+  type GroupProps as AriaGroupProps,
   Label as AriaLabel,
-  LabelProps as AriaLabelProps,
+  type LabelProps as AriaLabelProps,
   Text as AriaText,
-  TextProps as AriaTextProps,
+  type TextProps as AriaTextProps,
   composeRenderProps,
 } from 'react-aria-components';
 
@@ -28,7 +28,7 @@ const Label = ({ className, ...props }: AriaLabelProps) => (
 function FormDescription({ className, ...props }: AriaTextProps) {
   return (
     <AriaText
-      className={cn('text-sm text-muted-foreground', className)}
+      className={cn('text-muted-foreground text-sm', className)}
       {...props}
       slot="description"
     />
@@ -37,10 +37,7 @@ function FormDescription({ className, ...props }: AriaTextProps) {
 
 function FieldError({ className, ...props }: AriaFieldErrorProps) {
   return (
-    <AriaFieldError
-      className={cn('text-sm font-medium text-destructive', className)}
-      {...props}
-    />
+    <AriaFieldError className={cn('font-medium text-destructive text-sm', className)} {...props} />
   );
 }
 
@@ -62,26 +59,17 @@ const fieldGroupVariants = cva('', {
   },
 });
 
-interface GroupProps
-  extends AriaGroupProps,
-    VariantProps<typeof fieldGroupVariants> {}
+interface GroupProps extends AriaGroupProps, VariantProps<typeof fieldGroupVariants> {}
 
 function FieldGroup({ className, variant, ...props }: GroupProps) {
   return (
     <AriaGroup
       className={composeRenderProps(className, (className) =>
-        cn(fieldGroupVariants({ variant }), className)
+        cn(fieldGroupVariants({ variant }), className),
       )}
       {...props}
     />
   );
 }
 
-export {
-  Label,
-  labelVariants,
-  FieldGroup,
-  fieldGroupVariants,
-  FieldError,
-  FormDescription,
-};
+export { Label, labelVariants, FieldGroup, fieldGroupVariants, FieldError, FormDescription };

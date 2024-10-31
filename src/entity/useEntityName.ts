@@ -1,4 +1,4 @@
-import { EntityId } from './useEntity';
+import type { EntityId } from './useEntity';
 import { useStore } from '@/store';
 
 export function useEntityName(id: EntityId) {

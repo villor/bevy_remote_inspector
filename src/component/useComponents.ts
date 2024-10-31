@@ -1,5 +1,5 @@
 import { useStore } from '@/store';
-import { TValue, TypeName } from '../type-registry/useTypeRegistry';
+import type { TValue, TypeName } from '../type-registry/useTypeRegistry';
 
 export type ComponentName = TypeName;
 export type ComponentValue = TValue;

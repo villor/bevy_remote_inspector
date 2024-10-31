@@ -1,5 +1,5 @@
 import { useStore } from '@/store';
-import { EntityId } from './useEntity';
+import type { EntityId } from './useEntity';
 import { useMemo } from 'react';
 import { getEntityIndex } from './createEntitiesSlice';
 export type EntityTreeNode = {
@@ -33,9 +33,7 @@ export function useEntityTrees() {
       }
 
       curr.children = children
-        .map((child) =>
-          recur({ id: child, stringId: child.toString(), children: [] })
-        )
+        .map((child) => recur({ id: child, stringId: child.toString(), children: [] }))
         .sort((a, b) => getEntityIndex(a.id) - getEntityIndex(b.id));
 
       return curr;

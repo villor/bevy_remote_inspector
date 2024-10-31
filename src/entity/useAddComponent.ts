@@ -1,8 +1,8 @@
 import { useStore } from '@/store';
 import { useCallback } from 'react';
-import { EntityId } from './useEntity';
-import { ComponentId } from '@/component/useComponents';
-import { TValue } from '@/type-registry/useTypeRegistry';
+import type { EntityId } from './useEntity';
+import type { ComponentId } from '@/component/useComponents';
+import type { TValue } from '@/type-registry/useTypeRegistry';
 import { useCommand } from '@/websocket/useCommand';
 
 export function useAddComponent(entity: EntityId) {
@@ -28,6 +28,6 @@ export function useAddComponent(entity: EntityId) {
         onSuccess,
       });
     },
-    [sendMessage, entity, exec]
+    [sendMessage, entity, exec],
   );
 }

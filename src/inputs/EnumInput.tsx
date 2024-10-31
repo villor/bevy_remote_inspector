@@ -1,8 +1,8 @@
 import {
-  TEnum,
-  TEnumVariant,
-  TValueObject,
-  TypeName,
+  type TEnum,
+  type TEnumVariant,
+  type TValueObject,
+  type TypeName,
   useTypeRegistry,
 } from '@/type-registry/useTypeRegistry';
 import { useCallback, useState } from 'react';
@@ -10,10 +10,7 @@ import { TupleStructInput } from './TupleStructInput';
 import { StructFieldInput, StructInputLayout } from './StructInput';
 import clsx from 'clsx';
 import { useDynamicForm } from './DynamicForm';
-import {
-  isOptionType,
-  resolveEnumVariantDefaultValue,
-} from '@/type-registry/types';
+import { isOptionType, resolveEnumVariantDefaultValue } from '@/type-registry/types';
 
 export type EnumInputProps = {
   typeInfo: TEnum;
@@ -23,11 +20,7 @@ export type EnumInputProps = {
 import { memo } from 'react';
 import { NativeSelect } from '../shared/ui/native-select';
 
-export const EnumInput = memo(function EnumInput({
-  typeInfo,
-  path,
-  typeName,
-}: EnumInputProps) {
+export const EnumInput = memo(function EnumInput({ typeInfo, path, typeName }: EnumInputProps) {
   const registry = useTypeRegistry();
   const { unregister, setValue, getValue } = useDynamicForm();
   const value = getValue<TValueObject | string>(path);
@@ -57,9 +50,7 @@ export const EnumInput = memo(function EnumInput({
 
   const handleVariantChange = useCallback(
     (newVariantName: string) => {
-      const selectedVariant = typeInfo.variants.find(
-        (v) => v.name === newVariantName
-      )!;
+      const selectedVariant = typeInfo.variants.find((v) => v.name === newVariantName)!;
 
       setSelectedVariantName(newVariantName);
       unregister(path);
@@ -71,9 +62,7 @@ export const EnumInput = memo(function EnumInput({
 
       const value = resolveEnumVariantDefaultValue(selectedVariant, registry);
       if (value === undefined) {
-        throw new Error(
-          `Failed to resolve value for enum ${typeName} at path ${path}`
-        );
+        throw new Error(`Failed to resolve value for enum ${typeName} at path ${path}`);
       }
       if (isOption) {
         setValue(`${path}`, value);
@@ -81,12 +70,10 @@ export const EnumInput = memo(function EnumInput({
         setValue(`${path}.${selectedVariant.name}`, value);
       }
     },
-    [setValue]
+    [setValue],
   );
 
-  const selectedVariant = typeInfo.variants.find(
-    (v) => v.name === selectedVariantName
-  )!;
+  const selectedVariant = typeInfo.variants.find((v) => v.name === selectedVariantName)!;
 
   return (
     <div className="w-full">
@@ -104,11 +91,7 @@ export const EnumInput = memo(function EnumInput({
           </option>
         ))}
       </NativeSelect>
-      <EnumSubInput
-        path={path}
-        selectedVariant={selectedVariant}
-        isOption={isOption}
-      />
+      <EnumSubInput path={path} selectedVariant={selectedVariant} isOption={isOption} />
     </div>
   );
 });
@@ -127,9 +110,7 @@ function EnumSubInput({
   }
 
   if (selectedVariant.kind === 'struct') {
-    const newPath = path
-      ? `${path}.${selectedVariant.name}`
-      : selectedVariant.name;
+    const newPath = path ? `${path}.${selectedVariant.name}` : selectedVariant.name;
     return (
       <StructInputLayout>
         {selectedVariant.fields.map((field, i) => {
@@ -151,8 +132,8 @@ function EnumSubInput({
     const newParentPath = isOption
       ? path
       : path
-      ? `${path}.${selectedVariant.name}`
-      : selectedVariant.name;
+        ? `${path}.${selectedVariant.name}`
+        : selectedVariant.name;
     return (
       <TupleStructInput
         typeInfo={{

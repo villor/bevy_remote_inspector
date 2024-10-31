@@ -1,26 +1,11 @@
-import { ComponentId, useComponentInfo } from '@/component/useComponents';
-import {
-  EntityId,
-  useEntityComponentIds,
-  useEntityComponentValue,
-} from '@/entity/useEntity';
+import { type ComponentId, useComponentInfo } from '@/component/useComponents';
+import { type EntityId, useEntityComponentIds, useEntityComponentValue } from '@/entity/useEntity';
 import { DynamicForm } from '@/inputs/DynamicForm';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/shared/ui/collapsible';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/shared/ui/collapsible';
 import { ScrollArea } from '@/shared/ui/scroll-area';
 import { useStore } from '@/store';
-import {
-  ChevronRight,
-  Copy,
-  Ellipsis,
-  Eye,
-  EyeOff,
-  Trash2,
-} from 'lucide-react';
-import { ReactNode } from 'react';
+import { ChevronRight, Copy, Ellipsis, Eye, EyeOff, Trash2 } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useUpdateComponent } from './useUpdateComponent';
 import { memo } from 'react';
 import { useTypeRegistry } from '@/type-registry/useTypeRegistry';
@@ -37,7 +22,7 @@ export const EntitiesInspectorPanel = memo(function EntitiesInspectorPanel() {
 
   return (
     <div className="flex h-full w-full flex-col pt-4">
-      <div className="px-4 text-lg font-bold py-2 flex items-center justify-between">
+      <div className="flex items-center justify-between px-4 py-2 font-bold text-lg">
         Inspector
         {inspectingEntity !== null && <AddComponentDialog />}
       </div>
@@ -54,9 +39,9 @@ function InspectorComponentList({ entity }: { entity: EntityId }) {
   const componentIds = useEntityComponentIds(entity);
 
   return (
-    <div className="h-full w-full flex flex-col overflow-hidden items-center bg-background">
+    <div className="flex h-full w-full flex-col items-center overflow-hidden bg-background">
       {componentIds.length === 0 ? (
-        <div className="px-2 flex w-full">No components</div>
+        <div className="flex w-full px-2">No components</div>
       ) : (
         <ScrollArea style={{ height: 'auto', width: '100%' }}>
           <div className="flex flex-col gap-y-4 px-2">
@@ -87,9 +72,7 @@ function InspectorComponent({
   entityId: EntityId;
 }) {
   const { value, disabled } = useEntityComponentValue(entityId, componentId);
-  const { name, short_name } = useStore((state) => state.getComponentName)(
-    componentId
-  );
+  const { name, short_name } = useStore((state) => state.getComponentName)(componentId);
 
   const info = useComponentInfo(componentId)!;
   const updateEntityComponent = useUpdateComponent(entityId, componentId);
@@ -104,7 +87,7 @@ function InspectorComponent({
         ? 'is not registered in type registry'
         : 'is not serializable or zero sized type';
     children = (
-      <div className="text-wrap break-all hyphens-auto">
+      <div className="hyphens-auto text-wrap break-all">
         Component <ComponentBadge>{name}</ComponentBadge> {message}
       </div>
     );
@@ -122,12 +105,10 @@ function InspectorComponent({
   const toggleComponent = useToggleComponent(entityId, componentId);
   const removeComponent = useRemoveComponent(entityId, componentId);
   const isOpen = useStore(
-    (state) =>
-      state.entityComponentCollapseState.get(entityId)?.get(componentId) ??
-      false
+    (state) => state.entityComponentCollapseState.get(entityId)?.get(componentId) ?? false,
   );
   const setEntityComponentCollapseState = useStore(
-    (state) => state.setEntityComponentCollapseState
+    (state) => state.setEntityComponentCollapseState,
   );
 
   const handleOpenChange = (collapsed: boolean) => {
@@ -135,15 +116,15 @@ function InspectorComponent({
   };
 
   return (
-    <div className="bg-muted rounded p-3">
+    <div className="rounded bg-muted p-3">
       <Collapsible open={isOpen} onOpenChange={handleOpenChange}>
         <div className="flex items-center">
           <CollapsibleTrigger asChild>
-            <IconButton className="hover:bg-primary-foreground/75 group transform data-[state=open]:rotate-90">
+            <IconButton className="group transform hover:bg-primary-foreground/75 data-[state=open]:rotate-90">
               <ChevronRight className="size-4" />
             </IconButton>
           </CollapsibleTrigger>
-          <div className="text-wrap overflow-hidden break-all flex items-center font-medium flex-grow">
+          <div className="flex flex-grow items-center overflow-hidden text-wrap break-all font-medium">
             {short_name}
           </div>
           <IconButton
@@ -151,11 +132,7 @@ function InspectorComponent({
             className="hover:bg-primary-foreground/75"
             tooltip={disabled ? 'Enable component' : 'Disable component'}
           >
-            {disabled ? (
-              <EyeOff className="size-4" />
-            ) : (
-              <Eye className="size-4" />
-            )}
+            {disabled ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
           </IconButton>
           <MenuTrigger>
             <IconButton className="hover:bg-primary-foreground/75">
@@ -169,27 +146,21 @@ function InspectorComponent({
                     onAction={() => {
                       navigator.clipboard.writeText(name || '');
                       toast({
-                        description: `Copied component name to clipboard`,
+                        description: 'Copied component name to clipboard',
                       });
                     }}
                   >
                     Copy name
                   </MenuItem>
                 )}
-                <MenuItem
-                  onAction={removeComponent}
-                  variant="danger"
-                  icon={Trash2}
-                >
+                <MenuItem onAction={removeComponent} variant="danger" icon={Trash2}>
                   Remove
                 </MenuItem>
               </Menu>
             </MenuPopover>
           </MenuTrigger>
         </div>
-        <CollapsibleContent className="overflow-hidden w-full">
-          {children}
-        </CollapsibleContent>
+        <CollapsibleContent className="w-full overflow-hidden">{children}</CollapsibleContent>
       </Collapsible>
     </div>
   );

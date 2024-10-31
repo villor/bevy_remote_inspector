@@ -1,11 +1,8 @@
 import { useCallback } from 'react';
-import { EntityId } from './useEntity';
+import type { EntityId } from './useEntity';
 import { useCommand } from '@/websocket/useCommand';
 
-export function useSpawnEntity(
-  parent: EntityId | null,
-  onSpawn?: (id: EntityId) => void
-) {
+export function useSpawnEntity(parent: EntityId | null, onSpawn?: (id: EntityId) => void) {
   const exec = useCommand();
   return useCallback(() => {
     exec({

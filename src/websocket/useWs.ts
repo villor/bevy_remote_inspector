@@ -9,6 +9,6 @@ export function useWs() {
       url: state.url,
       readyState: state.readyState,
       sendMessage: state.sendMessage,
-    }))
+    })),
   );
 }

@@ -1,8 +1,4 @@
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from '@/shared/ui/resizable';
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/shared/ui/resizable';
 import { EntitiesInspectorPanel } from './EntitiesInspectorPanel';
 import { EntitiesPanel } from './EntitiesPanel';
 
@@ -13,10 +9,7 @@ export function EntitiesInspectorPage() {
         <EntitiesPanel />
       </ResizablePanel>
       <ResizableHandle />
-      <ResizablePanel
-        defaultSize={50}
-        persistentKey="entities_inspector_panel_size"
-      >
+      <ResizablePanel defaultSize={50} persistentKey="entities_inspector_panel_size">
         <EntitiesInspectorPanel />
       </ResizablePanel>
     </ResizablePanelGroup>

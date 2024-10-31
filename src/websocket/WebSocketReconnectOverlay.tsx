@@ -12,11 +12,8 @@ export function WebSocketReconnectOverlay() {
 
   return (
     <>
-      <div
-        className="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-
-      [state=closed]:fade-out-0 data-[state=open]:fade-in-0"
-      >
-        <div className="flex flex-1 justify-center items-center flex-col h-full">
+      <div className="data- [state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/80 data-[state=closed]:animate-out data-[state=open]:animate-in">
+        <div className="flex h-full flex-1 flex-col items-center justify-center">
           <span>Reconnecting...</span>
           <Button
             type="button"

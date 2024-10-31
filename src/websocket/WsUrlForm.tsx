@@ -34,20 +34,15 @@ export function WsUrlForm() {
   };
 
   return (
-    <div className="mx-auto pt-20 max-w-md w-full flex flex-1">
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className="flex flex-col flex-grow gap-y-4 "
-      >
-        <Input {...register('url')} className="px-4 py-3 h-10"></Input>
+    <div className="mx-auto flex w-full max-w-md flex-1 pt-20">
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-grow flex-col gap-y-4 ">
+        <Input {...register('url')} className="h-10 px-4 py-3"></Input>
         <Button
           type="submit"
           size="lg"
           isDisabled={readyState === ReadyState.CONNECTING && isManuallyConnect}
         >
-          {readyState === ReadyState.CONNECTING && isManuallyConnect
-            ? 'Connecting...'
-            : 'Connect'}
+          {readyState === ReadyState.CONNECTING && isManuallyConnect ? 'Connecting...' : 'Connect'}
         </Button>
       </form>
     </div>

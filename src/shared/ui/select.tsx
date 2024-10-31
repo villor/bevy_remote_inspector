@@ -3,15 +3,15 @@
 import { ChevronDown } from 'lucide-react';
 import {
   Button as AriaButton,
-  ButtonProps as AriaButtonProps,
+  type ButtonProps as AriaButtonProps,
   ListBox as AriaListBox,
-  ListBoxProps as AriaListBoxProps,
-  PopoverProps as AriaPopoverProps,
+  type ListBoxProps as AriaListBoxProps,
+  type PopoverProps as AriaPopoverProps,
   Select as AriaSelect,
-  SelectProps as AriaSelectProps,
+  type SelectProps as AriaSelectProps,
   SelectValue as AriaSelectValue,
-  SelectValueProps as AriaSelectValueProps,
-  ValidationResult as AriaValidationResult,
+  type SelectValueProps as AriaSelectValueProps,
+  type ValidationResult as AriaValidationResult,
   composeRenderProps,
   Text,
 } from 'react-aria-components';
@@ -19,12 +19,7 @@ import {
 import { cn } from '@/utils';
 
 import { FieldError, Label } from './field';
-import {
-  ListBoxCollection,
-  ListBoxHeader,
-  ListBoxItem,
-  ListBoxSection,
-} from './list-box';
+import { ListBoxCollection, ListBoxHeader, ListBoxItem, ListBoxSection } from './list-box';
 import { Popover } from './popover';
 
 const Select = AriaSelect;
@@ -37,18 +32,15 @@ const SelectSection = ListBoxSection;
 
 const SelectCollection = ListBoxCollection;
 
-const SelectValue = <T extends object>({
-  className,
-  ...props
-}: AriaSelectValueProps<T>) => (
+const SelectValue = <T extends object>({ className, ...props }: AriaSelectValueProps<T>) => (
   <AriaSelectValue
     className={composeRenderProps(className, (className) =>
       cn(
         'line-clamp-1 data-[placeholder]:text-muted-foreground',
         /* Description */
         '[&>[slot=description]]:hidden',
-        className
-      )
+        className,
+      ),
     )}
     {...props}
   />
@@ -65,8 +57,8 @@ const SelectTrigger = ({ className, children, ...props }: AriaButtonProps) => (
         'data-[focus-visible]:outline-none data-[focus-visible]:ring-2 data-[focus-visible]:ring-ring data-[focus-visible]:ring-offset-2',
         /* Resets */
         'focus-visible:outline-none',
-        className
-      )
+        className,
+      ),
     )}
     {...props}
   >
@@ -81,30 +73,21 @@ const SelectTrigger = ({ className, children, ...props }: AriaButtonProps) => (
 
 const SelectPopover = ({ className, ...props }: AriaPopoverProps) => (
   <Popover
-    className={composeRenderProps(className, (className) =>
-      cn('w-[--trigger-width]', className)
-    )}
+    className={composeRenderProps(className, (className) => cn('w-[--trigger-width]', className))}
     {...props}
   />
 );
 
-const SelectListBox = <T extends object>({
-  className,
-  ...props
-}: AriaListBoxProps<T>) => (
+const SelectListBox = <T extends object>({ className, ...props }: AriaListBoxProps<T>) => (
   <AriaListBox
     className={composeRenderProps(className, (className) =>
-      cn(
-        'p-1 outline-none [clip-path:inset(0_0_0_0_round_calc(var(--radius)-2px))]',
-        className
-      )
+      cn('p-1 outline-none [clip-path:inset(0_0_0_0_round_calc(var(--radius)-2px))]', className),
     )}
     {...props}
   />
 );
 
-interface JollySelectProps<T extends object>
-  extends Omit<AriaSelectProps<T>, 'children'> {
+interface JollySelectProps<T extends object> extends Omit<AriaSelectProps<T>, 'children'> {
   label?: string;
   description?: string;
   errorMessage?: string | ((validation: AriaValidationResult) => string);
@@ -124,7 +107,7 @@ function JollySelect<T extends object>({
   return (
     <Select
       className={composeRenderProps(className, (className) =>
-        cn('group flex flex-col gap-2', className)
+        cn('group flex flex-col gap-2', className),
       )}
       {...props}
     >
@@ -133,7 +116,7 @@ function JollySelect<T extends object>({
         <SelectValue />
       </SelectTrigger>
       {description && (
-        <Text className="text-sm text-muted-foreground" slot="description">
+        <Text className="text-muted-foreground text-sm" slot="description">
           {description}
         </Text>
       )}

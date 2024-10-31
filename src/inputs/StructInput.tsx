@@ -1,13 +1,13 @@
 import {
-  TStruct,
-  TValueArray,
-  TValueObject,
-  TypeName,
+  type TStruct,
+  type TValueArray,
+  type TValueObject,
+  type TypeName,
   useTypeRegistry,
 } from '@/type-registry/useTypeRegistry';
 import { cn, snakeToWords } from '@/utils';
 import { getInputComponent } from './DynamicInput';
-import { Fragment, HTMLAttributes, memo, ReactNode } from 'react';
+import { Fragment, type HTMLAttributes, memo, type ReactNode } from 'react';
 import clsx from 'clsx';
 import { TupleStructInput } from './TupleStructInput';
 import { useDynamicForm } from './DynamicForm';
@@ -17,19 +17,11 @@ type StructInputProps = {
   path: string;
 };
 
-export const StructInput = memo(function StructInput({
-  typeInfo,
-  path,
-}: StructInputProps) {
+export const StructInput = memo(function StructInput({ typeInfo, path }: StructInputProps) {
   const { getValue } = useDynamicForm();
   const value = getValue<TValueArray | TValueObject>(path);
   if (Array.isArray(value) && value.length === typeInfo.fields.length) {
-    return (
-      <StructInputInline
-        parentPath={path}
-        typeInfo={typeInfo}
-      ></StructInputInline>
-    );
+    return <StructInputInline parentPath={path} typeInfo={typeInfo}></StructInputInline>;
   }
 
   return (
@@ -40,11 +32,7 @@ export const StructInput = memo(function StructInput({
 
         return (
           <Fragment key={i}>
-            <StructFieldInput
-              typeName={f.type}
-              fieldName={f.name}
-              path={newPath}
-            />
+            <StructFieldInput typeName={f.type} fieldName={f.name} path={newPath} />
           </Fragment>
         );
       })}
@@ -73,11 +61,7 @@ export const StructFieldInput = memo(function StructFieldInput({
     const value = getValue(path);
     const shouldUnwrap = Array.isArray(value);
     const inner = <StructInput typeInfo={info} path={path} />;
-    children = shouldUnwrap ? (
-      inner
-    ) : (
-      <div className="col-span-2 pl-6">{inner}</div>
-    );
+    children = shouldUnwrap ? inner : <div className="col-span-2 pl-6">{inner}</div>;
   } else if (info.kind === 'tuple_struct') {
     children = (
       <div className="col-span-2 pl-6">
@@ -97,12 +81,7 @@ export const StructFieldInput = memo(function StructFieldInput({
 });
 
 export function StructInputLayout(props: HTMLAttributes<HTMLDivElement>) {
-  return (
-    <div
-      {...props}
-      className={cn('grid gap-2 grid-cols-[6rem,1fr]', props.className)}
-    ></div>
-  );
+  return <div {...props} className={cn('grid grid-cols-[6rem,1fr] gap-2', props.className)}></div>;
 }
 
 function StructInputInline({
@@ -124,11 +103,7 @@ function StructInputInline({
         const newParentPath = `${parentPath}.${i}`;
         return (
           <div className="flex w-full" key={i}>
-            <StructFieldInput
-              typeName={f.type}
-              fieldName={f.name}
-              path={newParentPath}
-            />
+            <StructFieldInput typeName={f.type} fieldName={f.name} path={newParentPath} />
           </div>
         );
       })}

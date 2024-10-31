@@ -1,22 +1,15 @@
-import { EntityTreeNode, useEntityTrees } from '@/entity/useEntitiesTrees';
+import { type EntityTreeNode, useEntityTrees } from '@/entity/useEntitiesTrees';
 import useResizeObserver from 'use-resize-observer';
-import { EntityId, useEntity } from '@/entity/useEntity';
+import { type EntityId, useEntity } from '@/entity/useEntity';
 import { Button, buttonVariants } from '@/shared/ui/button';
 import { useStore } from '@/store';
 import clsx from 'clsx';
-import {
-  ChevronRight,
-  Ellipsis,
-  Eye,
-  EyeOff,
-  Plus,
-  Trash2,
-} from 'lucide-react';
+import { ChevronRight, Ellipsis, Eye, EyeOff, Plus, Trash2 } from 'lucide-react';
 import {
   createContext,
-  CSSProperties,
+  type CSSProperties,
   memo,
-  ReactElement,
+  type ReactElement,
   useCallback,
   useContext,
   useEffect,
@@ -32,13 +25,13 @@ import { Menu, MenuItem, MenuPopover, MenuTrigger } from '@/shared/ui/menu';
 import { useDespawnEntity } from './useDespawnEntity';
 import { useToggleVisibility } from './useToggleVisibility';
 import {
-  CursorProps,
-  DragPreviewProps,
-  MoveHandler,
-  NodeApi,
-  NodeRendererProps,
+  type CursorProps,
+  type DragPreviewProps,
+  type MoveHandler,
+  type NodeApi,
+  type NodeRendererProps,
   Tree,
-  TreeApi,
+  type TreeApi,
 } from 'react-arborist';
 import { useReparent } from './useReparent';
 import { useSpawnEntity } from './useSpawnEntity';
@@ -74,13 +67,11 @@ export const EntitiesTreeView = memo(function EntitiesTreeView() {
       }
       reparent(node.data.id, newParentId);
     },
-    [childParentMap, reparent]
+    [childParentMap, reparent],
   );
 
   const tree = useRef<TreeApi<EntityTreeNode> | null>(null);
-  const [newlySpawnedEntity, setNewlySpawnedEntity] = useState<EntityId | null>(
-    null
-  );
+  const [newlySpawnedEntity, setNewlySpawnedEntity] = useState<EntityId | null>(null);
   const ctxValue = useMemo(() => {
     return {
       setNewlySpawnedEntity,
@@ -98,16 +89,14 @@ export const EntitiesTreeView = memo(function EntitiesTreeView() {
   }
 
   return (
-    <div className="flex flex-col w-full h-full">
+    <div className="flex h-full w-full flex-col">
       <entityTreeCtx.Provider value={ctxValue}>
         <FillFlexParent>
           {(dimens) => (
             <Tree
               {...dimens}
               ref={tree}
-              selection={
-                inspectingEntity ? String(inspectingEntity) : undefined
-              }
+              selection={inspectingEntity ? String(inspectingEntity) : undefined}
               disableMultiSelection
               openByDefault
               data={entityTrees}
@@ -134,14 +123,14 @@ function DragPreview({ mouse, id }: DragPreviewProps) {
     return null;
   }
   return (
-    <div className="fixed pointer-events-none z-100 left-0 top-0 w-full h-full">
+    <div className="pointer-events-none fixed top-0 left-0 z-100 h-full w-full">
       <div
         className={cn(
           buttonVariants({
             size: 'sm',
             variant: 'default',
           }),
-          'justify-start flex-grow py-1 px-1 translate-x-4 -translate-y-1/2 absolute'
+          '-translate-y-1/2 absolute flex-grow translate-x-4 justify-start px-1 py-1',
         )}
         style={{
           left: mouse.x,
@@ -154,10 +143,7 @@ function DragPreview({ mouse, id }: DragPreviewProps) {
   );
 }
 
-const TreeNode = memo(function TreeNode({
-  node,
-  dragHandle,
-}: NodeRendererProps<EntityTreeNode>) {
+const TreeNode = memo(function TreeNode({ node, dragHandle }: NodeRendererProps<EntityTreeNode>) {
   const nodeId = node.data.id;
   const { level, isSelected, isRoot } = node;
   const hasChildren = !!node.children && node.children.length > 0;
@@ -174,12 +160,12 @@ const TreeNode = memo(function TreeNode({
           : {}
       }
     >
-      <div className="w-6 flex items-center">
+      <div className="flex w-6 items-center">
         {hasChildren && (
           <ChevronRight
             onClick={() => node.isInternal && node.toggle()}
             className={clsx('size-4', {
-              'transform rotate-90': isExpanded,
+              'rotate-90 transform': isExpanded,
             })}
           />
         )}
@@ -192,9 +178,9 @@ const TreeNode = memo(function TreeNode({
               size: 'sm',
               variant: isSelected ? 'default' : 'ghost',
             }),
-            'justify-start flex-grow py-1 px-1'
+            'flex-grow justify-start px-1 py-1',
           )}
-          style={{ width: true ? 'fit-content' : '100%' }}
+          style={{ width: 'fit-content' }}
         >
           <EntityName id={nodeId}></EntityName>
         </div>
@@ -215,7 +201,7 @@ const EntityActionMenu = memo(function EntityActionMenu({
   const despawnDescendant = useDespawnEntity(id, 'descendant');
   const components = useEntity(id);
   const visibilityComponentId = useStore((state) =>
-    state.componentNameToIdMap.get(bevyTypes.VIEW_VISIBILITY)
+    state.componentNameToIdMap.get(bevyTypes.VIEW_VISIBILITY),
   );
   const viewVisibility = components?.get(visibilityComponentId ?? -1);
   const ctx = useContext(entityTreeCtx);
@@ -259,17 +245,14 @@ const EntityActionMenu = memo(function EntityActionMenu({
 
 const Cursor = memo(function Cursor({ top, left, indent }: CursorProps) {
   const style: CSSProperties = {
-    top: top - 2 + 'px',
-    left: left + 'px',
-    right: indent + 'px',
+    top: `${top - 2}px`,
+    left: `${left}px`,
+    right: `${indent}px`,
   };
   return (
-    <div
-      className="flex items-center z-10 absolute pointer-events-none"
-      style={style}
-    >
-      <div className="w-2 h-2 rounded-full bg-primary"></div>
-      <div className="flex-1 h-0.5 bg-primary rounded"></div>
+    <div className="pointer-events-none absolute z-10 flex items-center" style={style}>
+      <div className="h-2 w-2 rounded-full bg-primary"></div>
+      <div className="h-0.5 flex-1 rounded bg-primary"></div>
     </div>
   );
 });
@@ -294,7 +277,7 @@ function FillFlexParent(props: {
   const { ref, width, height } = useResizeObserver();
 
   return (
-    <div className="flex-1 w-full h-full min-h-0 min-w-0" ref={ref}>
+    <div className="h-full min-h-0 w-full min-w-0 flex-1" ref={ref}>
       {width && height ? props.children({ width, height }) : null}
     </div>
   );

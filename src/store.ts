@@ -1,21 +1,12 @@
-import { create, StateCreator } from 'zustand';
-import {
-  createInspectorSlice,
-  InspectorSlice,
-} from '@/entity/createInspectorSlice';
+import { create, type StateCreator } from 'zustand';
+import { createInspectorSlice, type InspectorSlice } from '@/entity/createInspectorSlice';
 import {
   createTypeRegistrySlice,
-  TypeRegistrySlice,
+  type TypeRegistrySlice,
 } from './type-registry/createTypeRegistrySlice';
-import { createWsSlice, WsSlice } from './websocket/createWsSlice';
-import {
-  createEntitiesSlice,
-  EntitiesSlice,
-} from './entity/createEntitiesSlice';
-import {
-  ComponentsSlice,
-  createComponentsSlice,
-} from './component/createComponentsSlice';
+import { createWsSlice, type WsSlice } from './websocket/createWsSlice';
+import { createEntitiesSlice, type EntitiesSlice } from './entity/createEntitiesSlice';
+import { type ComponentsSlice, createComponentsSlice } from './component/createComponentsSlice';
 
 export type CreateSlice<T> = StateCreator<SharedSlice, [], [], T>;
 

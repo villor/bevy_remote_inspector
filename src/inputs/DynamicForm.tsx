@@ -61,6 +61,9 @@ function DynamicFormInner({
     getValues,
     control,
   } = useForm<any>({
+    values: {
+      [ROOT_KEY]: value,
+    },
     defaultValues: {
       [ROOT_KEY]: value,
     },

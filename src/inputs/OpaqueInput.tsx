@@ -39,9 +39,9 @@ const OpaqueInputInner = memo(
       typeName: string;
     }
   >(({ path, typeName }, ref) => {
-    const { getValue, setValue, readOnly, allowUndefined, control } = useDynamicForm();
-    useWatch({ control, name: path }); // force rerender to update newest value
-    const value = getValue(path);
+    const { setValue, readOnly, allowUndefined, control } = useDynamicForm();
+    const value = useWatch({ control, name: path });
+    console.log(value);
     const inputReadOnly = useContext(DynamicInputContext)?.readOnly;
     const isReadOnly = readOnly || inputReadOnly;
     if (value === undefined && !allowUndefined) {

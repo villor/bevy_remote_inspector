@@ -26,6 +26,7 @@
         "noForEach": "off"
       },
       "correctness": {
+        "noUnusedImports": "off", // Fixes slow format-on-save
         "useExhaustiveDependencies": "off" // We _might_ want to turn this rule on at some point
       },
       "suspicious": {

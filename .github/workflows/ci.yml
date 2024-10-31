@@ -15,11 +15,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends libudev-dev
 
       - name: Format
         run: |
           cargo fmt --all --check
-      - name: check
+      - name: Check
         run: |
           cargo check --all --all-features
 

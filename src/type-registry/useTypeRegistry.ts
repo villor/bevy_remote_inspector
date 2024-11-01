@@ -1,13 +1,15 @@
 import { callBrp } from '@/brp/client';
-import { useStore } from '@/store';
+import { useSession } from '@/brp/useSession';
 import { useQuery } from '@tanstack/react-query';
 
 export function useTypeRegistry(): TypeRegistry {
-  const brpUrl = useStore((selector) => selector.brpUrl);
+  const { brpUrl, hasPlugin } = useSession();
   const { data } = useQuery({
     queryKey: ['TYPE_REGISTRY', brpUrl],
     queryFn: () => callBrp<Array<[TypeName, TType]>>(brpUrl, 'inspector/type-registry'),
     select: (types) => new Map(types),
+    refetchOnMount: false,
+    enabled: hasPlugin,
   });
   return data ?? new Map();
 }

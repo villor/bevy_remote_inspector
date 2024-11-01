@@ -151,7 +151,8 @@ export const createEntitiesSlice: CreateSlice<EntitiesSlice> = (set, get) => ({
 function getEntityName(state: SharedSlice, id: EntityId) {
   const componentNameToIdMap = state.componentNameToIdMap;
 
-  const getComponentName = state.getComponentName;
+  // TODO: Fix component name
+  // const getComponentName = state.getComponentName;
   const components = state.entities.get(id);
 
   if (!components) {
@@ -185,79 +186,80 @@ function getEntityName(state: SharedSlice, id: EntityId) {
     }
   }
 
+  // TODO: Fix
   // Search for non bevy types first
-  for (const componentId of components.keys()) {
-    const { short_name, name } = getComponentName(componentId);
-    let isBevyType = false;
-    for (const bevyCrate of bevyCrates) {
-      if (name?.startsWith(`${bevyCrate}::`)) {
-        isBevyType = true;
-        break;
-      }
-    }
-    if (short_name && !isBevyType) {
-      return short_name;
-    }
-  }
+  // for (const componentId of components.keys()) {
+  //   const { short_name, name } = getComponentName(componentId);
+  //   let isBevyType = false;
+  //   for (const bevyCrate of bevyCrates) {
+  //     if (name?.startsWith(`${bevyCrate}::`)) {
+  //       isBevyType = true;
+  //       break;
+  //     }
+  //   }
+  //   if (short_name && !isBevyType) {
+  //     return short_name;
+  //   }
+  // }
 
   // search for first suitable component
-  for (const componentId of Array.from(components.keys()).sort()) {
-    const { short_name, name } = getComponentName(componentId);
+  // for (const componentId of Array.from(components.keys()).sort()) {
+  //   const { short_name, name } = getComponentName(componentId);
 
-    // Skip `Parent` and `Children` as they are not confusing
-    if (short_name && name !== bevyTypes.PARENT && name !== bevyTypes.CHILDREN) {
-      return short_name;
-    }
-  }
+  //   // Skip `Parent` and `Children` as they are not confusing
+  //   if (short_name && name !== bevyTypes.PARENT && name !== bevyTypes.CHILDREN) {
+  //     return short_name;
+  //   }
+  // }
 
   return 'Entity';
 }
 
 // Copied from https://github.com/bevyengine/bevy/blob/main/tools/publish.sh
-const bevyCrates = [
-  'bevy_utils',
-  'bevy_ptr',
-  'bevy_macro_utils',
-  'bevy_derive',
-  'bevy_math',
-  'bevy_color',
-  'bevy_tasks',
-  'bevy_reflect',
-  'bevy_ecs',
-  'bevy_state',
-  'bevy_app',
-  'bevy_time',
-  'bevy_log',
-  'bevy_asset',
-  'bevy_audio',
-  'bevy_core',
-  'bevy_diagnostic',
-  'bevy_hierarchy',
-  'bevy_transform',
-  'bevy_window',
-  'bevy_render',
-  'bevy_mikktspace',
-  'bevy_image',
-  'bevy_mesh',
-  'bevy_core_pipeline',
-  'bevy_input',
-  'bevy_gilrs',
-  'bevy_animation',
-  'bevy_pbr',
-  'bevy_gltf',
-  'bevy_remote',
-  'bevy_scene',
-  'bevy_picking',
-  'bevy_sprite',
-  'bevy_gizmos',
-  'bevy_text',
-  'bevy_a11y',
-  'bevy_ui',
-  'bevy_winit',
-  'bevy_dev_tools',
-  'bevy_internal',
-  'bevy_dylib',
-];
+// const bevyCrates = [
+//   'bevy_utils',
+//   'bevy_ptr',
+//   'bevy_macro_utils',
+//   'bevy_derive',
+//   'bevy_math',
+//   'bevy_color',
+//   'bevy_tasks',
+//   'bevy_reflect',
+//   'bevy_ecs',
+//   'bevy_state',
+//   'bevy_app',
+//   'bevy_time',
+//   'bevy_log',
+//   'bevy_asset',
+//   'bevy_audio',
+//   'bevy_core',
+//   'bevy_diagnostic',
+//   'bevy_hierarchy',
+//   'bevy_transform',
+//   'bevy_window',
+//   'bevy_render',
+//   'bevy_mikktspace',
+//   'bevy_image',
+//   'bevy_mesh',
+//   'bevy_core_pipeline',
+//   'bevy_input',
+//   'bevy_gilrs',
+//   'bevy_animation',
+//   'bevy_pbr',
+//   'bevy_gltf',
+//   'bevy_remote',
+//   'bevy_scene',
+//   'bevy_picking',
+//   'bevy_sprite',
+//   'bevy_gizmos',
+//   'bevy_text',
+//   'bevy_a11y',
+//   'bevy_ui',
+//   'bevy_winit',
+//   'bevy_dev_tools',
+//   'bevy_internal',
+//   'bevy_dylib',
+// ];
 
 const COMMON_NAMES: Record<string, string | ((value: TValue) => string)> = {
   [bevyTypes.CAMERA_3D]: 'Camera3d',

@@ -1,4 +1,4 @@
-import { type ComponentId, useComponentInfo } from '@/component/useComponents';
+import { type ComponentId, useComponentInfo, useComponents } from '@/component/useComponents';
 import { type EntityId, useEntityComponentIds, useEntityComponentValue } from '@/entity/useEntity';
 import { DynamicForm } from '@/inputs/DynamicForm';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/shared/ui/collapsible';
@@ -72,7 +72,8 @@ function InspectorComponent({
   entityId: EntityId;
 }) {
   const { value, disabled } = useEntityComponentValue(entityId, componentId);
-  const { name, short_name } = useStore((state) => state.getComponentName)(componentId);
+  const { getComponentName } = useComponents();
+  const { name, short_name } = getComponentName(componentId);
 
   const info = useComponentInfo(componentId)!;
   const updateEntityComponent = useUpdateComponent(entityId, componentId);

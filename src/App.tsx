@@ -10,17 +10,28 @@ import { Layout } from './layout/Layout';
 import { WebSocketReconnectOverlay } from './websocket/WebSocketReconnectOverlay';
 import { useStore } from './store';
 import { Toaster } from './shared/ui/toaster';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+    },
+  },
+});
 
 function App() {
   return (
     <>
       <WebsocketConnector />
       <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-        <WebSocketReconnectOverlay />
-        <Layout>
-          <RenderedPage />
-          <Toaster />
-        </Layout>
+        <QueryClientProvider client={queryClient}>
+          <WebSocketReconnectOverlay />
+          <Layout>
+            <RenderedPage />
+            <Toaster />
+          </Layout>
+        </QueryClientProvider>
       </ThemeProvider>
     </>
   );

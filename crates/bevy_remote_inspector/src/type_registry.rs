@@ -32,7 +32,7 @@ impl TrackedData {
     }
 }
 
-fn serialize_type_registry(registry: &TypeRegistry, zsts: &mut ZeroSizedTypes) -> Vec<Value> {
+pub fn serialize_type_registry(registry: &TypeRegistry, zsts: &mut ZeroSizedTypes) -> Vec<Value> {
     let types = registry
         .iter()
         .map(|registration| {

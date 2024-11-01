@@ -21,7 +21,7 @@ import {
   ComboboxListBox,
   ComboboxItem,
 } from '@/shared/ui/combobox';
-import type { ComponentId, ComponentInfo } from '@/component/useComponents';
+import { useComponents, type ComponentId, type ComponentInfo } from '@/component/useComponents';
 import type { Key } from 'react-aria-components';
 import { resolveTypeDefaultValue } from '@/type-registry/types';
 import { DynamicForm } from '@/inputs/DynamicForm';
@@ -113,7 +113,7 @@ function AddComponentDialogContent({
   const inspectingEntity = useStore((state) => state.inspectingEntity)!;
 
   const addComponent = useAddComponent(inspectingEntity);
-  const getComponetName = useStore((state) => state.getComponentName);
+  const { getComponentName } = useComponents();
   const comboboxRef = useRef<HTMLInputElement>(null);
   const handleAddComponent = useCallback(
     (value: TValue) => {
@@ -124,7 +124,7 @@ function AddComponentDialogContent({
         component: selectedComponent.id,
         value,
         onSuccess: () => {
-          const { name, short_name } = getComponetName(selectedComponent.id);
+          const { name, short_name } = getComponentName(selectedComponent.id);
 
           toast({
             description: `Added component ${short_name || name}`,
@@ -261,7 +261,7 @@ function RequiredComponentsMessage({
   const displayComponents = selectedComponentInfo.required_components.filter(
     (id) => !existedComponents.includes(id),
   );
-  const getComponetName = useStore((state) => state.getComponentName);
+  const { getComponentName } = useComponents();
   if (displayComponents.length === 0) {
     return null;
   }
@@ -270,7 +270,7 @@ function RequiredComponentsMessage({
     <FormDescription className="mt-2 flex flex-wrap gap-1">
       <span>Insert this component will also insert</span>
       {displayComponents.map((id) => {
-        const { name, short_name } = getComponetName(id);
+        const { name, short_name } = getComponentName(id);
         return <ComponentBadge key={id}>{short_name || name}</ComponentBadge>;
       })}
     </FormDescription>

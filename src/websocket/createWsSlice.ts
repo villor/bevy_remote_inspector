@@ -74,7 +74,6 @@ export const createWsSlice: StateCreator<SharedSlice, [], [], WsSlice> = (set, g
         shouldReconnect: true,
         childParentMap: new Map(),
         entities: new Map(),
-        registry: new Map(),
         componentNameToIdMap: new Map(),
         components: new Map(),
         inspectingEntity: null,
@@ -110,9 +109,7 @@ export const createWsSlice: StateCreator<SharedSlice, [], [], WsSlice> = (set, g
       }
 
       for (const item of event.result) {
-        if (item.kind === 'type_registry') {
-          get().setRegistry(item.types);
-        } else if (item.kind === 'component') {
+        if (item.kind === 'component') {
           get().updateComponents(item.components);
         } else if (item.kind === 'entity') {
           get().updateEntity(item.entity, item.mutation);

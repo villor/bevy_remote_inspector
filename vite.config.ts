@@ -14,6 +14,13 @@ export default defineConfig(async () => ({
     port: 1420,
     strictPort: true,
 
+    proxy: {
+      '/brp': {
+        target: 'http://localhost:15702',
+        changeOrigin: true,
+      },
+    },
+
     watch: {
       // 3. tell vite to ignore watching `src-tauri`
       ignored: ['**/src-tauri/**'],

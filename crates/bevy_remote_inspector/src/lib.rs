@@ -1,3 +1,4 @@
+mod brp_extensions;
 mod command;
 mod component;
 mod entity;
@@ -7,13 +8,14 @@ use bevy::{
     app::PluginGroupBuilder,
     ecs::{component::ComponentId, entity::EntityHashMap},
     prelude::*,
-    remote::{error_codes, BrpError, BrpResult},
+    remote::{error_codes, http::RemoteHttpPlugin, BrpError, BrpResult, RemotePlugin},
     utils::{HashMap, HashSet},
 };
 use bevy_remote_stream::{
     websocket::RemoteStreamWebSocketPlugin, OnDataHandlerInput, RemoteStreamHandlers,
     RemoteStreamPlugin, StreamClientId, StreamHandlerInputRef, StreamMethods,
 };
+use brp_extensions::extend_brp;
 use command::Command;
 use component::InspectorComponentInfo;
 use entity::EntityMutation;
@@ -28,6 +30,13 @@ pub struct RemoteInspectorPlugin;
 
 impl Plugin for RemoteInspectorPlugin {
     fn build(&self, app: &mut App) {
+        if !app.is_plugin_added::<RemotePlugin>() {
+            app.add_plugins(extend_brp(RemotePlugin::default()));
+        }
+        if !app.is_plugin_added::<RemoteHttpPlugin>() {
+            app.add_plugins(RemoteHttpPlugin::default());
+        }
+
         let update = app.main_mut().world_mut().register_system(stream);
         let on_connect = app.main_mut().world_mut().register_system(on_connect);
         let on_disconnect = app.main_mut().world_mut().register_system(on_disconnect);

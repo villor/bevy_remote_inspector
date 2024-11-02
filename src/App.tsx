@@ -23,16 +23,16 @@ const queryClient = new QueryClient({
 function App() {
   return (
     <>
-      <WebsocketConnector />
-      <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-        <QueryClientProvider client={queryClient}>
+      <QueryClientProvider client={queryClient}>
+        <WebsocketConnector />
+        <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
           <WebSocketReconnectOverlay />
           <Layout>
             <RenderedPage />
             <Toaster />
           </Layout>
-        </QueryClientProvider>
-      </ThemeProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
     </>
   );
 }

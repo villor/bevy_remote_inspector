@@ -1,7 +1,7 @@
 import { useStore } from '@/store';
 import type { EntityId } from './useEntity';
 import { useMemo } from 'react';
-import { getEntityIndex } from './createEntitiesSlice';
+import { getEntityIndex } from './entityUtils';
 export type EntityTreeNode = {
   id: EntityId;
   stringId: string;

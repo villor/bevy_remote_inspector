@@ -1,45 +1,60 @@
-import { useStore } from '@/store';
 import { useTypeRegistry, type TValue, type TypeName } from '../type-registry/useTypeRegistry';
-import { useCallback } from 'react';
+import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { callBrp } from '@/brp/client';
+import { useSession } from '@/brp/useSession';
 
 export type ComponentName = TypeName;
 export type ComponentValue = TValue;
 export type ComponentId = number;
 
 export type ComponentInfo = {
+  id: ComponentId;
   name: ComponentName;
   reflected: boolean;
   required_components: ComponentId[];
+  short_name?: string;
 };
 
 export function useComponentInfo(id: ComponentId) {
-  return useStore((state) => state.components.get(id));
+  const { componentsById } = useComponents();
+  return componentsById.get(id);
 }
 
-export function useComponents() {
-  const components = useStore((state) => state.components);
+export interface UseComponents {
+  components: ComponentInfo[];
+  componentsById: Map<ComponentId, ComponentInfo>;
+  componentsByName: Map<ComponentName, ComponentInfo>;
+}
+
+export function useComponents(): UseComponents {
   const registry = useTypeRegistry();
 
-  const getComponentName = useCallback(
-    (componentId: ComponentId) => {
-      const info = components.get(componentId);
+  const { brpUrl, hasPlugin } = useSession();
+  const { data: componentList } = useQuery({
+    queryKey: ['COMPONENTS', brpUrl],
+    queryFn: () => callBrp<Array<ComponentInfo>>(brpUrl, 'inspector/components'),
+    refetchOnMount: false,
+    enabled: hasPlugin,
+  });
 
-      if (!info) {
+  // TODO: Cache this memo globally?
+  const { components, componentsById, componentsByName } = useMemo(() => {
+    const components =
+      componentList?.map((info) => {
+        const registeredInfo = registry.get(info.name);
         return {
-          name: undefined,
-          short_name: undefined,
+          ...info,
+          short_name: registeredInfo?.short_name || info.name,
         };
-      }
+      }) ?? [];
 
-      const registeredInfo = registry.get(info.name);
+    return {
+      components: components,
+      componentsById: new Map(components?.map((info) => [info.id, info])),
+      componentsByName: new Map(components?.map((info) => [info.name, info])),
+    };
+  }, [componentList, registry]);
 
-      return {
-        name: info.name,
-        short_name: registeredInfo?.short_name || info.name,
-      };
-    },
-    [components, registry],
-  );
-
-  return { getComponentName };
+  return { components, componentsById, componentsByName };
 }

@@ -1,7 +1,7 @@
 import { Badge } from '@/shared/ui/badge';
 import type { EntityId } from './useEntity';
 import { useEntityName } from './useEntityName';
-import { prettyEntityId } from './createEntitiesSlice';
+import { prettyEntityId } from './entityUtils';
 
 export function EntityName({ id }: { id: EntityId }) {
   const name = useEntityName(id);

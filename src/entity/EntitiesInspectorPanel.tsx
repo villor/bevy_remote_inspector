@@ -72,8 +72,8 @@ function InspectorComponent({
   entityId: EntityId;
 }) {
   const { value, disabled } = useEntityComponentValue(entityId, componentId);
-  const { getComponentName } = useComponents();
-  const { name, short_name } = getComponentName(componentId);
+  const { componentsById } = useComponents();
+  const { name, short_name } = componentsById.get(componentId) ?? {};
 
   const info = useComponentInfo(componentId)!;
   const updateEntityComponent = useUpdateComponent(entityId, componentId);

@@ -17,15 +17,16 @@ export type EntityInputProps = {
 import { memo, useMemo } from 'react';
 import { useStore } from '@/store';
 import { EntityName } from '@/entity/EntityName';
-import { isHiddenEntity } from '@/entity/createEntitiesSlice';
+import { isHiddenEntity } from '@/entity/entityUtils';
 import { ScrollArea } from '@/shared/ui/scroll-area';
 import { useWatch } from 'react-hook-form';
+import { useComponents } from '@/component/useComponents';
 
 export const EntityInput = memo(function EntityInput({ path, mode }: EntityInputProps) {
   const { setValue, control, readOnly } = useDynamicForm();
   const value = useWatch({ control, name: path });
   const allEntities = useStore((state) => state.entities);
-  const allComponents = useStore((state) => state.components);
+  const { componentsById: allComponents } = useComponents();
   const entityNames = useStore((state) => state.entityNames);
   const entities = useMemo(() => {
     return Array.from(allEntities.entries())

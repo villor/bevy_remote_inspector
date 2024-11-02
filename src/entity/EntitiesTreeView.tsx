@@ -35,6 +35,7 @@ import {
 } from 'react-arborist';
 import { useReparent } from './useReparent';
 import { useSpawnEntity } from './useSpawnEntity';
+import { useComponents } from '@/component/useComponents';
 
 const entityTreeCtx = createContext<{
   setNewlySpawnedEntity: (id: EntityId) => void;
@@ -201,9 +202,8 @@ const EntityActionMenu = memo(function EntityActionMenu({
   const despawnRecursive = useDespawnEntity(id, 'recursive');
   const despawnDescendant = useDespawnEntity(id, 'descendant');
   const components = useEntity(id);
-  const visibilityComponentId = useStore((state) =>
-    state.componentNameToIdMap.get(bevyTypes.VIEW_VISIBILITY),
-  );
+  const { componentsByName } = useComponents();
+  const visibilityComponentId = componentsByName.get(bevyTypes.VIEW_VISIBILITY)?.id;
   const viewVisibility = components?.get(visibilityComponentId ?? -1);
   const ctx = useContext(entityTreeCtx);
 

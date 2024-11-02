@@ -1,9 +1,7 @@
 import type { SharedSlice } from '@/store';
 import type { StateCreator } from 'zustand';
-import { WEB_SOCKET_MESSAGE_ID } from './useWs';
 import { ReadyState } from 'react-use-websocket';
 import type { SendJsonMessage } from 'react-use-websocket/dist/lib/types';
-import { toast } from '@/shared/hooks/use-toast';
 import type { TType, TypeName } from '@/type-registry/useTypeRegistry';
 import type { ComponentId, ComponentInfo, ComponentValue } from '@/component/useComponents';
 import type { EntityId } from '@/entity/useEntity';
@@ -17,8 +15,8 @@ export type WsSlice = {
   }) => void;
   initSendMessage: (fn: SendJsonMessage) => void;
   setReadyState: (readyState: ReadyState) => void;
-  onMessage: (message: MessageEvent<any>) => void;
   commandCallbacks: Map<string, (data: WsEvent) => void>;
+  setCommandCallbacks: (commandCallbacks: Map<string, (data: WsEvent) => void>) => void;
   shouldReconnect: boolean;
   hasConnected: boolean;
   isManuallyConnect: boolean;
@@ -74,53 +72,13 @@ export const createWsSlice: StateCreator<SharedSlice, [], [], WsSlice> = (set, g
         shouldReconnect: true,
         childParentMap: new Map(),
         entities: new Map(),
-        componentNameToIdMap: new Map(),
-        components: new Map(),
         inspectingEntity: null,
       });
       localStorage.setItem('ws_url', get().url!);
     }
   },
-  onMessage: (message) => {
-    try {
-      const event = JSON.parse(message.data) as WsEvent;
-      if (event.id === null) {
-        return;
-      }
-
-      if (event.id !== WEB_SOCKET_MESSAGE_ID) {
-        const commandCallbacks = get().commandCallbacks;
-
-        const callback = commandCallbacks.get(event.id);
-        if (typeof callback === 'function') {
-          callback(event);
-          commandCallbacks.delete(event.id);
-          set({ commandCallbacks });
-        }
-
-        if (event.error) {
-          toast({
-            title: 'Error',
-            description: event.error.message,
-            variant: 'destructive',
-          });
-        }
-        return;
-      }
-
-      for (const item of event.result) {
-        if (item.kind === 'component') {
-          get().updateComponents(item.components);
-        } else if (item.kind === 'entity') {
-          get().updateEntity(item.entity, item.mutation);
-        } else {
-          console.log(item);
-        }
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  },
+  setCommandCallbacks: (commandCallbacks: Map<string, (data: WsEvent) => void>) =>
+    set(() => ({ commandCallbacks })),
 });
 
 export function parseWsURL(input: string): string | undefined {

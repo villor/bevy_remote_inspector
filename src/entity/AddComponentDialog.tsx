@@ -38,17 +38,17 @@ const IGNORED_COMPONENT_PREFIXES = [
 
 export function AddComponentDialog() {
   const registry = useTypeRegistry();
-  const stateComponents = useStore((state) => state.components);
+  const { components } = useComponents();
   const inspectingEntity = useStore((state) => state.inspectingEntity)!;
   const existedComponents = useEntityComponentIds(inspectingEntity);
-  const components = useMemo(() => {
-    return Array.from(stateComponents.entries())
+  const filteredComponents = useMemo(() => {
+    return components
       .filter(
-        ([id, { name }]) =>
+        ({ id, name }) =>
           !existedComponents.includes(id) &&
           !IGNORED_COMPONENT_PREFIXES.some((prefix) => name.startsWith(prefix)),
       )
-      .map(([id, { name, reflected }]) => {
+      .map(({ id, name, reflected }) => {
         const typeInfo = registry.get(name);
         return {
           id,
@@ -56,7 +56,7 @@ export function AddComponentDialog() {
           reflected,
         };
       });
-  }, [stateComponents, registry, existedComponents]);
+  }, [components, registry, existedComponents]);
   return (
     <>
       <DialogTrigger>
@@ -65,7 +65,7 @@ export function AddComponentDialog() {
         </IconButton>
         <DialogOverlay>
           <AddComponentDialogContent
-            components={components}
+            components={filteredComponents}
             existedComponents={existedComponents}
           ></AddComponentDialogContent>
         </DialogOverlay>
@@ -86,7 +86,7 @@ function AddComponentDialogContent({
     info: ComponentInfo;
   } | null>(null);
 
-  const allComponents = useStore((state) => state.components);
+  const { componentsById: allComponents } = useComponents();
 
   const formRef = useRef<FormRef>(null);
 
@@ -113,7 +113,7 @@ function AddComponentDialogContent({
   const inspectingEntity = useStore((state) => state.inspectingEntity)!;
 
   const addComponent = useAddComponent(inspectingEntity);
-  const { getComponentName } = useComponents();
+  const { componentsById } = useComponents();
   const comboboxRef = useRef<HTMLInputElement>(null);
   const handleAddComponent = useCallback(
     (value: TValue) => {
@@ -124,7 +124,7 @@ function AddComponentDialogContent({
         component: selectedComponent.id,
         value,
         onSuccess: () => {
-          const { name, short_name } = getComponentName(selectedComponent.id);
+          const { name, short_name } = componentsById.get(selectedComponent.id) ?? {};
 
           toast({
             description: `Added component ${short_name || name}`,
@@ -261,7 +261,7 @@ function RequiredComponentsMessage({
   const displayComponents = selectedComponentInfo.required_components.filter(
     (id) => !existedComponents.includes(id),
   );
-  const { getComponentName } = useComponents();
+  const { componentsById } = useComponents();
   if (displayComponents.length === 0) {
     return null;
   }
@@ -270,7 +270,7 @@ function RequiredComponentsMessage({
     <FormDescription className="mt-2 flex flex-wrap gap-1">
       <span>Insert this component will also insert</span>
       {displayComponents.map((id) => {
-        const { name, short_name } = getComponentName(id);
+        const { name, short_name } = componentsById.get(id) ?? {};
         return <ComponentBadge key={id}>{short_name || name}</ComponentBadge>;
       })}
     </FormDescription>

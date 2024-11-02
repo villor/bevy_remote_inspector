@@ -1,10 +1,8 @@
 import { Badge } from '@/shared/ui/badge';
-import type { EntityId } from './useEntity';
-import { useEntityName } from './useEntityName';
 import { prettyEntityId } from './entityUtils';
+import type { EntityId } from './useEntity';
 
-export function EntityName({ id }: { id: EntityId }) {
-  const name = useEntityName(id);
+export function EntityName({ id, name }: { id: EntityId; name: string }) {
   return (
     <div className="flex items-center gap-x-2">
       <span className="hyphens-auto break-all">{name}</span>

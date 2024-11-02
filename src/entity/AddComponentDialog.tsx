@@ -143,7 +143,7 @@ function AddComponentDialogContent({
       <DialogHeader>
         <DialogTitle className="inline-flex items-center gap-x-1">
           {'Insert new component to '}
-          <EntityName id={inspectingEntity}></EntityName>
+          <EntityName id={inspectingEntity} name="TODO"></EntityName>
         </DialogTitle>
       </DialogHeader>
       <Combobox

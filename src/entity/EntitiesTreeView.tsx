@@ -1,4 +1,4 @@
-import { type EntityTreeNode, useEntityTrees } from '@/entity/useEntitiesTrees';
+import { type EntityTreeNode, useEntityTree } from '@/entity/useEntityTree';
 import useResizeObserver from 'use-resize-observer';
 import { type EntityId, useEntity } from '@/entity/useEntity';
 import { Button, buttonVariants } from '@/shared/ui/button';
@@ -36,24 +36,32 @@ import {
 import { useReparent } from './useReparent';
 import { useSpawnEntity } from './useSpawnEntity';
 import { useComponents } from '@/component/useComponents';
+import { useEntityQuery, type TaggedEntity } from './useEntityQuery';
 
 const entityTreeCtx = createContext<{
   setNewlySpawnedEntity: (id: EntityId) => void;
 }>({} as any);
 
+type TreeNode = EntityTreeNode<TaggedEntity>;
+
 export const EntitiesTreeView = memo(function EntitiesTreeView() {
-  const entityTrees = useEntityTrees();
+  const { data } = useEntityQuery({
+    data: {
+      option: [bevyTypes.PARENT],
+    },
+  });
+  const { tree: entityTree, entitiesById } = useEntityTree(data ?? []);
+
   const setInspectingEntity = useStore((state) => state.setInspectingEntity);
 
   const inspectingEntity = useStore((state) => state.inspectingEntity);
 
-  const handleOnActive = useCallback((node: NodeApi<EntityTreeNode>) => {
+  const handleOnActive = useCallback((node: NodeApi<TreeNode>) => {
     setInspectingEntity(node.data.id);
   }, []);
 
-  const childParentMap = useStore((state) => state.childParentMap);
   const reparent = useReparent();
-  const handleOnMove: MoveHandler<EntityTreeNode> = useCallback(
+  const handleOnMove: MoveHandler<TreeNode> = useCallback(
     ({ dragNodes, parentNode: newParentNode }) => {
       const node = dragNodes[0];
 
@@ -61,17 +69,17 @@ export const EntitiesTreeView = memo(function EntitiesTreeView() {
         return;
       }
 
-      const oldParentId = childParentMap.get(node.data.id) ?? null;
+      const oldParentId = entitiesById.get(node.data.id)?.id ?? null;
       const newParentId = newParentNode?.data.id ?? null;
       if (oldParentId === newParentId || newParentId === node.data.id) {
         return;
       }
       reparent(node.data.id, newParentId);
     },
-    [childParentMap, reparent],
+    [entitiesById, reparent],
   );
 
-  const tree = useRef<TreeApi<EntityTreeNode> | null>(null);
+  const tree = useRef<TreeApi<TreeNode> | null>(null);
   const [newlySpawnedEntity, setNewlySpawnedEntity] = useState<EntityId | null>(null);
   const ctxValue = useMemo(() => {
     return {
@@ -80,13 +88,13 @@ export const EntitiesTreeView = memo(function EntitiesTreeView() {
   }, [setNewlySpawnedEntity]);
 
   useEffect(() => {
-    if (newlySpawnedEntity && childParentMap.has(newlySpawnedEntity)) {
+    if (newlySpawnedEntity && entitiesById.has(newlySpawnedEntity)) {
       setInspectingEntity(newlySpawnedEntity);
       setNewlySpawnedEntity(null);
     }
-  }, [newlySpawnedEntity, childParentMap]);
+  }, [newlySpawnedEntity, entitiesById]);
 
-  if (entityTrees.length === 0) {
+  if (entityTree.length === 0) {
     return <div className="px-4 py-2">No entities</div>;
   }
 
@@ -101,13 +109,13 @@ export const EntitiesTreeView = memo(function EntitiesTreeView() {
               selection={inspectingEntity ? String(inspectingEntity) : undefined}
               disableMultiSelection
               openByDefault
-              data={entityTrees}
+              data={entityTree}
               onMove={handleOnMove}
               renderCursor={Cursor}
               idAccessor="stringId"
               rowHeight={32}
               paddingBottom={20}
-              renderDragPreview={DragPreview}
+              renderDragPreview={DragPreview(entitiesById)}
               onActivate={handleOnActive}
             >
               {TreeNode}
@@ -120,36 +128,43 @@ export const EntitiesTreeView = memo(function EntitiesTreeView() {
   );
 });
 
-function DragPreview({ mouse, id }: DragPreviewProps) {
-  if (!id || !mouse) {
-    return null;
-  }
-  return (
-    <div className="pointer-events-none fixed top-0 left-0 z-100 h-full w-full">
-      <div
-        className={cn(
-          buttonVariants({
-            size: 'sm',
-            variant: 'default',
-          }),
-          '-translate-y-1/2 absolute flex-grow translate-x-4 justify-start px-1 py-1',
-        )}
-        style={{
-          left: mouse.x,
-          top: mouse.y,
-        }}
-      >
-        <EntityName id={Number(id)}></EntityName>
+function DragPreview(entitiesById: Map<EntityId, TreeNode>) {
+  return ({ mouse, id }: DragPreviewProps) => {
+    if (!id || !mouse) {
+      return null;
+    }
+
+    const entity = entitiesById.get(Number(id))?.entity;
+    if (!entity) return null;
+
+    return (
+      <div className="pointer-events-none fixed top-0 left-0 z-100 h-full w-full">
+        <div
+          className={cn(
+            buttonVariants({
+              size: 'sm',
+              variant: 'default',
+            }),
+            '-translate-y-1/2 absolute flex-grow translate-x-4 justify-start px-1 py-1',
+          )}
+          style={{
+            left: mouse.x,
+            top: mouse.y,
+          }}
+        >
+          <EntityName id={entity.entity} name={entity.name}></EntityName>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 }
 
-const TreeNode = memo(function TreeNode({ node, dragHandle }: NodeRendererProps<EntityTreeNode>) {
+const TreeNode = memo(function TreeNode({ node, dragHandle }: NodeRendererProps<TreeNode>) {
   const nodeId = node.data.id;
   const { level, isSelected, isRoot } = node;
   const hasChildren = !!node.children && node.children.length > 0;
   const isExpanded = node.isOpen;
+  const entity = node.data.entity;
 
   return (
     <div
@@ -184,7 +199,7 @@ const TreeNode = memo(function TreeNode({ node, dragHandle }: NodeRendererProps<
           )}
           style={{ width: 'fit-content' }}
         >
-          <EntityName id={nodeId}></EntityName>
+          <EntityName id={entity.entity} name={entity.name}></EntityName>
         </div>
         <EntityActionMenu id={nodeId} hasChildren={hasChildren} />
       </div>

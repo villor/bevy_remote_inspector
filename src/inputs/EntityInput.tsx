@@ -67,7 +67,7 @@ export const EntityInput = memo(function EntityInput({ path, mode }: EntityInput
 function renderItem(item: { id: number; textValue: string }) {
   return (
     <ComboboxItem {...item}>
-      <EntityName id={item.id}></EntityName>
+      <EntityName id={item.id} name="TODO"></EntityName>
     </ComboboxItem>
   );
 }

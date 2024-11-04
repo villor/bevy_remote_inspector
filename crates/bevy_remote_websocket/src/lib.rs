@@ -25,7 +25,6 @@ use futures_util::{stream::SplitSink, SinkExt, StreamExt};
 use http_body_util::Full;
 use hyper::{
     body::{Bytes, Incoming},
-    header::HeaderValue,
     server::conn::http1,
     service, Method, Request, Response,
 };
@@ -49,15 +48,12 @@ pub const DEFAULT_ADDR: IpAddr = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
 /// The defaults are:
 /// - [`DEFAULT_ADDR`] : 127.0.0.1.
 /// - [`DEFAULT_PORT`] : 15702.
-/// - No `Access-Control-Allowed-Origin` header.
 ///
 pub struct RemoteWebSocketPlugin {
     /// The address that Bevy will bind to.
     address: IpAddr,
     /// The port that Bevy will listen on.
     port: u16,
-    /// Origin that will be included as `Access-Control-Allowed-Origin` in OPTIONS responses. If set to `None`, the header will not be included.
-    cors_origin: Option<String>,
 }
 
 impl Default for RemoteWebSocketPlugin {
@@ -65,7 +61,6 @@ impl Default for RemoteWebSocketPlugin {
         Self {
             address: DEFAULT_ADDR,
             port: DEFAULT_PORT,
-            cors_origin: None,
         }
     }
 }
@@ -74,7 +69,6 @@ impl Plugin for RemoteWebSocketPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(HostAddress(self.address))
             .insert_resource(HostPort(self.port))
-            .insert_resource(CorsOrigin(self.cors_origin.clone()))
             .add_systems(Startup, start_websocket_server);
     }
 }
@@ -90,14 +84,6 @@ impl RemoteWebSocketPlugin {
     #[must_use]
     pub fn with_port(mut self, port: u16) -> Self {
         self.port = port;
-        self
-    }
-    /// Set the origin that will be included as `Access-Control-Allowed-Origin` for OPTIONS responses.
-    ///
-    /// Use `*` to allow any origin. But be aware that this means any website you open will be able to access your locally running Bevy app.
-    #[must_use]
-    pub fn with_cors(mut self, origin: impl Into<String>) -> Self {
-        self.cors_origin = Some(origin.into());
         self
     }
 }
@@ -116,24 +102,17 @@ pub struct HostAddress(pub IpAddr);
 #[derive(Debug, Resource)]
 pub struct HostPort(pub u16);
 
-/// A resource containing the CORS origin that Bevy will include with the
-/// `Access-Control-Allowed-Origin` header in its HTTP responses.
-#[derive(Debug, Resource)]
-pub struct CorsOrigin(pub Option<String>);
-
 /// A system that starts up the Bevy Remote Protocol WebSocket server.
 fn start_websocket_server(
     request_sender: Res<BrpSender>,
     address: Res<HostAddress>,
     remote_port: Res<HostPort>,
-    cors_origin: Res<CorsOrigin>,
 ) {
     IoTaskPool::get()
         .spawn(server_main(
             address.0,
             remote_port.0,
             request_sender.clone(),
-            cors_origin.0.clone(),
         ))
         .detach();
 }
@@ -143,12 +122,10 @@ async fn server_main(
     address: IpAddr,
     port: u16,
     request_sender: Sender<BrpMessage>,
-    cors_origin: Option<String>,
 ) -> AnyhowResult<()> {
     listen(
         Async::<TcpListener>::bind((address, port))?,
         &request_sender,
-        cors_origin,
     )
     .await
 }
@@ -156,16 +133,14 @@ async fn server_main(
 async fn listen(
     listener: Async<TcpListener>,
     request_sender: &Sender<BrpMessage>,
-    cors_origin: Option<String>,
 ) -> AnyhowResult<()> {
     loop {
         let (client, _) = listener.accept().await?;
 
         let request_sender = request_sender.clone();
-        let cors_origin = cors_origin.clone();
         IoTaskPool::get()
             .spawn(async move {
-                let _ = handle_client(client, request_sender, &cors_origin).await;
+                let _ = handle_client(client, request_sender).await;
             })
             .detach();
     }
@@ -174,15 +149,12 @@ async fn listen(
 async fn handle_client(
     client: Async<TcpStream>,
     request_sender: Sender<BrpMessage>,
-    cors_origin: &Option<String>,
 ) -> AnyhowResult<()> {
     http1::Builder::new()
         .timer(SmolTimer::new())
         .serve_connection(
             FuturesIo::new(client),
-            service::service_fn(|request| {
-                process_http_request(request, &request_sender, cors_origin)
-            }),
+            service::service_fn(|request| process_http_request(request, &request_sender)),
         )
         .with_upgrades()
         .await?;
@@ -193,7 +165,6 @@ async fn handle_client(
 async fn process_http_request(
     mut request: Request<Incoming>,
     request_sender: &Sender<BrpMessage>,
-    cors_origin: &Option<String>,
 ) -> anyhow::Result<Response<Full<Bytes>>> {
     if hyper_tungstenite::is_upgrade_request(&request) {
         // Handle WebSocket upgrade
@@ -207,38 +178,27 @@ async fn process_http_request(
             .detach();
 
         Ok(response)
-    } else {
+    } else if request.method() == Method::OPTIONS {
         // Handle OPTIONS request
-        if request.method() == Method::OPTIONS {
-            let mut response = Response::builder()
-                .status(200)
-                .body(Full::new(Bytes::new()))?;
+        let response = Response::builder()
+            .status(200)
+            .body(Full::new(Bytes::new()))?;
 
-            if let Some(cors_origin) = cors_origin {
-                response.headers_mut().insert(
-                    hyper::header::ACCESS_CONTROL_ALLOW_ORIGIN,
-                    HeaderValue::try_from(cors_origin)
-                        .expect("cors_origin is not in a valid header format"),
-                );
-            }
+        Ok(response)
+    } else {
+        // Handle invalid request
+        let response_body = serde_json::to_string(&BrpError {
+            code: error_codes::INVALID_REQUEST,
+            message: "Invalid request. This endpoint only accepts WebSocket connections.".into(),
+            data: None,
+        })?;
 
-            Ok(response)
-        } else {
-            // Handle invalid request
-            let response_body = serde_json::to_string(&BrpError {
-                code: error_codes::INVALID_REQUEST,
-                message: "Invalid request. This endpoint only accepts WebSocket connections."
-                    .into(),
-                data: None,
-            })?;
+        let response = Response::builder()
+            .status(400)
+            .body(Full::new(response_body.into_bytes().into()))
+            .unwrap();
 
-            let response = Response::builder()
-                .status(400)
-                .body(Full::new(response_body.into_bytes().into()))
-                .unwrap();
-
-            Ok(response)
-        }
+        Ok(response)
     }
 }
 

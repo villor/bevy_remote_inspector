@@ -1,0 +1,21 @@
+[package]
+name = "bevy_remote_websocket"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bevy.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+anyhow.workspace = true
+hyper = { version = "1", features = ["server", "http1"] }
+http-body-util = { version = "0.1" }
+futures-util = { version = "0.3", default-features = false }
+tungstenite = { version = "0.24" }
+hyper-tungstenite = { version = "0.15" }
+async-channel = "2"
+
+# dependencies that will not compile on wasm
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+async-io = { version = "2" }
+smol-hyper = { version = "0.1" }

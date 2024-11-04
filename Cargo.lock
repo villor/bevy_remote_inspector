@@ -1094,6 +1094,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_remote_websocket"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-channel",
+ "async-io",
+ "bevy",
+ "futures-util",
+ "http-body-util",
+ "hyper",
+ "hyper-tungstenite",
+ "serde",
+ "serde_json",
+ "smol-hyper",
+ "tungstenite",
+]
+
+[[package]]
 name = "bevy_render"
 version = "0.15.0-rc.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2163,6 +2181,16 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "bevy_remote_inspector",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "example_brp"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "bevy_remote_websocket",
  "serde",
  "serde_json",
 ]

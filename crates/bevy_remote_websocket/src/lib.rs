@@ -44,7 +44,7 @@ pub const DEFAULT_ADDR: IpAddr = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
 ///
 /// The defaults are:
 /// - [`DEFAULT_ADDR`] : 127.0.0.1.
-/// - [`DEFAULT_PORT`] : 15702.
+/// - [`DEFAULT_PORT`] : 15703.
 ///
 pub struct RemoteWebSocketPlugin {
     /// The address that Bevy will bind to.

@@ -1,6 +1,3 @@
-// TODO:
-//  - Add a way to cancel/terminate a +watch
-
 //! BRP transport using JSON-RPC over WebSocket.
 //!
 //! Adding the [`RemoteWebSocketPlugin`] to your [`App`] causes Bevy to accept

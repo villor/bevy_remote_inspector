@@ -1076,6 +1076,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_remote_inspector2"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bevy",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "bevy_remote_stream"
 version = "0.1.0"
 dependencies = [

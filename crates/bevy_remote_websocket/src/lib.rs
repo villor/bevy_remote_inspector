@@ -14,11 +14,16 @@ use bevy::remote::{
     error_codes, BrpBatch, BrpError, BrpMessage, BrpRequest, BrpResponse, BrpResult, BrpSender,
 };
 use bevy::tasks::IoTaskPool;
+use bevy::utils::HashMap;
 use core::{
     net::{IpAddr, Ipv4Addr},
     pin::Pin,
 };
-use futures_util::{stream::SplitSink, SinkExt, StreamExt};
+use futures_util::{
+    future::{select, Either},
+    stream::SplitSink,
+    SinkExt, StreamExt,
+};
 use http_body_util::Full;
 use hyper::{
     body::{Bytes, Incoming},
@@ -36,6 +41,11 @@ pub const DEFAULT_PORT: u16 = 15703;
 
 /// The default host address that Bevy will use for its server.
 pub const DEFAULT_ADDR: IpAddr = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
+
+/// The method path for a `bevy/unwatch` request.
+///
+/// NOTE: If bevy_remote_websocket is upstreamed, this should be moved to builtin_methods and be implemented as a transport-agnostic handler.
+pub const BRP_UNWATCH_METHOD: &str = "bevy/unwatch";
 
 /// Add this plugin to your [`App`] to allow remote connections over WebSocket to inspect and modify entities.
 /// It requires the [`bevy_remote::RemotePlugin`].
@@ -214,6 +224,11 @@ async fn process_websocket_connection(
         .spawn(relay_responses(Box::pin(response_receiver), write_stream))
         .detach();
 
+    let (stream_events_tx, stream_events_rx) = async_channel::bounded(8);
+    IoTaskPool::get()
+        .spawn(manage_watch_streams(stream_events_rx))
+        .detach();
+
     // Read and process incoming requests
     while let Some(message) = read_stream.next().await {
         match message {
@@ -223,6 +238,7 @@ async fn process_websocket_connection(
                         request,
                         request_sender.clone(),
                         response_sender.clone(),
+                        stream_events_tx.clone(),
                     ))
                     .detach();
             }
@@ -244,16 +260,52 @@ async fn relay_responses(
     Ok(())
 }
 
+// Keep track of open streams for `bevy/unwatch`
+// NOTE: If bevy_remote_websocket is upstreamed, this should be moved to builtin_methods and be implemented as a transport-agnostic handler.
+async fn manage_watch_streams(stream_events_rx: Receiver<StreamEvent>) -> AnyhowResult<()> {
+    let mut open_streams = HashMap::new();
+    while let Ok(event) = stream_events_rx.recv().await {
+        match event {
+            StreamEvent::Opened(id, unwatch_tx) => {
+                open_streams.insert(id, unwatch_tx);
+            }
+            StreamEvent::Unwatch(Some(id)) => {
+                if let Some(unwatch_tx) = open_streams.get(&id) {
+                    unwatch_tx.send(true).await?;
+                }
+            }
+            StreamEvent::Unwatch(None) => {
+                for unwatch_tx in open_streams.values() {
+                    unwatch_tx.send(true).await?;
+                }
+            }
+            StreamEvent::Closed(id) => {
+                open_streams.remove(&id);
+            }
+        }
+    }
+
+    Ok(())
+}
+
+enum StreamEvent {
+    Opened(Value, Sender<bool>),
+    Unwatch(Option<Value>),
+    Closed(Value),
+}
+
 async fn process_request_or_batch(
     request: String,
     request_sender: Sender<BrpMessage>,
     response_sender: Sender<Message>,
+    stream_events_tx: Sender<StreamEvent>,
 ) -> AnyhowResult<()> {
     let batch = serde_json::from_str::<BrpBatch>(&request);
 
     let result = match batch {
         Ok(BrpBatch::Single(request)) => {
-            let response = process_single_request(request, &request_sender).await?;
+            let response =
+                process_single_request(request, &request_sender, &stream_events_tx).await?;
             match response {
                 BrpWebSocketResponse::Complete(res) => {
                     BrpWebSocketResponse::Complete(serde_json::to_string(&res)?)
@@ -265,7 +317,8 @@ async fn process_request_or_batch(
             let mut responses = Vec::new();
 
             for request in requests {
-                let response = process_single_request(request, &request_sender).await?;
+                let response =
+                    process_single_request(request, &request_sender, &stream_events_tx).await?;
                 match response {
                     BrpWebSocketResponse::Complete(res) => responses.push(res),
                     BrpWebSocketResponse::Stream(BrpStream { id, .. }) => {
@@ -302,10 +355,27 @@ async fn process_request_or_batch(
             response_sender.send(Message::text(serialized)).await?;
         }
         BrpWebSocketResponse::Stream(mut stream) => {
-            while let Some(result) = stream.rx.next().await {
+            let (unwatch_tx, unwatch_rx) = async_channel::bounded(1);
+
+            // Pass stream.id to the upper "manager" so everyone is aware of this watch
+            if let Some(ref id) = stream.id {
+                stream_events_tx
+                    .send(StreamEvent::Opened(id.clone(), unwatch_tx))
+                    .await?;
+            }
+
+            let mut unwatch_rx = Box::pin(unwatch_rx);
+            while let Either::Right((Some(result), _)) =
+                select(unwatch_rx.next(), stream.rx.next()).await
+            {
                 let response = BrpResponse::new(stream.id.clone(), result);
                 let serialized = serde_json::to_string(&response).unwrap();
                 response_sender.send(Message::text(serialized)).await?;
+            }
+
+            // Tell the upper "manager" that this watch is closed
+            if let Some(id) = stream.id {
+                stream_events_tx.send(StreamEvent::Closed(id)).await?;
             }
         }
     };
@@ -316,6 +386,7 @@ async fn process_request_or_batch(
 async fn process_single_request(
     request: Value,
     request_sender: &Sender<BrpMessage>,
+    stream_events_tx: &Sender<StreamEvent>,
 ) -> AnyhowResult<BrpWebSocketResponse<BrpResponse, BrpStream>> {
     // Reach in and get the request ID early so that we can report it even when parsing fails.
     let id = request.as_object().and_then(|map| map.get("id")).cloned();
@@ -342,6 +413,26 @@ async fn process_single_request(
                 message: String::from("JSON-RPC request requires `\"jsonrpc\": \"2.0\"`"),
                 data: None,
             }),
+        )));
+    }
+
+    // Handle unwatch request
+    // NOTE: If bevy_remote_websocket is upstreamed, this should be moved to builtin_methods and be implemented as a transport-agnostic handler.
+    if request.method == BRP_UNWATCH_METHOD {
+        let unwatch_id = match request.params {
+            Some(Value::Null) => None,
+            Some(params) => Some(params),
+            _ => None,
+        };
+
+        // Communicate upwards that we are closing a watcher
+        stream_events_tx
+            .send(StreamEvent::Unwatch(unwatch_id))
+            .await?;
+
+        return Ok(BrpWebSocketResponse::Complete(BrpResponse::new(
+            request.id,
+            BrpResult::Ok(Value::Bool(true)),
         )));
     }
 

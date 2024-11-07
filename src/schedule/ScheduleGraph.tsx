@@ -55,15 +55,6 @@ export function ScheduleGraph() {
       nodeTypes={NODE_TYPES}
       nodes={nodes}
       edges={edges}
-      onInit={useCallback(
-        (_: ReactFlowInstance<TScheduleNode, TScheduleEdge>) => {
-          getLayoutedElements({
-            'elk.algorithm': 'layered',
-            'elk.direction': 'DOWN',
-          });
-        },
-        [getLayoutedElements],
-      )}
       onEdgesChange={onEdgesChange}
       onNodesChange={onNodesChange}
       colorMode="dark"

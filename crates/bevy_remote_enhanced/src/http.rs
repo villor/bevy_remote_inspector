@@ -8,9 +8,7 @@
 
 #![cfg(not(target_family = "wasm"))]
 
-use crate::{
-    error_codes, BrpBatch, BrpError, BrpMessage, BrpRequest, BrpResponse, BrpResult, BrpSender,
-};
+use crate::{error_codes, BrpBatch, BrpError, BrpMessage, BrpRequest, BrpResponse, BrpSender};
 use anyhow::Result as AnyhowResult;
 use async_channel::{Receiver, Sender};
 use async_io::Async;
@@ -377,32 +375,31 @@ async fn process_single_request(
 
     let watch = request.method.contains("+watch");
     let size = if watch { 8 } else { 1 };
-    let (result_sender, result_receiver) = async_channel::bounded(size);
+    let (response_sender, response_receiver) = async_channel::bounded(size);
 
     let _ = request_sender
         .send(BrpMessage {
+            id: request.id.clone(),
             method: request.method,
             params: request.params,
-            sender: result_sender,
+            sender: response_sender,
         })
         .await;
 
     if watch {
         Ok(BrpHttpResponse::Stream(BrpStream {
             id: request.id,
-            rx: Box::pin(result_receiver),
+            rx: Box::pin(response_receiver),
         }))
     } else {
-        let result = result_receiver.recv().await?;
-        Ok(BrpHttpResponse::Complete(BrpResponse::new(
-            request.id, result,
-        )))
+        let response = response_receiver.recv().await?;
+        Ok(BrpHttpResponse::Complete(response))
     }
 }
 
 struct BrpStream {
     id: Option<Value>,
-    rx: Pin<Box<Receiver<BrpResult>>>,
+    rx: Pin<Box<Receiver<BrpResponse>>>,
 }
 
 impl Body for BrpStream {
@@ -414,9 +411,8 @@ impl Body for BrpStream {
         cx: &mut Context<'_>,
     ) -> Poll<Option<Result<Frame<Self::Data>, Self::Error>>> {
         match self.as_mut().rx.poll_next(cx) {
-            Poll::Ready(result) => match result {
-                Some(result) => {
-                    let response = BrpResponse::new(self.id.clone(), result);
+            Poll::Ready(response) => match response {
+                Some(response) => {
                     let serialized = serde_json::to_string(&response).unwrap();
                     let bytes =
                         Bytes::from(format!("data: {serialized}\n\n").as_bytes().to_owned());

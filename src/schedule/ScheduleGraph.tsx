@@ -3,13 +3,11 @@ import {
   Background,
   Controls,
   ReactFlow,
-  type ReactFlowInstance,
   useEdgesState,
   useNodesState,
   useReactFlow,
 } from '@xyflow/react';
-import { useCallback, useEffect, useRef } from 'react';
-import type { TScheduleEdge, TScheduleNode } from './createSchedulesSlice';
+import { useEffect, useRef } from 'react';
 import { ScheduleNode } from './ScheduleNode';
 import { SetNode } from './SetNode';
 import { SystemNode } from './SystemNode';

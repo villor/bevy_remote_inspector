@@ -10,11 +10,11 @@ use async_channel::{Receiver, Sender};
 use async_io::Async;
 use bevy::app::{App, Plugin, Startup};
 use bevy::ecs::system::{Res, Resource};
-use bevy::remote::{
-    error_codes, BrpBatch, BrpError, BrpMessage, BrpRequest, BrpResponse, BrpResult, BrpSender,
-};
 use bevy::tasks::IoTaskPool;
 use bevy::utils::HashMap;
+use bevy_remote_enhanced::{
+    error_codes, BrpBatch, BrpError, BrpMessage, BrpRequest, BrpResponse, BrpResult, BrpSender,
+};
 use core::{
     net::{IpAddr, Ipv4Addr},
     pin::Pin,
@@ -365,10 +365,9 @@ async fn process_request_or_batch(
             }
 
             let mut unwatch_rx = Box::pin(unwatch_rx);
-            while let Either::Right((Some(result), _)) =
+            while let Either::Right((Some(response), _)) =
                 select(unwatch_rx.next(), stream.rx.next()).await
             {
-                let response = BrpResponse::new(stream.id.clone(), result);
                 let serialized = serde_json::to_string(&response).unwrap();
                 response_sender.send(Message::text(serialized)).await?;
             }
@@ -438,32 +437,31 @@ async fn process_single_request(
 
     let watch = request.method.contains("+watch");
     let size = if watch { 8 } else { 1 };
-    let (result_sender, result_receiver) = async_channel::bounded(size);
+    let (response_sender, response_receiver) = async_channel::bounded(size);
 
     let _ = request_sender
         .send(BrpMessage {
+            id: request.id.clone(),
             method: request.method,
             params: request.params,
-            sender: result_sender,
+            sender: response_sender,
         })
         .await;
 
     if watch {
         Ok(BrpWebSocketResponse::Stream(BrpStream {
             id: request.id,
-            rx: Box::pin(result_receiver),
+            rx: Box::pin(response_receiver),
         }))
     } else {
-        let result = result_receiver.recv().await?;
-        Ok(BrpWebSocketResponse::Complete(BrpResponse::new(
-            request.id, result,
-        )))
+        let response = response_receiver.recv().await?;
+        Ok(BrpWebSocketResponse::Complete(response))
     }
 }
 
 struct BrpStream {
     id: Option<Value>,
-    rx: Pin<Box<Receiver<BrpResult>>>,
+    rx: Pin<Box<Receiver<BrpResponse>>>,
 }
 
 enum BrpWebSocketResponse<C, S> {

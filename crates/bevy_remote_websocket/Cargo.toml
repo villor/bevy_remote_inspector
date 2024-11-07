@@ -14,6 +14,7 @@ futures-util = { version = "0.3", default-features = false }
 tungstenite = { version = "0.24" }
 hyper-tungstenite = { version = "0.15" }
 async-channel = "2"
+bevy_remote_enhanced = { path = "../bevy_remote_enhanced" }
 
 # dependencies that will not compile on wasm
 [target.'cfg(not(target_family = "wasm"))'.dependencies]

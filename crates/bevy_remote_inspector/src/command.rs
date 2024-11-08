@@ -224,7 +224,7 @@ impl Execute for RemoveComponent {
 
     fn execute(
         self,
-        _ctx: &mut InspectorContext,
+        ctx: &mut InspectorContext,
         world: &mut World,
     ) -> anyhow::Result<Self::Output> {
         let component_id = ComponentId::new(self.component);
@@ -234,9 +234,7 @@ impl Execute for RemoveComponent {
 
         drop(entity);
 
-        let mut disabled_components = world.resource_mut::<DisabledComponents>();
-
-        disabled_components.remove(&self.entity);
+        ctx.on_entity_removed(self.entity);
 
         Ok(())
     }

@@ -183,6 +183,7 @@ impl Execute for ToggleComponent {
                         &registry,
                     );
                 } else {
+                    // It's really weird that it still work here because the component val is dynamic type not the concrete type
                     OwningPtr::make(component_val, |ptr| unsafe {
                         entity_mut.insert_by_id(component_id, ptr);
                     });
@@ -443,5 +444,115 @@ impl Execute for SpawnEntity {
         };
 
         Ok(child)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::sync::{Arc, RwLock};
+
+    use crate::{DeepCompareComponents, EntityVisibilities};
+
+    use super::*;
+    use bevy::reflect::{TypeRegistry, TypeRegistryArc};
+
+    #[derive(Component, Reflect, Default)]
+    #[reflect(Component)]
+    struct ComponentReflectComponent(usize);
+
+    #[derive(Component, Reflect, Deserialize, Default)]
+    #[reflect(Deserialize)]
+    struct ComponentReflectDeserialize(usize);
+
+    #[derive(Component, Reflect, Deserialize, Default)]
+    #[reflect(Deserialize)]
+    struct ComponentReflectBoth(usize);
+
+    #[derive(Component, Reflect, Default)]
+    struct ComponentReflectNothing(usize);
+
+    fn create_world() -> World {
+        let mut world = World::default();
+        let mut type_registry = TypeRegistry::default();
+
+        type_registry.register::<ComponentReflectComponent>();
+        type_registry.register::<ComponentReflectDeserialize>();
+        type_registry.register::<ComponentReflectBoth>();
+        type_registry.register::<ComponentReflectNothing>();
+
+        world.insert_resource(DisabledComponents::default());
+        world.insert_resource(DeepCompareComponents::default());
+        world.insert_resource(EntityVisibilities::default());
+        world.insert_resource(AppTypeRegistry(TypeRegistryArc {
+            internal: Arc::new(RwLock::new(type_registry)),
+        }));
+
+        world
+    }
+
+    #[test]
+    fn test_toggle_component() {
+        fn toggle_component<T: Component + Default>() {
+            let mut world = create_world();
+            let entity = world.spawn(T::default()).id();
+
+            // disable
+            InspectorContext::run(&mut world, |ctx, world| {
+                let command = ToggleComponent {
+                    entity,
+                    component: world.register_component::<T>().index(),
+                };
+                let result = command.execute(ctx, world);
+
+                assert!(result.is_ok());
+
+                let entity = world.entity(entity);
+                assert!(!entity.contains::<T>());
+            });
+
+            // enable
+            InspectorContext::run(&mut world, |ctx, world| {
+                let command = ToggleComponent {
+                    entity,
+                    component: world.register_component::<T>().index(),
+                };
+                let result = command.execute(ctx, world);
+                assert!(result.is_ok());
+
+                let entity = world.entity(entity);
+                assert!(entity.contains::<T>());
+            });
+        }
+
+        toggle_component::<ComponentReflectComponent>();
+        toggle_component::<ComponentReflectDeserialize>();
+        toggle_component::<ComponentReflectBoth>();
+        toggle_component::<ComponentReflectNothing>();
+    }
+
+    #[test]
+    fn test_insert_component() {
+        fn insert_component<T: Component>() {
+            let mut world = create_world();
+            let entity = world.spawn_empty().id();
+
+            InspectorContext::run(&mut world, |ctx, world| {
+                let command = InsertComponent {
+                    entity,
+                    component: world.register_component::<T>().index(),
+                    value: serde_json::json!(0),
+                };
+                let result = command.execute(ctx, world);
+                assert!(result.is_ok());
+
+                let entity = world.entity(entity);
+                assert!(entity.contains::<T>());
+            });
+        }
+
+        insert_component::<ComponentReflectComponent>();
+        insert_component::<ComponentReflectDeserialize>();
+        insert_component::<ComponentReflectBoth>();
+        // insert_component::<ComponentReflectNothing>();
     }
 }

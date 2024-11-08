@@ -88,6 +88,7 @@ fn setup(
             MeshMaterial3d(materials.add(Color::srgb_u8(124, 144, 255))),
             Transform::from_xyz(0.0, 0.5, 0.0),
             Cube(1.0),
+            ShouldRotate,
         ))
         .with_children(|parent| {
             parent.spawn(CubeChild(0));
@@ -345,7 +346,8 @@ struct TupleStruct2(Vec3);
 #[derive(Component, Reflect)]
 struct OptionComponent(HashMap<String, usize>);
 
-#[derive(Reflect, Component)]
+#[derive(Reflect, Component, Deserialize)]
+#[reflect(Deserialize)]
 struct SimpleStruct {
     a: usize,
     b: String,

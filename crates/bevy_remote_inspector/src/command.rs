@@ -9,7 +9,7 @@ use bevy::{
 use serde::{de::DeserializeSeed, Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::{DisabledComponents, InspectorContext};
+use crate::InspectorContext;
 
 trait Execute {
     type Output: Serialize;
@@ -18,7 +18,7 @@ trait Execute {
         -> anyhow::Result<Self::Output>;
 }
 
-macro_rules! try_deserialize_req {
+macro_rules! try_deserialize_command {
     ($req:ident, $($method:literal, $kind:ident)*) => {
         match $req.method.as_str() {
             $(
@@ -46,7 +46,7 @@ pub enum Command {
 
 impl Command {
     pub fn try_from_brp(req: BrpRequest) -> anyhow::Result<Self> {
-        try_deserialize_req!(req,
+        try_deserialize_command!(req,
             "update_component", UpdateComponent
             "toggle_component", ToggleComponent
             "remove_component", RemoveComponent

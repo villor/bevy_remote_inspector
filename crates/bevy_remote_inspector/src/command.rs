@@ -449,7 +449,7 @@ impl Execute for SpawnEntity {
 mod test {
     use std::sync::{Arc, RwLock};
 
-    use crate::{DeepCompareComponents, EntityVisibilities};
+    use crate::{DeepCompareComponents, DisabledComponents, EntityVisibilities};
 
     use super::*;
     use bevy::reflect::{TypeRegistry, TypeRegistryArc};

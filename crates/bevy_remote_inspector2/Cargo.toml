@@ -8,6 +8,7 @@ bevy.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 anyhow.workspace = true
+bevy_remote_enhanced = { path = "../bevy_remote_enhanced" }
 
 [features]
 default = ["bevy_render"]

@@ -4,9 +4,9 @@ use bevy::{
         serde::TypedReflectSerializer, ArrayInfo, EnumInfo, ListInfo, MapInfo, OpaqueInfo, SetInfo,
         StructInfo, TupleInfo, TupleStructInfo, TypeInfo, TypeRegistry, VariantInfo,
     },
-    remote::BrpResult,
     utils::TypeIdMap,
 };
+use bevy_remote_enhanced::BrpResult;
 use serde::Serialize;
 use serde_json::{json, Value};
 
@@ -14,21 +14,44 @@ use serde_json::{json, Value};
 pub const INSPECTOR_TYPE_REGISTRY_METHOD: &str = "inspector/type-registry";
 
 /// Any type that is ZST or if has no reflected fields
-#[derive(Default, Deref, DerefMut)]
+#[derive(Default, Deref, DerefMut, Resource)]
 pub struct ZeroSizedTypes(TypeIdMap<()>);
+
+pub fn update_zero_sized_types(
+    app_type_registry: Res<AppTypeRegistry>,
+    mut zsts: ResMut<ZeroSizedTypes>,
+) {
+    if app_type_registry.is_changed() {
+        let type_registry = app_type_registry.read();
+        for registration in type_registry.iter() {
+            match registration.type_info() {
+                TypeInfo::Struct(info) => {
+                    if info.field_len() == 0 {
+                        zsts.insert(info.type_id(), ());
+                    }
+                }
+                TypeInfo::TupleStruct(info) => {
+                    if info.field_len() == 0 {
+                        zsts.insert(info.type_id(), ());
+                    }
+                }
+                _ => (),
+            }
+        }
+    }
+}
 
 pub fn process_type_registry_request(
     In(_): In<Option<Value>>,
     app_type_registry: Res<AppTypeRegistry>,
-    mut zsts: Local<ZeroSizedTypes>,
 ) -> BrpResult {
     let type_registry = app_type_registry.read();
-    let result = serialize_type_registry(&type_registry, &mut zsts);
+    let result = serialize_type_registry(&type_registry);
     let serialized = serde_json::to_value(&*result).unwrap();
     BrpResult::Ok(serialized)
 }
 
-fn serialize_type_registry(registry: &TypeRegistry, zsts: &mut ZeroSizedTypes) -> Vec<Value> {
+fn serialize_type_registry(registry: &TypeRegistry) -> Vec<Value> {
     let types = registry
         .iter()
         .map(|registration| {
@@ -44,15 +67,9 @@ fn serialize_type_registry(registry: &TypeRegistry, zsts: &mut ZeroSizedTypes) -
             let type_name = registration.type_info().type_path();
             let type_info = match registration.type_info() {
                 TypeInfo::Struct(info) => {
-                    if info.field_len() == 0 {
-                        zsts.insert(info.type_id(), ());
-                    }
                     RegistryItem::Struct(StructValue::new(info, default_value))
                 }
                 TypeInfo::TupleStruct(info) => {
-                    if info.field_len() == 0 {
-                        zsts.insert(info.type_id(), ());
-                    }
                     RegistryItem::TupleStruct(TupleStructValue::new(info, default_value))
                 }
                 TypeInfo::Tuple(info) => RegistryItem::Tuple(TupleValue::new(info)),

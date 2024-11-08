@@ -1,16 +1,21 @@
 mod components;
+mod entity;
 mod type_registry;
 
 use bevy::{
-    ecs::{component::ComponentId, entity::EntityHashMap},
+    app::MainScheduleOrder,
+    ecs::{component::ComponentId, entity::EntityHashMap, schedule::ScheduleLabel},
     prelude::*,
-    remote::RemotePlugin,
     utils::{HashMap, HashSet},
 };
+use bevy_remote_enhanced::{RemoteLast, RemotePlugin};
+use entity::{process_entity_watching_request, INSPECTOR_ENTITY_AND_WATCH_METHOD};
 use serde_json::Value;
 
 use components::{process_components_request, INSPECTOR_COMPONENTS_METHOD};
-use type_registry::{process_type_registry_request, INSPECTOR_TYPE_REGISTRY_METHOD};
+use type_registry::{
+    process_type_registry_request, update_zero_sized_types, INSPECTOR_TYPE_REGISTRY_METHOD,
+};
 
 pub struct RemoteInspectorPlugin;
 
@@ -33,9 +38,24 @@ impl Plugin for RemoteInspectorPlugin {
 
         app.init_resource::<DisabledComponents>()
             .init_resource::<EntityVisibilities>()
+            .init_resource::<RemovedEntities>()
             .insert_resource(deep_compare_components);
+
+        app.init_schedule(InspectorPrepare)
+            .world_mut()
+            .resource_mut::<MainScheduleOrder>()
+            .insert_before(RemoteLast, InspectorPrepare);
+
+        app.add_systems(
+            InspectorPrepare,
+            (update_zero_sized_types, detect_removed_entities),
+        );
     }
 }
+
+/// Schedule that contains all systems preparing for inspector request processing.
+#[derive(ScheduleLabel, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct InspectorPrepare;
 
 pub fn extend_brp_methods(remote_plugin: RemotePlugin) -> RemotePlugin {
     remote_plugin
@@ -44,6 +64,10 @@ pub fn extend_brp_methods(remote_plugin: RemotePlugin) -> RemotePlugin {
             process_type_registry_request,
         )
         .with_method(INSPECTOR_COMPONENTS_METHOD, process_components_request)
+        .with_watching_method(
+            INSPECTOR_ENTITY_AND_WATCH_METHOD,
+            process_entity_watching_request,
+        )
 }
 
 #[derive(Resource, Default, DerefMut, Deref)]
@@ -80,6 +104,30 @@ impl DeepCompareComponents {
 
         entry.insert(component_id, new_value.clone());
 
-        return Some(false);
+        Some(false)
     }
+}
+
+#[derive(Resource, Default, Deref, DerefMut)]
+pub struct RemovedEntities(EntityHashMap<()>);
+
+/// System to track and perform clean up for removed entities
+fn detect_removed_entities(
+    mut removed_entities: ResMut<RemovedEntities>,
+    mut disabled_components: ResMut<DisabledComponents>,
+    mut entity_visibilities: ResMut<EntityVisibilities>,
+    mut deep_compare_components: ResMut<DeepCompareComponents>,
+    query: Query<Entity>,
+    mut previous_entities: Local<EntityHashMap<()>>,
+) {
+    removed_entities.clear();
+
+    for (removed_entity, _) in previous_entities.extract_if(|e, _| query.get(*e).is_err()) {
+        removed_entities.insert(removed_entity, ());
+        disabled_components.remove(&removed_entity);
+        entity_visibilities.remove(&removed_entity);
+        deep_compare_components.values.remove(&removed_entity);
+    }
+
+    previous_entities.extend(query.iter().map(|e| (e, ())));
 }

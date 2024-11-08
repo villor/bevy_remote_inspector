@@ -4,7 +4,7 @@ import { type EntityId, useEntity } from '@/entity/useEntity';
 import { Button, buttonVariants } from '@/shared/ui/button';
 import { useStore } from '@/store';
 import clsx from 'clsx';
-import { ChevronRight, Ellipsis, Eye, EyeOff, Plus, Trash2 } from 'lucide-react';
+import { ChevronRight, Ellipsis, Eye, EyeOff, Filter, Plus, Trash2 } from 'lucide-react';
 import {
   createContext,
   type CSSProperties,
@@ -35,6 +35,8 @@ import {
 } from 'react-arborist';
 import { useReparent } from './useReparent';
 import { useSpawnEntity } from './useSpawnEntity';
+import { Input } from '@/shared/ui/input';
+import { single as fuzzyMatch } from 'fuzzysort';
 
 const entityTreeCtx = createContext<{
   setNewlySpawnedEntity: (id: EntityId) => void;
@@ -85,12 +87,41 @@ export const EntitiesTreeView = memo(function EntitiesTreeView() {
     }
   }, [newlySpawnedEntity, childParentMap]);
 
+  const [searchValue, setSearchValue] = useState<string | undefined>();
+  const searchMatch = useCallback((node: NodeApi<EntityTreeNode>, searchTerm: string) => {
+    if (!searchTerm) {
+      return true;
+    }
+    const entityName = useStore.getState().entityNames.get(node.data.id);
+
+    if (!entityName) {
+      return false;
+    }
+
+    const match = fuzzyMatch(searchTerm, entityName);
+
+    if (!match) {
+      return false;
+    }
+
+    return match.score >= 0.5;
+  }, []);
+
   if (entityTrees.length === 0) {
     return <div className="px-4 py-2">No entities</div>;
   }
 
   return (
     <div className="flex h-full w-full flex-col">
+      <div className="flex relative">
+        <Input
+          className="my-1 mx-2 bg-muted/50 hover:bg-accent h-10"
+          placeholder="Search"
+          value={searchValue}
+          onChange={(e) => setSearchValue(e.target.value)}
+        ></Input>
+        <Filter className="size-5 absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground"></Filter>
+      </div>
       <entityTreeCtx.Provider value={ctxValue}>
         <FillFlexParent>
           {(dimens) => (
@@ -108,6 +139,8 @@ export const EntitiesTreeView = memo(function EntitiesTreeView() {
               paddingBottom={20}
               renderDragPreview={DragPreview}
               onActivate={handleOnActive}
+              searchTerm={searchValue}
+              searchMatch={searchMatch}
             >
               {TreeNode}
             </Tree>

@@ -37,9 +37,6 @@
         "noNonNullAssertion": "off",
         "useSelfClosingElements": "off",
         "noUnusedTemplateLiteral": "off"
-      },
-      "nursery": {
-        "useSortedClasses": "error"
       }
     }
   },

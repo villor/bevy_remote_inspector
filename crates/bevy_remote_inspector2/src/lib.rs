@@ -9,12 +9,15 @@ use bevy::{
     utils::{HashMap, HashSet},
 };
 use bevy_remote_enhanced::{RemoteLast, RemotePlugin};
-use entity::{process_entity_watching_request, INSPECTOR_ENTITY_AND_WATCH_METHOD};
+use entity::{
+    process_entity_watching_request, EntitiesByWatcher, INSPECTOR_ENTITY_AND_WATCH_METHOD,
+};
 use serde_json::Value;
 
 use components::{process_components_request, INSPECTOR_COMPONENTS_METHOD};
 use type_registry::{
-    process_type_registry_request, update_zero_sized_types, INSPECTOR_TYPE_REGISTRY_METHOD,
+    process_type_registry_request, update_zero_sized_types, ZeroSizedTypes,
+    INSPECTOR_TYPE_REGISTRY_METHOD,
 };
 
 pub struct RemoteInspectorPlugin;
@@ -39,6 +42,8 @@ impl Plugin for RemoteInspectorPlugin {
         app.init_resource::<DisabledComponents>()
             .init_resource::<EntityVisibilities>()
             .init_resource::<RemovedEntities>()
+            .init_resource::<EntitiesByWatcher>()
+            .init_resource::<ZeroSizedTypes>()
             .insert_resource(deep_compare_components);
 
         app.init_schedule(InspectorPrepare)

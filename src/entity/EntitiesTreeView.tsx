@@ -87,7 +87,7 @@ export const EntitiesTreeView = memo(function EntitiesTreeView() {
     }
   }, [newlySpawnedEntity, childParentMap]);
 
-  const [searchValue, setSearchValue] = useState<string | undefined>();
+  const searchValue = useStore((state) => state.entitySearch);
   const searchMatch = useCallback((node: NodeApi<EntityTreeNode>, searchTerm: string) => {
     if (!searchTerm) {
       return true;
@@ -104,7 +104,7 @@ export const EntitiesTreeView = memo(function EntitiesTreeView() {
       return false;
     }
 
-    return match.score >= 0.5;
+    return match.score >= 0.3;
   }, []);
 
   if (entityTrees.length === 0) {
@@ -118,7 +118,7 @@ export const EntitiesTreeView = memo(function EntitiesTreeView() {
           className="my-1 mx-2 bg-muted/50 hover:bg-accent h-10"
           placeholder="Search"
           value={searchValue}
-          onChange={(e) => setSearchValue(e.target.value)}
+          onChange={(e) => useStore.setState({ entitySearch: e.target.value })}
         ></Input>
         <Filter className="size-5 absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground"></Filter>
       </div>

@@ -50,7 +50,9 @@ const SCORE_COLOR: Color = Color::srgb(1.0, 0.5, 0.5);
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_plugins(RemoteInspectorPlugins)
+        .add_plugins(bevy_remote_inspector::RemoteInspectorPlugins)
+        .add_plugins(bevy_remote_inspector2::RemoteInspectorPlugin)
+        .add_plugins(bevy_remote_websocket::RemoteWebSocketPlugin::default())
         // .add_plugins(
         //     stepping::SteppingPlugin::default()
         //         .add_schedule(Update)

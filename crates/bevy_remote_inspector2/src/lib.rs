@@ -73,7 +73,7 @@ pub struct InspectorPrepare;
 #[derive(Debug, Hash, PartialEq, Eq, Clone, SystemSet)]
 pub struct InspectorCleanup;
 
-pub fn extend_brp_methods(remote_plugin: RemotePlugin) -> RemotePlugin {
+fn extend_brp_methods(remote_plugin: RemotePlugin) -> RemotePlugin {
     remote_plugin
         .with_method(
             INSPECTOR_TYPE_REGISTRY_METHOD,

@@ -11,3 +11,6 @@ bevy = { workspace = true, default-features = true, features = [
 serde.workspace = true
 serde_json.workspace = true
 bevy_remote_inspector = { path = "../../crates/bevy_remote_inspector" }
+bevy_remote_websocket = { path = "../../crates/bevy_remote_websocket" }
+bevy_remote_enhanced = { path = "../../crates/bevy_remote_enhanced" }
+bevy_remote_inspector2 = { path = "../../crates/bevy_remote_inspector2" }

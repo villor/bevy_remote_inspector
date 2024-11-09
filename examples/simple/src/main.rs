@@ -8,14 +8,15 @@ use bevy::{
     prelude::*,
     utils::{HashMap, HashSet},
 };
-use bevy_remote_inspector::RemoteInspectorPlugins;
 use serde::{Deserialize, Serialize};
 
 fn main() {
     let mut app = App::new();
 
     app.add_plugins(DefaultPlugins)
-        .add_plugins(RemoteInspectorPlugins)
+        .add_plugins(bevy_remote_inspector::RemoteInspectorPlugins)
+        .add_plugins(bevy_remote_inspector2::RemoteInspectorPlugin)
+        .add_plugins(bevy_remote_websocket::RemoteWebSocketPlugin::default())
         .add_systems(Startup, setup)
         .add_systems(
             Update,

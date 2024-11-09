@@ -7,7 +7,9 @@ use bevy::{
     reflect::{serde::TypedReflectSerializer, ReflectFromPtr, TypeRegistry},
     utils::{HashMap, HashSet},
 };
-use bevy_remote_enhanced::{BrpResult, RemoteWatchingRequestId, RemoteWatchingSystemParams};
+use bevy_remote_enhanced::{
+    BrpResult, RemoteWatchingRequestId, RemoteWatchingRequests, RemoteWatchingSystemParams,
+};
 use serde::Serialize;
 use serde_json::Value;
 
@@ -46,6 +48,18 @@ pub struct TrackedEntity {
 
 #[derive(Resource, Default, Deref, DerefMut)]
 pub struct EntitiesByWatcher(HashMap<RemoteWatchingRequestId, EntityHashMap<HashSet<ComponentId>>>);
+
+/// System that removes any tracking info when a watching request is closed
+pub fn clean_up_closed_entity_watcher(
+    mut entities_by_watcher: ResMut<EntitiesByWatcher>,
+    watching_requests: Res<RemoteWatchingRequests>,
+) {
+    for (message, watch_id, _) in watching_requests.iter() {
+        if message.sender.is_closed() {
+            entities_by_watcher.remove(watch_id);
+        }
+    }
+}
 
 pub fn process_entity_watching_request(
     In((watch_id, _)): In<RemoteWatchingSystemParams>,

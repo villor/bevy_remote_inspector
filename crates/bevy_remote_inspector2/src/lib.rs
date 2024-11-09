@@ -3,14 +3,14 @@ mod entity;
 mod type_registry;
 
 use bevy::{
-    app::MainScheduleOrder,
-    ecs::{component::ComponentId, entity::EntityHashMap, schedule::ScheduleLabel},
+    ecs::{component::ComponentId, entity::EntityHashMap, schedule::IntoSystemSetConfigs},
     prelude::*,
     utils::{HashMap, HashSet},
 };
-use bevy_remote_enhanced::{RemoteLast, RemotePlugin};
+use bevy_remote_enhanced::{RemoteLast, RemotePlugin, RemoteSet};
 use entity::{
-    process_entity_watching_request, EntitiesByWatcher, INSPECTOR_ENTITY_AND_WATCH_METHOD,
+    clean_up_closed_entity_watcher, process_entity_watching_request, EntitiesByWatcher,
+    INSPECTOR_ENTITY_AND_WATCH_METHOD,
 };
 use serde_json::Value;
 
@@ -46,21 +46,32 @@ impl Plugin for RemoteInspectorPlugin {
             .init_resource::<ZeroSizedTypes>()
             .insert_resource(deep_compare_components);
 
-        app.init_schedule(InspectorPrepare)
-            .world_mut()
-            .resource_mut::<MainScheduleOrder>()
-            .insert_before(RemoteLast, InspectorPrepare);
-
-        app.add_systems(
-            InspectorPrepare,
-            (update_zero_sized_types, detect_removed_entities),
+        app.configure_sets(
+            RemoteLast,
+            (
+                InspectorPrepare.before(RemoteSet::ProcessRequests),
+                InspectorCleanup
+                    .after(RemoteSet::ProcessRequests)
+                    .before(RemoteSet::Cleanup),
+            ),
+        )
+        .add_systems(
+            RemoteLast,
+            (
+                (update_zero_sized_types, detect_removed_entities).in_set(InspectorPrepare),
+                clean_up_closed_entity_watcher.in_set(InspectorCleanup),
+            ),
         );
     }
 }
 
-/// Schedule that contains all systems preparing for inspector request processing.
-#[derive(ScheduleLabel, Debug, Clone, PartialEq, Eq, Hash)]
+/// System set that runs before BRP request processing.
+#[derive(Debug, Hash, PartialEq, Eq, Clone, SystemSet)]
 pub struct InspectorPrepare;
+
+/// System set that runs between BRP request processing and cleanup.
+#[derive(Debug, Hash, PartialEq, Eq, Clone, SystemSet)]
+pub struct InspectorCleanup;
 
 pub fn extend_brp_methods(remote_plugin: RemotePlugin) -> RemotePlugin {
     remote_plugin

@@ -18,6 +18,8 @@ fn main() {
         .add_plugins(bevy_remote_inspector2::RemoteInspectorPlugin)
         .add_plugins(bevy_remote_websocket::RemoteWebSocketPlugin::default())
         .add_systems(Startup, setup)
+        .configure_sets(Update, TestSet2.before(TestSet))
+        .configure_sets(Update, TestSet.after(TestSet2))
         .add_systems(
             Update,
             (
@@ -25,7 +27,9 @@ fn main() {
                 add_cube_children.run_if(input_just_pressed(KeyCode::KeyA)),
                 remove_cube_children.run_if(input_just_pressed(KeyCode::KeyS)),
                 update_text,
-            ),
+            )
+                .chain()
+                .in_set(TestSet),
         )
         .register_type::<Cube>()
         .register_type::<CubeChild>()
@@ -47,21 +51,13 @@ fn main() {
 
     app.world_mut().register_component::<ShouldRotate>();
 
-    app.add_systems(Startup, |world: &mut World| {
-        let id = world.spawn_empty().id();
-        world.insert_resource(MyRes(id));
-    })
-    .add_systems(PostStartup, |world: &mut World| {
-        let id = world.resource::<MyRes>().0;
-
-        world.entity_mut(id).insert(Text::new("Hello, Bevy!"));
-    });
-
     app.run();
 }
 
-#[derive(Resource)]
-struct MyRes(Entity);
+#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
+struct TestSet;
+#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
+struct TestSet2;
 
 #[derive(Component, Reflect, Debug)]
 struct MyComponent {
@@ -93,6 +89,7 @@ fn setup(
             MeshMaterial3d(materials.add(Color::srgb_u8(124, 144, 255))),
             Transform::from_xyz(0.0, 0.5, 0.0),
             Cube(1.0),
+            ShouldRotate,
         ))
         .with_children(|parent| {
             parent.spawn(CubeChild(0));
@@ -350,7 +347,8 @@ struct TupleStruct2(Vec3);
 #[derive(Component, Reflect)]
 struct OptionComponent(HashMap<String, usize>);
 
-#[derive(Reflect, Component)]
+#[derive(Reflect, Component, Deserialize)]
+#[reflect(Deserialize)]
 struct SimpleStruct {
     a: usize,
     b: String,

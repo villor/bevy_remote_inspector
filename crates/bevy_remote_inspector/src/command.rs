@@ -9,7 +9,7 @@ use bevy::{
 use serde::{de::DeserializeSeed, Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::{DisabledComponents, InspectorContext};
+use crate::InspectorContext;
 
 trait Execute {
     type Output: Serialize;
@@ -18,7 +18,7 @@ trait Execute {
         -> anyhow::Result<Self::Output>;
 }
 
-macro_rules! try_deserialize_req {
+macro_rules! try_deserialize_command {
     ($req:ident, $($method:literal, $kind:ident)*) => {
         match $req.method.as_str() {
             $(
@@ -46,7 +46,7 @@ pub enum Command {
 
 impl Command {
     pub fn try_from_brp(req: BrpRequest) -> anyhow::Result<Self> {
-        try_deserialize_req!(req,
+        try_deserialize_command!(req,
             "update_component", UpdateComponent
             "toggle_component", ToggleComponent
             "remove_component", RemoveComponent
@@ -183,6 +183,7 @@ impl Execute for ToggleComponent {
                         &registry,
                     );
                 } else {
+                    // It's really weird that it still work here because the component val is dynamic type not the concrete type
                     OwningPtr::make(component_val, |ptr| unsafe {
                         entity_mut.insert_by_id(component_id, ptr);
                     });
@@ -223,7 +224,7 @@ impl Execute for RemoveComponent {
 
     fn execute(
         self,
-        _ctx: &mut InspectorContext,
+        ctx: &mut InspectorContext,
         world: &mut World,
     ) -> anyhow::Result<Self::Output> {
         let component_id = ComponentId::new(self.component);
@@ -233,9 +234,7 @@ impl Execute for RemoveComponent {
 
         drop(entity);
 
-        let mut disabled_components = world.resource_mut::<DisabledComponents>();
-
-        disabled_components.remove(&self.entity);
+        ctx.on_entity_removed(self.entity);
 
         Ok(())
     }
@@ -443,5 +442,115 @@ impl Execute for SpawnEntity {
         };
 
         Ok(child)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::sync::{Arc, RwLock};
+
+    use crate::{DeepCompareComponents, DisabledComponents, EntityVisibilities};
+
+    use super::*;
+    use bevy::reflect::{TypeRegistry, TypeRegistryArc};
+
+    #[derive(Component, Reflect, Default)]
+    #[reflect(Component)]
+    struct ComponentReflectComponent(usize);
+
+    #[derive(Component, Reflect, Deserialize, Default)]
+    #[reflect(Deserialize)]
+    struct ComponentReflectDeserialize(usize);
+
+    #[derive(Component, Reflect, Deserialize, Default)]
+    #[reflect(Deserialize)]
+    struct ComponentReflectBoth(usize);
+
+    #[derive(Component, Reflect, Default)]
+    struct ComponentReflectNothing(usize);
+
+    fn create_world() -> World {
+        let mut world = World::default();
+        let mut type_registry = TypeRegistry::default();
+
+        type_registry.register::<ComponentReflectComponent>();
+        type_registry.register::<ComponentReflectDeserialize>();
+        type_registry.register::<ComponentReflectBoth>();
+        type_registry.register::<ComponentReflectNothing>();
+
+        world.insert_resource(DisabledComponents::default());
+        world.insert_resource(DeepCompareComponents::default());
+        world.insert_resource(EntityVisibilities::default());
+        world.insert_resource(AppTypeRegistry(TypeRegistryArc {
+            internal: Arc::new(RwLock::new(type_registry)),
+        }));
+
+        world
+    }
+
+    #[test]
+    fn test_toggle_component() {
+        fn toggle_component<T: Component + Default>() {
+            let mut world = create_world();
+            let entity = world.spawn(T::default()).id();
+
+            // disable
+            InspectorContext::run(&mut world, |ctx, world| {
+                let command = ToggleComponent {
+                    entity,
+                    component: world.register_component::<T>().index(),
+                };
+                let result = command.execute(ctx, world);
+
+                assert!(result.is_ok());
+
+                let entity = world.entity(entity);
+                assert!(!entity.contains::<T>());
+            });
+
+            // enable
+            InspectorContext::run(&mut world, |ctx, world| {
+                let command = ToggleComponent {
+                    entity,
+                    component: world.register_component::<T>().index(),
+                };
+                let result = command.execute(ctx, world);
+                assert!(result.is_ok());
+
+                let entity = world.entity(entity);
+                assert!(entity.contains::<T>());
+            });
+        }
+
+        toggle_component::<ComponentReflectComponent>();
+        toggle_component::<ComponentReflectDeserialize>();
+        toggle_component::<ComponentReflectBoth>();
+        toggle_component::<ComponentReflectNothing>();
+    }
+
+    #[test]
+    fn test_insert_component() {
+        fn insert_component<T: Component>() {
+            let mut world = create_world();
+            let entity = world.spawn_empty().id();
+
+            InspectorContext::run(&mut world, |ctx, world| {
+                let command = InsertComponent {
+                    entity,
+                    component: world.register_component::<T>().index(),
+                    value: serde_json::json!(0),
+                };
+                let result = command.execute(ctx, world);
+                assert!(result.is_ok());
+
+                let entity = world.entity(entity);
+                assert!(entity.contains::<T>());
+            });
+        }
+
+        insert_component::<ComponentReflectComponent>();
+        insert_component::<ComponentReflectDeserialize>();
+        insert_component::<ComponentReflectBoth>();
+        // insert_component::<ComponentReflectNothing>();
     }
 }

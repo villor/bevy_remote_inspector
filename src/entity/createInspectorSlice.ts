@@ -11,6 +11,7 @@ export type InspectorSlice = {
     component: ComponentId,
     collapsed: boolean,
   ) => void;
+  entitySearch?: string;
 };
 
 export const createInspectorSlice: CreateSlice<InspectorSlice> = (set, get) => ({

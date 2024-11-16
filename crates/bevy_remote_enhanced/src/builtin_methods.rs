@@ -196,7 +196,7 @@ pub struct BrpListParams {
 /// `bevy/unwatch`: Cancels the watcher with the supplied `watch_id`.
 /// If no `watch_id` is supplied, all running watchers will be canceled.
 ///
-/// The server responds with a result of `true` if the cancel was successful.
+/// The server responds with a null.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct BrpUnwatchParams {
     /// The ID of the watcher to unwatch.
@@ -829,7 +829,7 @@ pub fn process_unwatch_request(
         }
     }
 
-    Ok(Value::Bool(true))
+    Ok(Value::Null)
 }
 
 /// Immutably retrieves an entity from the [`World`], returning an error if the

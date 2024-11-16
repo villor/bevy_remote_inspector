@@ -7,9 +7,7 @@ use bevy::{
     reflect::{serde::TypedReflectSerializer, ReflectFromPtr, TypeRegistry},
     utils::{HashMap, HashSet},
 };
-use bevy_remote_enhanced::{
-    BrpResult, RemoteWatchingRequestId, RemoteWatchingRequests, RemoteWatchingSystemParams,
-};
+use bevy_remote_enhanced::{BrpResult, RemoteWatchingRequestId, RemoteWatchingSystemParams};
 use serde::Serialize;
 use serde_json::Value;
 
@@ -46,34 +44,43 @@ pub struct TrackedEntity {
     mutation: EntityMutation,
 }
 
-#[derive(Resource, Default, Deref, DerefMut)]
-pub struct EntitiesByWatcher(HashMap<RemoteWatchingRequestId, EntityHashMap<HashSet<ComponentId>>>);
-
-/// System that removes any tracking info when a watching request is closed
-pub fn clean_up_closed_entity_watcher(
-    mut entities_by_watcher: ResMut<EntitiesByWatcher>,
-    watching_requests: Res<RemoteWatchingRequests>,
-) {
-    for (message, watch_id, _) in watching_requests.iter() {
-        if message.sender.is_closed() {
-            entities_by_watcher.remove(watch_id);
-        }
-    }
+#[derive(Default)]
+pub struct EntityWatcherState {
+    ran_this_tick: bool,
+    entities: EntityHashMap<HashSet<ComponentId>>,
 }
+
+#[derive(Resource, Default, Deref, DerefMut)]
+pub struct OngoingEntityWatchers(HashMap<RemoteWatchingRequestId, EntityWatcherState>);
 
 pub fn process_entity_watching_request(
     In((watch_id, _)): In<RemoteWatchingSystemParams>,
     world: &mut World,
 ) -> BrpResult<Option<Value>> {
-    let events = world.resource_scope(|world, mut entities_by_watcher: Mut<EntitiesByWatcher>| {
-        let entities = entities_by_watcher.entry(watch_id).or_default();
-        EntityContext::run(world, |ctx, world| track_entities(entities, world, ctx))
-    });
+    let events = world.resource_scope(
+        |world, mut ongoing_entity_watchers: Mut<OngoingEntityWatchers>| {
+            let state = ongoing_entity_watchers.entry(watch_id).or_default();
+            state.ran_this_tick = true;
+            EntityContext::run(world, |ctx, world| {
+                track_entities(&mut state.entities, world, ctx)
+            })
+        },
+    );
 
     if events.is_empty() {
         BrpResult::Ok(None)
     } else {
         BrpResult::Ok(Some(serde_json::to_value(&*events).unwrap()))
+    }
+}
+
+/// System that removes any tracking info when a watching request is closed
+pub fn clean_up_closed_entity_watchers(world: &mut World) {
+    let mut watchers = world.resource_mut::<OngoingEntityWatchers>();
+    let _ = watchers.extract_if(|_, state| !state.ran_this_tick);
+
+    for (_, state) in watchers.iter_mut() {
+        state.ran_this_tick = false;
     }
 }
 

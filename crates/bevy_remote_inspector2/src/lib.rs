@@ -9,7 +9,7 @@ use bevy::{
 };
 use bevy_remote_enhanced::{RemoteLast, RemotePlugin, RemoteSet};
 use entity::{
-    clean_up_closed_entity_watcher, process_entity_watching_request, EntitiesByWatcher,
+    clean_up_closed_entity_watchers, process_entity_watching_request, OngoingEntityWatchers,
     INSPECTOR_ENTITY_AND_WATCH_METHOD,
 };
 use serde_json::Value;
@@ -42,7 +42,7 @@ impl Plugin for RemoteInspectorPlugin {
         app.init_resource::<DisabledComponents>()
             .init_resource::<EntityVisibilities>()
             .init_resource::<RemovedEntities>()
-            .init_resource::<EntitiesByWatcher>()
+            .init_resource::<OngoingEntityWatchers>()
             .init_resource::<ZeroSizedTypes>()
             .insert_resource(deep_compare_components);
 
@@ -59,7 +59,7 @@ impl Plugin for RemoteInspectorPlugin {
             RemoteLast,
             (
                 (update_zero_sized_types, detect_removed_entities).in_set(InspectorPrepare),
-                clean_up_closed_entity_watcher.in_set(InspectorCleanup),
+                clean_up_closed_entity_watchers.in_set(InspectorCleanup),
             ),
         );
     }

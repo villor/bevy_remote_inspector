@@ -559,7 +559,7 @@ impl RemoteMethods {
 pub type RemoteWatchingRequestId = u32;
 
 /// Holds the [`BrpMessage`]'s of all ongoing watching requests along with their IDs and handlers.
-#[derive(Debug, Resource, Deref, Default)]
+#[derive(Debug, Resource, Default)]
 pub struct RemoteWatchingRequests(
     Vec<(
         BrpMessage,

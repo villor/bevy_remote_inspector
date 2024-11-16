@@ -10,6 +10,5 @@ Fork of `bevy_remote` to extend its functionality to support `bevy_remote_inspec
 - Adds `bevy/unwatch` method for unwatching any ongoing +watch requests with the supplied `watch_id`. Necessary for streaming transports like WebSocket where we can't just close the connection.
 - Makes `RemoteLast` system schedule public to allow proper scheduling of custom systems.
 - Adds public `RemoteSet` system set to allow custom system ordering against BRP systems.
-- Derive `Deref` for `RemoteWatchingRequests` to allow custom systems to access the current watching requests. Enables detecting if a watcher runs for the first time, or when the watcher is closed.
 
 _This crate is meant as a temporary band-aid, and will be archived if/when the functionality is upstreamed or replaced with better solutions._
